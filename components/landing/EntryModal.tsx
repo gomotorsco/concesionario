@@ -1,77 +1,66 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import LeadForm from "@/components/landing/LeadForm";
 
-type Status = "idle" | "loading" | "success" | "error";
+export default function EntryModal() {
+  const [open, setOpen] = useState(false);
 
-type LeadFormProps = {
-  compact?: boolean;
-};
+  useEffect(() => {
+    if (typeof window === "undefined") return;
 
-export default function LeadForm({ compact = false }: LeadFormProps) {
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phoneCode, setPhoneCode] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
-  const [province, setProvince] = useState("");
-  const [city, setCity] = useState("");
-  const [contactChannel, setContactChannel] = useState("");
-  const [contactFrom, setContactFrom] = useState("");
-  const [contactTo, setContactTo] = useState("");
-  const [status, setStatus] = useState<Status>("idle");
+    const dismissed = window.sessionStorage.getItem("entry-modal-dismissed");
+    if (dismissed) return;
 
-  // Clase base para inputs / selects
-  const inputClass = compact
-    ? "w-full rounded-lg border border-slate-300 bg-white px-2 py-1 text-[12px] placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500"
-    : "w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500";
+    const timer = window.setTimeout(() => {
+      setOpen(true);
+    }, 10000);
 
-  const labelClass = compact
-    ? "text-[11px] font-medium text-slate-700"
-    : "text-xs font-medium text-slate-700";
+    return () => window.clearTimeout(timer);
+  }, []);
 
-  const gridGap = compact ? "gap-2" : "gap-3";
+  function close() {
+    setOpen(false);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("entry-modal-dismissed", "1");
+    }
+  }
 
-  // … aquí mantenés toda tu lógica de submit, handlers, etc.
-  // Sólo hay que asegurarse de usar inputClass/labelClass en los JSX.
+  if (!open) return null;
 
   return (
-    <form /* onSubmit={handleSubmit} etc... */ className={`flex flex-col ${gridGap}`}>
-      {/* Ejemplo de fila */}
-      <div className={`grid grid-cols-1 md:grid-cols-2 ${gridGap}`}>
-        <div>
-          <label className={labelClass}>Nombre y apellido</label>
-          <input
-            className={inputClass}
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-            placeholder="Nombre y apellido"
-          />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-3">
+      <div className="relative w-full max-w-lg mx-auto rounded-2xl bg-white text-slate-900 shadow-xl p-4">
+        
+        <button
+          onClick={close}
+          className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/10 hover:bg-black/20"
+        >
+          ✕
+        </button>
+
+        <p className="text-[10px] tracking-widest text-center text-slate-500 font-semibold mb-1">
+          CONSULTA DE ACCESO A TU 0KM
+        </p>
+
+        <h2 className="text-[15px] font-semibold text-center mb-2">
+          Solicitá acceso a tu próximo 0km en cuotas
+        </h2>
+
+        <p className="text-[11px] text-center text-slate-600 mb-2 leading-tight">
+          Ingresá tus datos para recibir financiación, requisitos y modelos en entrega rápida.
+        </p>
+
+        <p className="text-[11px] font-semibold text-center text-red-600 mb-3 leading-tight">
+          Quedan pocos cupos habilitados esta semana.
+        </p>
+
+        {/* FORMULARIO COMPACTO */}
+        <div className="space-y-2">
+          <LeadForm compact />
         </div>
 
-        <div>
-          <label className={labelClass}>Correo electrónico</label>
-          <input
-            className={inputClass}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Correo electrónico"
-          />
-        </div>
       </div>
-
-      {/* Resto de campos usando siempre inputClass / labelClass */}
-      {/* ... */}
-
-      <button
-        type="submit"
-        className={
-          compact
-            ? "mt-2 w-full rounded-full bg-emerald-600 py-2 text-[13px] font-semibold text-white hover:bg-emerald-700"
-            : "mt-3 w-full rounded-full bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
-        }
-      >
-        Enviar consulta
-      </button>
-    </form>
+    </div>
   );
 }
