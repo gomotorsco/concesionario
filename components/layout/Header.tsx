@@ -12,11 +12,22 @@ export default function EntryModal() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // 1) Auto-open (solo si no lo cerraron)
     const dismissed = window.sessionStorage.getItem("entry-modal-dismissed");
-    if (dismissed) return;
+    if (!dismissed) {
+      const timer = window.setTimeout(() => setOpen(true), 10000);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
 
-    const timer = window.setTimeout(() => setOpen(true), 10000);
-    return () => window.clearTimeout(timer);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // 2) Open manual desde cualquier parte (aunque lo hayan cerrado antes)
+    const onOpen = () => setOpen(true);
+    window.addEventListener("open-entry-modal", onOpen);
+
+    return () => window.removeEventListener("open-entry-modal", onOpen);
   }, []);
 
   function close() {
