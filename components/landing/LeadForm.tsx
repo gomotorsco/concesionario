@@ -87,10 +87,9 @@ export default function LeadForm() {
       setHasUsedCar("");
       setNotes("");
 
-      // Disparo de conversión SOLO en éxito
-      if (typeof window !== "undefined" && (window as any).gtag) {
+    if (typeof window !== "undefined" && (window as any).gtag) {
         (window as any).gtag("event", "conversion", {
-          send_to: "AW-ID_CONVERSION/ETIQUETA_CONVERSION",
+          send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC",
         });
       }
     } catch (err: any) {
@@ -99,6 +98,8 @@ export default function LeadForm() {
       setErrorMsg("Ocurrió un error al enviar el formulario.");
     }
   };
+
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
