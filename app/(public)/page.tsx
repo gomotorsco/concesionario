@@ -209,7 +209,8 @@ export default function LandingPage() {
             usuario vea ejemplos de unidades alcanzadas por el beneficio.
           </p>
 
-          <VehiclesGrid vehicles={vehicles} />
+          <VehiclesGrid whatsappUrl={whatsappUrl} />
+
         </div>
       </section>
 
