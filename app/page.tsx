@@ -169,7 +169,7 @@ export default async function LandingPage() {
               En este momento no hay modelos disponibles para mostrar.
             </p>
           ) : (
-            <VehiclesSection sections={sectionsConAutos} />
+            <VehiclesSection sections={sectionsConAutos} whatsappUrl={whatsappUrl} />
           )}
         </div>
       </section>
