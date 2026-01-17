@@ -116,18 +116,7 @@ export default function LeadForm() {
         />
       </div>
 
-      {/* Email */}
-      <div className="grid grid-cols-1 gap-2">
-        <input
-          type="email"
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={disabled}
-          required
-          placeholder="Correo electrónico"
-        />
-      </div>
+
 
       {/* Teléfono */}
       <div className="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-3">
