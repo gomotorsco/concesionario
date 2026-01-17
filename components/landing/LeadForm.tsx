@@ -178,51 +178,9 @@ export default function LeadForm() {
         </div>
       </div>
 
-      {/* Canal de contacto */}
-      <div className="space-y-2">
-        <select
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-          value={contactChannel}
-          onChange={(e) => setContactChannel(e.target.value)}
-          disabled={disabled}
-        >
-          <option value="">¿Cómo preferís que te contacten?</option>
-          <option value="whatsapp">WhatsApp</option>
-          <option value="telefono">Llamada telefónica</option>
-          <option value="email">Correo electrónico</option>
-        </select>
-      </div>
+      
 
-      {/* Horario de contacto: mañana / tarde / noche */}
-      <div className="space-y-2">
-        <select
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-          value={contactFrom}
-          onChange={(e) => setContactFrom(e.target.value)}
-          disabled={disabled}
-        >
-          <option value="">Horario preferido de contacto</option>
-          <option value="mañana">Mañana</option>
-          <option value="tarde">Tarde</option>
-          <option value="noche">Noche</option>
-        </select>
-      </div>
-
-      {/* Auto usado */}
-      <div className="space-y-2">
-        <select
-          className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-          value={hasUsedCar}
-          onChange={(e) => setHasUsedCar(e.target.value)}
-          disabled={disabled}
-        >
-          <option value="">
-            ¿Tenés auto usado para entregar como parte de pago?
-          </option>
-          <option value="si">Sí</option>
-          <option value="no">No</option>
-        </select>
-      </div>
+    
 
       {/* Comentarios */}
       <div className="space-y-2">
