@@ -143,29 +143,7 @@ export default function LeadForm() {
         </div>
       </div>
 
-      {/* Provincia y localidad */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        <div className="space-y-2">
-          <input
-            type="text"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-            value={province}
-            onChange={(e) => setProvince(e.target.value)}
-            disabled={disabled}
-            placeholder="Provincia"
-          />
-        </div>
-        <div className="space-y-2">
-          <input
-            type="text"
-            className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500"
-            value={city}
-            onChange={(e) => setCity(e.target.value)}
-            disabled={disabled}
-            placeholder="Localidad"
-          />
-        </div>
-      </div>
+     
 
       
 
