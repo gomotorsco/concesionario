@@ -8,7 +8,6 @@ export default function EntryModal() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
     const dismissed = window.sessionStorage.getItem("entry-modal-dismissed");
     if (dismissed) return;
 
@@ -27,26 +26,46 @@ export default function EntryModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-      <div className="relative w-full max-w-md mx-auto rounded-3xl bg-white text-slate-900 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
+        {/* Close */}
         <button
           type="button"
           onClick={close}
-          className="absolute right-3 top-3 z-10 inline-flex h-8 w-8 items-center justify-center rounded-full bg-black/10 text-slate-700 hover:bg-black/20"
+          className="absolute right-3 top-3 z-20 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-slate-700 shadow hover:bg-white"
         >
           <span className="sr-only">Cerrar</span>✕
         </button>
 
-        <div className="px-5 pt-10 pb-5">
-          <h2 className="text-base md:text-lg font-semibold text-slate-900 mb-1 text-center">
-            Reservá tu cupo para el Plan Nacional
-          </h2>
+        {/* Header / Banner */}
+        <div className="relative px-6 pt-6 pb-5">
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-slate-800" />
+          <div className="relative">
+            <div className="mx-auto mb-3 inline-flex items-center justify-center rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold tracking-wide text-white">
+              ÚLTIMOS CUPOS DISPONIBLES
+            </div>
 
-          <p className="text-[12px] font-semibold text-red-600 mb-4 text-center">
-            Últimos cupos disponibles
-          </p>
+            <h2 className="text-center text-lg font-semibold text-white leading-snug">
+              Reservá tu cupo para el Plan Nacional
+            </h2>
 
-          <div className="border border-slate-200 rounded-2xl bg-slate-50 px-3 py-3">
+            <p className="mt-2 text-center text-xs text-white/80">
+              Completá el formulario y un asesor te contacta.
+            </p>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-5">
+          {/* Form container */}
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            {/* Tip: en LeadForm, idealmente pasá className para controlar spacing */}
             <LeadForm />
+          </div>
+
+          {/* Trust footer (mínimo, opcional) */}
+          <div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-slate-500">
+            <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Sitio seguro · Atención por WhatsApp
           </div>
         </div>
       </div>
