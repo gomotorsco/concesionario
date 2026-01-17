@@ -24,12 +24,7 @@ type Section = {
 
 type Props = {
   sections: Section[];
-  whatsappUrl: string; // viene desde DB en la landing y se pasa acá
-};
-
-type SelectedVehicle = {
-  sectionTitle: string;
-  vehicle: Vehicle;
+  whatsappUrl: string; // viene desde DB en la landing
 };
 
 function formatCurrency(v: Vehicle) {
@@ -39,7 +34,11 @@ function formatCurrency(v: Vehicle) {
   return `${symbol}${amount}`;
 }
 
-function buildWhatsAppLink(baseWhatsAppUrl: string, sectionTitle: string, vehicle: Vehicle) {
+function buildWhatsAppLink(
+  baseWhatsAppUrl: string,
+  sectionTitle: string,
+  vehicle: Vehicle
+) {
   const cuota = vehicle.cuota_desde != null ? formatCurrency(vehicle) : null;
   const model = `${sectionTitle} ${vehicle.title}`.trim();
 
@@ -51,6 +50,10 @@ function buildWhatsAppLink(baseWhatsAppUrl: string, sectionTitle: string, vehicl
   return `${baseWhatsAppUrl}?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * Abre el EntryModal (el modal "lindo con logo") disparando un evento global.
+ * EntryModal debe escuchar: window.addEventListener("open-entry-modal", ...)
+ */
 function openEntryModal() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("open-entry-modal"));
@@ -58,6 +61,12 @@ function openEntryModal() {
 }
 
 export default function VehiclesSection({ sections, whatsappUrl }: Props) {
+  // Sin modal interno: evitamos doble modal (EntryModal + modal de autos)
+  const [lastClicked, setLastClicked] = useState<{
+    sectionTitle: string;
+    vehicle: Vehicle;
+  } | null>(null);
+
   return (
     <>
       {/* Grilla de secciones + cards */}
@@ -79,6 +88,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                   >
                     {v.imagen_url && (
                       <div className="aspect-[4/3] w-full overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={v.imagen_url}
                           alt={`${section.title} ${v.title}`}
@@ -108,10 +118,13 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
 
                       {/* CTA principal + alternativa WhatsApp */}
                       <div className="mt-3 space-y-2">
-                        {/* botón reserva (abre modal con form) */}
+                        {/* botón reserva: abre EntryModal (NO abre modal interno) */}
                         <button
                           type="button"
-                          onClick={openEntryModal}
+                          onClick={() => {
+                            setLastClicked({ sectionTitle: section.title, vehicle: v });
+                            openEntryModal();
+                          }}
                           className="w-full inline-flex items-center justify-center rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-xs md:text-sm font-semibold text-white hover:bg-blue-700 transition"
                         >
                           Reservá tu cupo
@@ -140,42 +153,12 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
         ))}
       </div>
 
-      {/* Modal de reserva */}
-              </p>
-            </div>
-
-            {/* mini foto + texto */}
-            <div className="flex gap-3 mb-3">
-              {selected.vehicle.imagen_url && (
-                <img
-                  src={selected.vehicle.imagen_url}
-                  alt={`${selected.sectionTitle} ${selected.vehicle.title}`}
-                  className="h-16 w-24 sm:h-20 sm:w-32 rounded-lg object-cover"
-                />
-              )}
-              <p className="text-xs text-gray-500">
-                Completá tus datos para reservar tu cupo. Si preferís, también podés
-                reservar por WhatsApp y te respondemos más rápido.
-              </p>
-            </div>
-
-            {/* CTA WhatsApp dentro del modal */}
-            <a
-              href={buildWhatsAppLink(whatsappUrl, selected.sectionTitle, selected.vehicle)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full mb-3 inline-flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-2 text-sm font-semibold transition"
-            >
-              Reservar por WhatsApp
-            </a>
-
-            {/* formulario */}
-            <div className="mt-1">
-              <LeadForm />
-            </div>
-          </div>
-        </div>
-      )}
+      {/* 
+        Opcional (no visible): si en el futuro querés que EntryModal muestre el modelo seleccionado,
+        podés guardar `lastClicked` en sessionStorage acá.
+        Por ahora lo dejamos como estado local para potencial uso futuro.
+      */}
+      {lastClicked ? null : null}
     </>
   );
 }
