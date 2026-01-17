@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import LeadForm from "@/components/landing/LeadForm";
 
-import logo from "../../logo.png";
+import logo from "./logo.png";
 
 export default function EntryModal() {
   const [open, setOpen] = useState(false);
