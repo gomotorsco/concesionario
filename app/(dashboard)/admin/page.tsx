@@ -22,8 +22,22 @@ type Metrics = {
   recent: Lead[];
 };
 
+type InternalMetrics = {
+  range: string;
+  since: string;
+  totalEvents: number;
+  totalsByType: Record<string, number>;
+  totalsByOrigin: Record<string, number>;
+  topVehicles: Array<{
+    vehicle_id: number | null;
+    vehicle_name: string | null;
+    count: number;
+  }>;
+};
+
 export default function DashboardPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [internal, setInternal] = useState<InternalMetrics | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -58,9 +72,41 @@ export default function DashboardPage() {
     }
   }
 
+  async function loadInternal(range: "7d" | "30d" = "7d") {
+    try {
+      const r = await fetch(`/api/admin/metrics?range=${range}`, {
+        cache: "no-store",
+      });
+
+      if (!r.ok) {
+        const text = await r.text().catch(() => "");
+        console.error("Error cargando métricas internas:", r.status, text);
+        return;
+      }
+
+      const data = (await r.json()) as InternalMetrics;
+      setInternal({
+        range: data.range ?? range,
+        since: data.since ?? "",
+        totalEvents: data.totalEvents ?? 0,
+        totalsByType: data.totalsByType ?? {},
+        totalsByOrigin: data.totalsByOrigin ?? {},
+        topVehicles: data.topVehicles ?? [],
+      });
+    } catch (e) {
+      console.error("Error cargando métricas internas:", e);
+    }
+  }
+
   useEffect(() => {
     load();
-    const id = setInterval(load, 8000);
+    loadInternal("7d");
+
+    const id = setInterval(() => {
+      load();
+      loadInternal("7d");
+    }, 8000);
+
     return () => clearInterval(id);
   }, []);
 
@@ -149,9 +195,7 @@ export default function DashboardPage() {
         prev
           ? {
               ...prev,
-              recent: prev.recent.map((l) =>
-                l.id === updated.id ? updated : l
-              ),
+              recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)),
             }
           : prev
       );
@@ -201,9 +245,7 @@ export default function DashboardPage() {
         prev
           ? {
               ...prev,
-              recent: prev.recent.map((l) =>
-                l.id === updated.id ? updated : l
-              ),
+              recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)),
             }
           : prev
       );
@@ -250,9 +292,7 @@ export default function DashboardPage() {
         prev
           ? {
               ...prev,
-              recent: prev.recent.map((l) =>
-                l.id === updated.id ? updated : l
-              ),
+              recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)),
             }
           : prev
       );
@@ -324,12 +364,15 @@ export default function DashboardPage() {
   }
 
   // NUEVAS TARJETAS: leads nuevos y en seguimiento
-  const leadsNuevos =
-    metrics.recent?.filter((l) => !l.visto)?.length ?? 0;
+  const leadsNuevos = metrics.recent?.filter((l) => !l.visto)?.length ?? 0;
   const leadsEnSeguimiento =
-    metrics.recent?.filter(
-      (l) => (l.seguimiento ?? "").toString().trim() !== ""
-    ).length ?? 0;
+    metrics.recent?.filter((l) => (l.seguimiento ?? "").toString().trim() !== "")
+      ?.length ?? 0;
+
+  const whatsappTotal = internal?.totalsByType?.["whatsapp_click"] ?? 0;
+  const whatsappVehiculo = internal?.totalsByType?.["whatsapp_click_vehicle"] ?? 0;
+  const modalOpen = internal?.totalsByType?.["entry_modal_open"] ?? 0;
+  const leadSubmitEvent = internal?.totalsByType?.["lead_submit"] ?? 0;
 
   return (
     <div className="space-y-6">
@@ -337,6 +380,67 @@ export default function DashboardPage() {
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card title="Leads nuevos" value={leadsNuevos} />
         <Card title="Leads en seguimiento" value={leadsEnSeguimiento} />
+      </section>
+
+      {/* MÉTRICAS INTERNAS (EVENTS) */}
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-slate-100">
+          Métricas internas
+        </h2>
+
+        {!internal ? (
+          <p className="text-slate-400 text-sm">Cargando métricas internas…</p>
+        ) : (
+          <>
+            <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card title="Clicks WhatsApp (total)" value={whatsappTotal} />
+              <Card title="Clicks WhatsApp (vehículo)" value={whatsappVehiculo} />
+              <Card title="Aperturas modal" value={modalOpen} />
+              <Card title="Leads enviados (event)" value={leadSubmitEvent} />
+            </section>
+
+            <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800">
+              <p className="text-xs text-slate-400 mb-2">
+                Rango: {internal.range} · Desde:{" "}
+                {String(internal.since).slice(0, 10)} · Total eventos:{" "}
+                {internal.totalEvents}
+              </p>
+
+              <h3 className="text-sm font-semibold text-slate-100 mb-2">
+                Top vehículos por WhatsApp
+              </h3>
+
+              {internal.topVehicles.length === 0 ? (
+                <p className="text-slate-400 text-sm">
+                  Todavía no hay clicks por vehículo.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="text-slate-400">
+                      <tr>
+                        <th className="text-left py-2">Vehículo</th>
+                        <th className="text-right py-2">Clicks</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {internal.topVehicles.map((v, idx) => (
+                        <tr key={idx} className="border-t border-slate-800">
+                          <td className="py-2 text-slate-100">
+                            {v.vehicle_name || "Sin nombre"}
+                          </td>
+                          <td className="py-2 text-right text-slate-100 font-semibold">
+                            {v.count}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </section>
 
       {/* ULTIMOS LEADS */}
@@ -432,23 +536,22 @@ export default function DashboardPage() {
                       {selectedLead.created_at && (
                         <p className="text-[10px] text-slate-500 mt-1">
                           Recibido el{" "}
-                          {new Date(
-                            selectedLead.created_at
-                          ).toLocaleString("es-AR", {
-                            day: "2-digit",
-                            month: "2-digit",
-                            year: "numeric",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
+                          {new Date(selectedLead.created_at).toLocaleString(
+                            "es-AR",
+                            {
+                              day: "2-digit",
+                              month: "2-digit",
+                              year: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            }
+                          )}
                         </p>
                       )}
                       {selectedLead.estado && (
                         <p className="text-[10px] text-slate-400 mt-1">
                           Estado:{" "}
-                          <span className="uppercase">
-                            {selectedLead.estado}
-                          </span>
+                          <span className="uppercase">{selectedLead.estado}</span>
                         </p>
                       )}
                     </div>
@@ -459,15 +562,9 @@ export default function DashboardPage() {
                         Datos del formulario
                       </p>
                       <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-                        {Object.entries(
-                          selectedLead as Record<string, any>
-                        )
+                        {Object.entries(selectedLead as Record<string, any>)
                           .filter(([key, value]) => {
-                            if (
-                              value === null ||
-                              value === undefined ||
-                              value === ""
-                            )
+                            if (value === null || value === undefined || value === "")
                               return false;
                             // Campos que no mostramos aquí porque ya se ven arriba o son técnicos
                             if (
@@ -511,9 +608,7 @@ export default function DashboardPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() =>
-                          setEditingSeguimiento((prev) => !prev)
-                        }
+                        onClick={() => setEditingSeguimiento((prev) => !prev)}
                         className="px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900 hover:bg-slate-800 text-[11px] font-medium text-slate-50"
                       >
                         Seguimiento
@@ -551,9 +646,7 @@ export default function DashboardPage() {
                             <input
                               type="text"
                               value={editNombre}
-                              onChange={(e) =>
-                                setEditNombre(e.target.value)
-                              }
+                              onChange={(e) => setEditNombre(e.target.value)}
                               className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
                             />
                           </div>
@@ -564,9 +657,7 @@ export default function DashboardPage() {
                             <input
                               type="email"
                               value={editEmail}
-                              onChange={(e) =>
-                                setEditEmail(e.target.value)
-                              }
+                              onChange={(e) => setEditEmail(e.target.value)}
                               className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
                             />
                           </div>
@@ -577,9 +668,7 @@ export default function DashboardPage() {
                             <input
                               type="text"
                               value={editTelefono}
-                              onChange={(e) =>
-                                setEditTelefono(e.target.value)
-                              }
+                              onChange={(e) => setEditTelefono(e.target.value)}
                               className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
                             />
                           </div>
@@ -624,9 +713,7 @@ export default function DashboardPage() {
                           </p>
                           <textarea
                             value={seguimientoDraft}
-                            onChange={(e) =>
-                              setSeguimientoDraft(e.target.value)
-                            }
+                            onChange={(e) => setSeguimientoDraft(e.target.value)}
                             className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-2 text-xs text-slate-50 min-h-[80px]"
                             placeholder="Escribí aquí el seguimiento de este lead (llamadas, WhatsApp, estado, etc.)"
                           />
@@ -636,9 +723,7 @@ export default function DashboardPage() {
                               disabled={savingSeguimiento}
                               className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
                             >
-                              {savingSeguimiento
-                                ? "Guardando…"
-                                : "Guardar seguimiento"}
+                              {savingSeguimiento ? "Guardando…" : "Guardar seguimiento"}
                             </button>
                             <button
                               type="button"
@@ -652,14 +737,10 @@ export default function DashboardPage() {
                       )}
 
                       {statusMessage && (
-                        <p className="text-[11px] text-emerald-400">
-                          {statusMessage}
-                        </p>
+                        <p className="text-[11px] text-emerald-400">{statusMessage}</p>
                       )}
                       {statusError && (
-                        <p className="text-[11px] text-red-400">
-                          {statusError}
-                        </p>
+                        <p className="text-[11px] text-red-400">{statusError}</p>
                       )}
                     </div>
                   </div>
