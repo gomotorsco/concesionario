@@ -8,7 +8,7 @@ function daysFromRange(range: string) {
   return 7; // default 7d
 }
 
-function daysAgoISO(days: number) {
+function daysAgoISO(days: number){
   const d = new Date();
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString();
