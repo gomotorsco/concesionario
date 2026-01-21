@@ -1,17 +1,18 @@
 "use client";
 
+import { trackGtag, trackInternal } from "@/lib/track";
+
 type Props = {
   whatsappUrl: string;
 };
 
 export default function FloatingActions({ whatsappUrl }: Props) {
   const handleWhatsAppClick = () => {
-    // Tracking: click a WhatsApp desde botón flotante
-    if (typeof window !== "undefined" && typeof window.gtag === "function") {
-      window.gtag("event", "whatsapp_click", {
-        origin: "floating",
-      });
-    }
+    // Google (Ads/GA4)
+    trackGtag("whatsapp_click", { origin: "floating" });
+
+    // Métricas internas (DB)
+    trackInternal({ type: "whatsapp_click", origin: "floating" });
 
     window.open(whatsappUrl, "_blank");
   };
