@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { trackGtag, trackInternal } from "@/lib/track";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -13,7 +14,7 @@ export default function LeadForm() {
   const [city, setCity] = useState("");
   const [contactChannel, setContactChannel] = useState("");
   const [contactFrom, setContactFrom] = useState("");
-  const [contactTo, setContactTo] = useState(""); // se mantiene para no romper el payload
+  const [contactTo, setContactTo] = useState("");
   const [hasUsedCar, setHasUsedCar] = useState("");
   const [notes, setNotes] = useState("");
 
@@ -38,17 +39,15 @@ export default function LeadForm() {
 
     try {
       const body = {
-        // columnas principales de public.leads
         full_name: fullName || null,
         email: email || null,
         phone: buildPhone(),
         province: province || null,
         city: city || null,
         notes: notes || null,
-        // campos flexibles en extra_data
         extra_data: {
           canal_contacto: contactChannel || null,
-          horario_desde: contactFrom || null, // ahora: mañana / tarde / noche
+          horario_desde: contactFrom || null,
           horario_hasta: contactTo || null,
           tiene_auto_usado: hasUsedCar || null,
         },
@@ -74,7 +73,26 @@ export default function LeadForm() {
       // ÉXITO
       setStatus("success");
 
-      // Limpiamos campos
+      // Evento interno (Dashboard)
+      trackInternal({
+        type: "lead_submit",
+        origin: "form",
+        meta: {
+          has_email: !!email,
+          has_name: !!fullName,
+          has_phone: !!buildPhone(),
+        },
+      });
+
+      // Google Ads/GA4 (opcional)
+      trackGtag("lead_submit", { origin: "form" });
+
+      // Conversion Ads (tu snippet)
+      trackGtag("conversion", {
+        send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC",
+      });
+
+      // Limpiar campos
       setFullName("");
       setEmail("");
       setPhoneCode("");
@@ -86,16 +104,6 @@ export default function LeadForm() {
       setContactTo("");
       setHasUsedCar("");
       setNotes("");
-
-      if (typeof window !== "undefined" && (window as any).gtag) {
-        // Evento estándar para reporting
-        (window as any).gtag("event", "lead_submit", { origin: "form" });
-
-        // Conversión Google Ads
-        (window as any).gtag("event", "conversion", {
-          send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC",
-        });
-      }
     } catch (err: any) {
       console.error("Error enviando lead:", err);
       setStatus("error");
@@ -105,7 +113,6 @@ export default function LeadForm() {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Nombre completo */}
       <div className="grid grid-cols-1 gap-2">
         <input
           type="text"
@@ -118,7 +125,6 @@ export default function LeadForm() {
         />
       </div>
 
-      {/* Teléfono */}
       <div className="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-3">
         <div className="space-y-2">
           <input
@@ -143,7 +149,6 @@ export default function LeadForm() {
         </div>
       </div>
 
-      {/* Comentarios */}
       <div className="space-y-2">
         <textarea
           className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-sky-500 min-h-[80px]"
@@ -154,7 +159,6 @@ export default function LeadForm() {
         />
       </div>
 
-      {/* Botón */}
       <button
         type="submit"
         disabled={disabled}
@@ -163,14 +167,12 @@ export default function LeadForm() {
         {status === "loading" ? "Enviando..." : "Enviar consulta"}
       </button>
 
-      {/* Mensaje de éxito inline */}
       {status === "success" && (
         <p className="mt-2 text-sm text-emerald-600">
           ¡Listo! Ya recibimos tus datos; en breve te contactamos.
         </p>
       )}
 
-      {/* Mensaje de error */}
       {status === "error" && errorMsg && (
         <p className="mt-2 text-sm text-red-500">{errorMsg}</p>
       )}

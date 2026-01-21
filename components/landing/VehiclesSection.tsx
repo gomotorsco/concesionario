@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import LeadForm from "@/components/landing/LeadForm";
+import { trackGtag, trackInternal } from "@/lib/track";
 
 type Vehicle = {
   id: number;
@@ -46,13 +47,11 @@ function buildWhatsAppLink(
     ? `Hola! Quiero reservar mi cupo para ${model}. Vi cuotas desde ${cuota}. ¿Me asesorás?`
     : `Hola! Quiero reservar mi cupo para ${model}. ¿Me asesorás?`;
 
-  // baseWhatsAppUrl es tipo https://wa.me/5411....
   return `${baseWhatsAppUrl}?text=${encodeURIComponent(text)}`;
 }
 
 /**
- * Abre el EntryModal (el modal "lindo con logo") disparando un evento global.
- * EntryModal debe escuchar: window.addEventListener("open-entry-modal", ...)
+ * Abre el EntryModal disparando un evento global.
  */
 function openEntryModal() {
   if (typeof window !== "undefined") {
@@ -61,7 +60,6 @@ function openEntryModal() {
 }
 
 export default function VehiclesSection({ sections, whatsappUrl }: Props) {
-  // Sin modal interno: evitamos doble modal (EntryModal + modal de autos)
   const [lastClicked, setLastClicked] = useState<{
     sectionTitle: string;
     vehicle: Vehicle;
@@ -69,7 +67,6 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
 
   return (
     <>
-      {/* Grilla de secciones + cards */}
       <div className="space-y-8">
         {sections.map((section) => (
           <div key={section.id}>
@@ -80,7 +77,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
             <div className="grid gap-4 md:grid-cols-3">
               {section.vehicles.map((v) => {
                 const waLink = buildWhatsAppLink(whatsappUrl, section.title, v);
-                const vehicleName = `${section.title} ${v.title}`.trim();
+                const vehicleLabel = `${section.title} ${v.title}`.trim();
 
                 return (
                   <div
@@ -92,24 +89,22 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={v.imagen_url}
-                          alt={vehicleName}
+                          alt={vehicleLabel}
                           className="w-full h-full object-cover"
                         />
                       </div>
                     )}
 
                     <div className="p-4 flex flex-col gap-2 flex-1">
-                      {/* título + badge tasa */}
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-sm font-semibold text-slate-900">
-                          {vehicleName}
+                          {vehicleLabel}
                         </h4>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                           Tasa 0%*
                         </span>
                       </div>
 
-                      {/* texto de cuotas */}
                       {v.cuota_desde != null && (
                         <p className="text-sm text-slate-700">
                           <span className="font-semibold">Cuotas desde </span>
@@ -119,24 +114,10 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                         </p>
                       )}
 
-                      {/* CTA principal + alternativa WhatsApp */}
                       <div className="mt-3 space-y-2">
-                        {/* botón reserva: abre EntryModal (NO abre modal interno) */}
                         <button
                           type="button"
                           onClick={() => {
-                            // Tracking: intención de contacto vía formulario/modal
-                            if (
-                              typeof window !== "undefined" &&
-                              typeof window.gtag === "function"
-                            ) {
-                              window.gtag("event", "vehicle_interest", {
-                                vehicle_id: v.id,
-                                vehicle_name: vehicleName,
-                                origin: "vehicle_card",
-                              });
-                            }
-
                             setLastClicked({
                               sectionTitle: section.title,
                               vehicle: v,
@@ -148,23 +129,26 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                           Reservá tu cupo
                         </button>
 
-                        {/* alternativa WhatsApp (menos fricción) */}
+                        {/* WhatsApp del vehículo: TRACKING INTERNO + GTAG */}
                         <a
                           href={waLink}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => {
-                            // Tracking: click WhatsApp por vehículo
-                            if (
-                              typeof window !== "undefined" &&
-                              typeof window.gtag === "function"
-                            ) {
-                              window.gtag("event", "whatsapp_click_vehicle", {
-                                vehicle_id: v.id,
-                                vehicle_name: vehicleName,
-                                origin: "vehicle_card",
-                              });
-                            }
+                            // Interno (Dashboard)
+                            trackInternal({
+                              type: "whatsapp_click_vehicle",
+                              origin: "vehicle_card",
+                              vehicle_id: v.id,
+                              vehicle_name: vehicleLabel,
+                            });
+
+                            // Google (opcional)
+                            trackGtag("whatsapp_click_vehicle", {
+                              origin: "vehicle_card",
+                              vehicle_id: v.id,
+                              vehicle_name: vehicleLabel,
+                            });
                           }}
                           className="w-full inline-flex items-center justify-center rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-3 py-2 text-xs md:text-sm font-semibold transition"
                         >
@@ -184,11 +168,6 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
         ))}
       </div>
 
-      {/*
-        Opcional (no visible): si en el futuro querés que EntryModal muestre el modelo seleccionado,
-        podés guardar `lastClicked` en sessionStorage acá.
-        Por ahora lo dejamos como estado local para potencial uso futuro.
-      */}
       {lastClicked ? null : null}
     </>
   );
