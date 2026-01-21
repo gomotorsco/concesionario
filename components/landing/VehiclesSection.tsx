@@ -50,13 +50,29 @@ function buildWhatsAppLink(
   return `${baseWhatsAppUrl}?text=${encodeURIComponent(text)}`;
 }
 
-/**
- * Abre el EntryModal disparando un evento global.
- */
 function openEntryModal() {
   if (typeof window !== "undefined") {
     window.dispatchEvent(new Event("open-entry-modal"));
   }
+}
+
+function getAttributionFromUrl() {
+  if (typeof window === "undefined") return {};
+  const url = new URL(window.location.href);
+  const sp = url.searchParams;
+
+  const utm = {
+    utm_source: sp.get("utm_source"),
+    utm_medium: sp.get("utm_medium"),
+    utm_campaign: sp.get("utm_campaign"),
+    utm_term: sp.get("utm_term"),
+    utm_content: sp.get("utm_content"),
+    gclid: sp.get("gclid"),
+    referrer: document.referrer || null,
+    landing_path: window.location.pathname,
+  };
+
+  return utm;
 }
 
 export default function VehiclesSection({ sections, whatsappUrl }: Props) {
@@ -64,6 +80,22 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
     sectionTitle: string;
     vehicle: Vehicle;
   } | null>(null);
+
+  const saveSelectedVehicleContext = (sectionTitle: string, v: Vehicle) => {
+    if (typeof window === "undefined") return;
+    const model = `${sectionTitle} ${v.title}`.trim();
+
+    const payload = {
+      vehicle_id: v.id,
+      vehicle_name: model,
+      origin: "vehicle_card",
+      attribution: getAttributionFromUrl(),
+      ts: Date.now(),
+    };
+
+    // Contexto para LeadForm (submit)
+    window.sessionStorage.setItem("selected_vehicle_ctx", JSON.stringify(payload));
+  };
 
   return (
     <>
@@ -76,8 +108,8 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
 
             <div className="grid gap-4 md:grid-cols-3">
               {section.vehicles.map((v) => {
+                const model = `${section.title} ${v.title}`.trim();
                 const waLink = buildWhatsAppLink(whatsappUrl, section.title, v);
-                const vehicleLabel = `${section.title} ${v.title}`.trim();
 
                 return (
                   <div
@@ -86,10 +118,9 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                   >
                     {v.imagen_url && (
                       <div className="aspect-[4/3] w-full overflow-hidden">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={v.imagen_url}
-                          alt={vehicleLabel}
+                          alt={model}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -98,7 +129,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                     <div className="p-4 flex flex-col gap-2 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-sm font-semibold text-slate-900">
-                          {vehicleLabel}
+                          {model}
                         </h4>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                           Tasa 0%*
@@ -108,9 +139,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                       {v.cuota_desde != null && (
                         <p className="text-sm text-slate-700">
                           <span className="font-semibold">Cuotas desde </span>
-                          <span className="font-semibold">
-                            {formatCurrency(v)}
-                          </span>
+                          <span className="font-semibold">{formatCurrency(v)}</span>
                         </p>
                       )}
 
@@ -118,10 +147,25 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                         <button
                           type="button"
                           onClick={() => {
-                            setLastClicked({
-                              sectionTitle: section.title,
-                              vehicle: v,
+                            setLastClicked({ sectionTitle: section.title, vehicle: v });
+
+                            // Guardar contexto para el formulario
+                            saveSelectedVehicleContext(section.title, v);
+
+                            // Tracking modal open asociado al vehículo
+                            trackGtag("entry_modal_open", {
+                              origin: "vehicle_card_button",
+                              vehicle_id: v.id,
+                              vehicle_name: model,
                             });
+                            trackInternal({
+                              type: "entry_modal_open",
+                              origin: "vehicle_card_button",
+                              vehicle_id: v.id,
+                              vehicle_name: model,
+                              meta: { ...getAttributionFromUrl() },
+                            });
+
                             openEntryModal();
                           }}
                           className="w-full inline-flex items-center justify-center rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-xs md:text-sm font-semibold text-white hover:bg-blue-700 transition"
@@ -129,26 +173,30 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                           Reservá tu cupo
                         </button>
 
-                        {/* WhatsApp del vehículo: TRACKING INTERNO + GTAG */}
                         <a
                           href={waLink}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={() => {
-                            // Interno (Dashboard)
+                            // Guardar contexto por si luego envía el form
+                            saveSelectedVehicleContext(section.title, v);
+
+                            // Tracking WhatsApp por vehículo
+                            trackGtag("whatsapp_click_vehicle", {
+                              origin: "vehicle_card",
+                              vehicle_id: v.id,
+                              vehicle_name: model,
+                            });
                             trackInternal({
                               type: "whatsapp_click_vehicle",
                               origin: "vehicle_card",
                               vehicle_id: v.id,
-                              vehicle_name: vehicleLabel,
+                              vehicle_name: model,
+                              meta: { ...getAttributionFromUrl(), href: waLink },
                             });
 
-                            // Google (opcional)
-                            trackGtag("whatsapp_click_vehicle", {
-                              origin: "vehicle_card",
-                              vehicle_id: v.id,
-                              vehicle_name: vehicleLabel,
-                            });
+                            // Si querés convertir en Google Ads también (opcional):
+                            // trackGtag("conversion", { send_to: "AW-XXXX/XXXX" });
                           }}
                           className="w-full inline-flex items-center justify-center rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-3 py-2 text-xs md:text-sm font-semibold transition"
                         >
