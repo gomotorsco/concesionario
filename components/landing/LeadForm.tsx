@@ -32,10 +32,40 @@ export default function LeadForm() {
     return null;
   };
 
+  const readSelectedVehicleCtx = () => {
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = window.sessionStorage.getItem("selected_vehicle_ctx");
+      if (!raw) return null;
+      return JSON.parse(raw) as any;
+    } catch {
+      return null;
+    }
+  };
+
+  const readAttribution = () => {
+    if (typeof window === "undefined") return {};
+    const url = new URL(window.location.href);
+    const sp = url.searchParams;
+    return {
+      utm_source: sp.get("utm_source"),
+      utm_medium: sp.get("utm_medium"),
+      utm_campaign: sp.get("utm_campaign"),
+      utm_term: sp.get("utm_term"),
+      utm_content: sp.get("utm_content"),
+      gclid: sp.get("gclid"),
+      referrer: document.referrer || null,
+      landing_path: window.location.pathname,
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
     setErrorMsg(null);
+
+    const vehicleCtx = readSelectedVehicleCtx();
+    const attribution = readAttribution();
 
     try {
       const body = {
@@ -50,6 +80,12 @@ export default function LeadForm() {
           horario_desde: contactFrom || null,
           horario_hasta: contactTo || null,
           tiene_auto_usado: hasUsedCar || null,
+
+          // >>> CONTEXTO (auto + utms)
+          selected_vehicle_id: vehicleCtx?.vehicle_id ?? null,
+          selected_vehicle_name: vehicleCtx?.vehicle_name ?? null,
+          selected_vehicle_origin: vehicleCtx?.origin ?? null,
+          utm: attribution,
         },
       };
 
@@ -73,23 +109,29 @@ export default function LeadForm() {
       // ÉXITO
       setStatus("success");
 
-      // Evento interno (Dashboard)
+      // EVENTO INTERNO
       trackInternal({
         type: "lead_submit",
-        origin: "form",
+        origin: vehicleCtx?.origin ?? "form",
+        vehicle_id: vehicleCtx?.vehicle_id ?? null,
+        vehicle_name: vehicleCtx?.vehicle_name ?? null,
         meta: {
-          has_email: !!email,
-          has_name: !!fullName,
-          has_phone: !!buildPhone(),
+          ...attribution,
+          has_email: Boolean(email),
+          has_phone: Boolean(buildPhone()),
         },
       });
 
-      // Google Ads/GA4 (opcional)
-      trackGtag("lead_submit", { origin: "form" });
-
-      // Conversion Ads (tu snippet)
+      // EVENTO GA/Ads (tu conversión)
       trackGtag("conversion", {
         send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC",
+      });
+
+      // Opcional: evento GA4 “lead_submit”
+      trackGtag("lead_submit", {
+        origin: vehicleCtx?.origin ?? "form",
+        vehicle_id: vehicleCtx?.vehicle_id ?? null,
+        vehicle_name: vehicleCtx?.vehicle_name ?? null,
       });
 
       // Limpiar campos
