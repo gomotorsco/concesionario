@@ -1,11 +1,12 @@
+```tsx
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import LeadForm from "@/components/landing/LeadForm";
 import AnnouncementBar from "@/components/landing/AnnouncementBar";
 import EntryModal from "@/components/landing/EntryModal";
-(import FloatingActions from "@/components/landing/FloatingActions";
+import FloatingActions from "@/components/landing/FloatingActions";
 import HeroWhatsAppButton from "@/components/landing/HeroWhatsAppButton";
-)import VehiclesSection from "@/components/landing/VehiclesSection";
+import VehiclesSection from "@/components/landing/VehiclesSection";
 import { getWhatsappNumber } from "@/lib/config";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -129,7 +130,7 @@ export default async function LandingPage() {
                     Enviar consulta
                   </a>
 
-                  {/* 🔴 WhatsApp HERO – TRACKING INCLUIDO */}
+                  {/* WhatsApp HERO – tracking en componente client */}
                   <HeroWhatsAppButton whatsappUrl={whatsappUrl} />
 
                   <p className="text-[11px] text-slate-200 max-w-xs">
@@ -165,3 +166,4 @@ export default async function LandingPage() {
     </main>
   );
 }
+```
