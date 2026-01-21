@@ -1,5 +1,3 @@
-```tsx
-import Link from "next/link";
 import Header from "@/components/layout/Header";
 import LeadForm from "@/components/landing/LeadForm";
 import AnnouncementBar from "@/components/landing/AnnouncementBar";
@@ -152,7 +150,10 @@ export default async function LandingPage() {
               En este momento no hay modelos disponibles para mostrar.
             </p>
           ) : (
-            <VehiclesSection sections={sectionsConAutos} whatsappUrl={whatsappUrl} />
+            <VehiclesSection
+              sections={sectionsConAutos}
+              whatsappUrl={whatsappUrl}
+            />
           )}
         </div>
       </section>
@@ -166,4 +167,3 @@ export default async function LandingPage() {
     </main>
   );
 }
-```
