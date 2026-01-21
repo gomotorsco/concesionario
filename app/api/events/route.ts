@@ -23,14 +23,20 @@ export async function POST(req: Request) {
       vehicle_id: body.vehicle_id ?? null,
       vehicle_name: body.vehicle_name ?? null,
       meta: body.meta ?? null,
+      // created_at lo pone la DB (default now())
     });
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Supabase insert events error:", error);
+      return NextResponse.json(
+        { error: "Insert failed", details: error.message },
+        { status: 500 }
+      );
     }
 
-    return NextResponse.json({ ok: true }, { status: 200 });
-  } catch {
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("POST /api/events error:", err);
     return NextResponse.json({ error: "Bad request" }, { status: 400 });
   }
 }
