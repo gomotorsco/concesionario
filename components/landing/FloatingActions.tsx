@@ -8,13 +8,10 @@ type Props = {
 
 export default function FloatingActions({ whatsappUrl }: Props) {
   const handleWhatsAppClick = () => {
-    // Google (Ads/GA4)
     trackGtag("whatsapp_click", { origin: "floating" });
-
-    // Métricas internas (DB)
     trackInternal({ type: "whatsapp_click", origin: "floating" });
 
-    window.open(whatsappUrl, "_blank");
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   return (

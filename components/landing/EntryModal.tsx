@@ -16,8 +16,8 @@ export default function EntryModal() {
     const dismissed = window.sessionStorage.getItem("entry-modal-dismissed");
     if (!dismissed) {
       const timer = window.setTimeout(() => {
-        trackInternal({ type: "entry_modal_open", origin: "auto_delay_10s" });
         trackGtag("entry_modal_open", { origin: "auto_delay_10s" });
+        trackInternal({ type: "entry_modal_open", origin: "auto_delay_10s" });
         setOpen(true);
       }, 10000);
 
@@ -29,8 +29,8 @@ export default function EntryModal() {
     if (typeof window === "undefined") return;
 
     const onOpen = () => {
-      trackInternal({ type: "entry_modal_open", origin: "manual_event" });
       trackGtag("entry_modal_open", { origin: "manual_event" });
+      trackInternal({ type: "entry_modal_open", origin: "manual_event" });
       setOpen(true);
     };
 
@@ -39,13 +39,11 @@ export default function EntryModal() {
   }, []);
 
   function close() {
-    trackInternal({ type: "entry_modal_close", origin: "close_button" });
     trackGtag("entry_modal_close", { origin: "close_button" });
+    trackInternal({ type: "entry_modal_close", origin: "close_button" });
 
     setOpen(false);
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem("entry-modal-dismissed", "1");
-    }
+    window.sessionStorage.setItem("entry-modal-dismissed", "1");
   }
 
   if (!open) return null;

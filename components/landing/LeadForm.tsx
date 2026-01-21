@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { trackGtag, trackInternal } from "@/lib/track";
+import { getFirstTouch, trackGtag, trackInternal } from "@/lib/track";
 
 type Status = "idle" | "loading" | "success" | "error";
 
@@ -32,42 +32,14 @@ export default function LeadForm() {
     return null;
   };
 
-  const readSelectedVehicleCtx = () => {
-    if (typeof window === "undefined") return null;
-    try {
-      const raw = window.sessionStorage.getItem("selected_vehicle_ctx");
-      if (!raw) return null;
-      return JSON.parse(raw) as any;
-    } catch {
-      return null;
-    }
-  };
-
-  const readAttribution = () => {
-    if (typeof window === "undefined") return {};
-    const url = new URL(window.location.href);
-    const sp = url.searchParams;
-    return {
-      utm_source: sp.get("utm_source"),
-      utm_medium: sp.get("utm_medium"),
-      utm_campaign: sp.get("utm_campaign"),
-      utm_term: sp.get("utm_term"),
-      utm_content: sp.get("utm_content"),
-      gclid: sp.get("gclid"),
-      referrer: document.referrer || null,
-      landing_path: window.location.pathname,
-    };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setStatus("loading");
     setErrorMsg(null);
 
-    const vehicleCtx = readSelectedVehicleCtx();
-    const attribution = readAttribution();
-
     try {
+      const firstTouch = getFirstTouch();
+
       const body = {
         full_name: fullName || null,
         email: email || null,
@@ -80,12 +52,7 @@ export default function LeadForm() {
           horario_desde: contactFrom || null,
           horario_hasta: contactTo || null,
           tiene_auto_usado: hasUsedCar || null,
-
-          // >>> CONTEXTO (auto + utms)
-          selected_vehicle_id: vehicleCtx?.vehicle_id ?? null,
-          selected_vehicle_name: vehicleCtx?.vehicle_name ?? null,
-          selected_vehicle_origin: vehicleCtx?.origin ?? null,
-          utm: attribution,
+          attribution: firstTouch,
         },
       };
 
@@ -106,35 +73,16 @@ export default function LeadForm() {
         return;
       }
 
-      // ÉXITO
       setStatus("success");
 
-      // EVENTO INTERNO
-      trackInternal({
-        type: "lead_submit",
-        origin: vehicleCtx?.origin ?? "form",
-        vehicle_id: vehicleCtx?.vehicle_id ?? null,
-        vehicle_name: vehicleCtx?.vehicle_name ?? null,
-        meta: {
-          ...attribution,
-          has_email: Boolean(email),
-          has_phone: Boolean(buildPhone()),
-        },
-      });
+      // Tracking interno + Ads/GA
+      trackInternal({ type: "lead_submit", origin: "lead_form", meta: { attribution: firstTouch } });
+      trackGtag("lead_submit", { origin: "lead_form", ...firstTouch });
 
-      // EVENTO GA/Ads (tu conversión)
-      trackGtag("conversion", {
-        send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC",
-      });
+      // Google Ads conversion (si ya tenés send_to)
+      trackGtag("conversion", { send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC" });
 
-      // Opcional: evento GA4 “lead_submit”
-      trackGtag("lead_submit", {
-        origin: vehicleCtx?.origin ?? "form",
-        vehicle_id: vehicleCtx?.vehicle_id ?? null,
-        vehicle_name: vehicleCtx?.vehicle_name ?? null,
-      });
-
-      // Limpiar campos
+      // Limpiar
       setFullName("");
       setEmail("");
       setPhoneCode("");
