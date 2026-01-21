@@ -6,12 +6,12 @@ type Props = {
 
 export default function FloatingActions({ whatsappUrl }: Props) {
   const handleWhatsAppClick = () => {
-    // Registrar evento de clic a WhatsApp
-    fetch("/api/events", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "whatsapp_click" }),
-    }).catch(() => {});
+    // Tracking: click a WhatsApp desde botón flotante
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", "whatsapp_click", {
+        origin: "floating",
+      });
+    }
 
     window.open(whatsappUrl, "_blank");
   };

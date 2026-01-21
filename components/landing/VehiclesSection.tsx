@@ -80,6 +80,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
             <div className="grid gap-4 md:grid-cols-3">
               {section.vehicles.map((v) => {
                 const waLink = buildWhatsAppLink(whatsappUrl, section.title, v);
+                const vehicleName = `${section.title} ${v.title}`.trim();
 
                 return (
                   <div
@@ -91,7 +92,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={v.imagen_url}
-                          alt={`${section.title} ${v.title}`}
+                          alt={vehicleName}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -101,7 +102,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                       {/* título + badge tasa */}
                       <div className="flex items-center justify-between gap-2">
                         <h4 className="text-sm font-semibold text-slate-900">
-                          {section.title} {v.title}
+                          {vehicleName}
                         </h4>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                           Tasa 0%*
@@ -112,7 +113,9 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                       {v.cuota_desde != null && (
                         <p className="text-sm text-slate-700">
                           <span className="font-semibold">Cuotas desde </span>
-                          <span className="font-semibold">{formatCurrency(v)}</span>
+                          <span className="font-semibold">
+                            {formatCurrency(v)}
+                          </span>
                         </p>
                       )}
 
@@ -122,7 +125,22 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                         <button
                           type="button"
                           onClick={() => {
-                            setLastClicked({ sectionTitle: section.title, vehicle: v });
+                            // Tracking: intención de contacto vía formulario/modal
+                            if (
+                              typeof window !== "undefined" &&
+                              typeof window.gtag === "function"
+                            ) {
+                              window.gtag("event", "vehicle_interest", {
+                                vehicle_id: v.id,
+                                vehicle_name: vehicleName,
+                                origin: "vehicle_card",
+                              });
+                            }
+
+                            setLastClicked({
+                              sectionTitle: section.title,
+                              vehicle: v,
+                            });
                             openEntryModal();
                           }}
                           className="w-full inline-flex items-center justify-center rounded-lg border border-blue-600 bg-blue-600 px-3 py-2 text-xs md:text-sm font-semibold text-white hover:bg-blue-700 transition"
@@ -135,6 +153,19 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
                           href={waLink}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={() => {
+                            // Tracking: click WhatsApp por vehículo
+                            if (
+                              typeof window !== "undefined" &&
+                              typeof window.gtag === "function"
+                            ) {
+                              window.gtag("event", "whatsapp_click_vehicle", {
+                                vehicle_id: v.id,
+                                vehicle_name: vehicleName,
+                                origin: "vehicle_card",
+                              });
+                            }
+                          }}
                           className="w-full inline-flex items-center justify-center rounded-lg border border-emerald-300 text-emerald-700 hover:bg-emerald-50 px-3 py-2 text-xs md:text-sm font-semibold transition"
                         >
                           Reservar por WhatsApp
@@ -153,7 +184,7 @@ export default function VehiclesSection({ sections, whatsappUrl }: Props) {
         ))}
       </div>
 
-      {/* 
+      {/*
         Opcional (no visible): si en el futuro querés que EntryModal muestre el modelo seleccionado,
         podés guardar `lastClicked` en sessionStorage acá.
         Por ahora lo dejamos como estado local para potencial uso futuro.

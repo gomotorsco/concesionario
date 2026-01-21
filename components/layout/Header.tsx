@@ -15,7 +15,16 @@ export default function EntryModal() {
     // 1) Auto-open (solo si no lo cerraron)
     const dismissed = window.sessionStorage.getItem("entry-modal-dismissed");
     if (!dismissed) {
-      const timer = window.setTimeout(() => setOpen(true), 10000);
+      const timer = window.setTimeout(() => {
+        // Tracking: apertura automática del modal
+        if (typeof window.gtag === "function") {
+          window.gtag("event", "entry_modal_open", {
+            origin: "auto_delay_10s",
+          });
+        }
+        setOpen(true);
+      }, 10000);
+
       return () => window.clearTimeout(timer);
     }
   }, []);
@@ -24,14 +33,30 @@ export default function EntryModal() {
     if (typeof window === "undefined") return;
 
     // 2) Open manual desde cualquier parte (aunque lo hayan cerrado antes)
-    const onOpen = () => setOpen(true);
-    window.addEventListener("open-entry-modal", onOpen);
+    const onOpen = () => {
+      // Tracking: apertura manual (desde evento global)
+      if (typeof window.gtag === "function") {
+        window.gtag("event", "entry_modal_open", {
+          origin: "manual_event",
+        });
+      }
+      setOpen(true);
+    };
 
+    window.addEventListener("open-entry-modal", onOpen);
     return () => window.removeEventListener("open-entry-modal", onOpen);
   }, []);
 
   function close() {
+    // Tracking: cierre del modal
+    if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      window.gtag("event", "entry_modal_close", {
+        origin: "close_button",
+      });
+    }
+
     setOpen(false);
+
     if (typeof window !== "undefined") {
       window.sessionStorage.setItem("entry-modal-dismissed", "1");
     }

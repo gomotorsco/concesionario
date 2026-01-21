@@ -63,59 +63,83 @@ export default function VehiclesGrid({ whatsappUrl }: Props) {
           <h3 className="text-lg font-semibold text-slate-900 mb-3">{section.title}</h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {section.vehicles?.map((v) => (
-              <article
-                key={v.id}
-                className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col"
-              >
-                {v.imagen_url && (
-                  <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={v.imagen_url}
-                      alt={v.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                )}
+            {section.vehicles?.map((v) => {
+              const vehicleName = `${section.title} ${v.title}`.trim();
+              const waLink = buildWhatsAppLink(v.title);
 
-                <div className="p-4 flex flex-col gap-2 flex-1">
-                  <h4 className="text-base font-semibold text-slate-900">{v.title}</h4>
-
-                  {v.cuota_desde != null && (
-                    <p className="text-sm text-slate-700">
-                      Cuota desde{" "}
-                      <span className="font-semibold">
-                        {v.moneda ?? "ARS"} {Number(v.cuota_desde).toLocaleString("es-AR")}
-                      </span>
-                    </p>
+              return (
+                <article
+                  key={v.id}
+                  className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col"
+                >
+                  {v.imagen_url && (
+                    <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={v.imagen_url}
+                        alt={v.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   )}
 
-                  <div className="mt-auto space-y-2 pt-2">
-                    <a
-                      href="#form"
-                      className="w-full inline-flex justify-center items-center rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold py-2.5 transition-colors"
-                    >
-                      Reservá tu cupo
-                    </a>
+                  <div className="p-4 flex flex-col gap-2 flex-1">
+                    <h4 className="text-base font-semibold text-slate-900">{v.title}</h4>
 
-                    <a
-                      href={buildWhatsAppLink(v.title)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex justify-center items-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold py-2.5 transition-colors"
-                    >
-                      Reservar por WhatsApp
-                    </a>
+                    {v.cuota_desde != null && (
+                      <p className="text-sm text-slate-700">
+                        Cuota desde{" "}
+                        <span className="font-semibold">
+                          {v.moneda ?? "ARS"}{" "}
+                          {Number(v.cuota_desde).toLocaleString("es-AR")}
+                        </span>
+                      </p>
+                    )}
 
-                    <p className="text-[11px] text-slate-500">
-                      Ejemplo ilustrativo. Los valores finales dependen del plan, cupo disponible y
-                      condiciones vigentes.
-                    </p>
+                    <div className="mt-auto space-y-2 pt-2">
+                      <a
+                        href="#form"
+                        onClick={() => {
+                          if (typeof window !== "undefined" && typeof window.gtag === "function") {
+                            window.gtag("event", "vehicle_interest", {
+                              vehicle_id: v.id,
+                              vehicle_name: vehicleName,
+                              origin: "vehicles_grid",
+                            });
+                          }
+                        }}
+                        className="w-full inline-flex justify-center items-center rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold py-2.5 transition-colors"
+                      >
+                        Reservá tu cupo
+                      </a>
+
+                      <a
+                        href={waLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => {
+                          if (typeof window !== "undefined" && typeof window.gtag === "function") {
+                            window.gtag("event", "whatsapp_click_vehicle", {
+                              vehicle_id: v.id,
+                              vehicle_name: vehicleName,
+                              origin: "vehicles_grid",
+                            });
+                          }
+                        }}
+                        className="w-full inline-flex justify-center items-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold py-2.5 transition-colors"
+                      >
+                        Reservar por WhatsApp
+                      </a>
+
+                      <p className="text-[11px] text-slate-500">
+                        Ejemplo ilustrativo. Los valores finales dependen del plan, cupo disponible y
+                        condiciones vigentes.
+                      </p>
+                    </div>
                   </div>
-                </div>
-              </article>
-            ))}
+                </article>
+              );
+            })}
           </div>
         </div>
       ))}

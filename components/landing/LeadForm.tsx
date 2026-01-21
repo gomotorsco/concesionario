@@ -87,7 +87,11 @@ export default function LeadForm() {
       setHasUsedCar("");
       setNotes("");
 
-    if (typeof window !== "undefined" && (window as any).gtag) {
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        // Evento estándar para reporting
+        (window as any).gtag("event", "lead_submit", { origin: "form" });
+
+        // Conversión Google Ads
         (window as any).gtag("event", "conversion", {
           send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC",
         });
@@ -98,8 +102,6 @@ export default function LeadForm() {
       setErrorMsg("Ocurrió un error al enviar el formulario.");
     }
   };
-
-
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,8 +117,6 @@ export default function LeadForm() {
           placeholder="Nombre y apellido"
         />
       </div>
-
-
 
       {/* Teléfono */}
       <div className="grid grid-cols-1 md:grid-cols-[0.8fr_1.2fr] gap-3">
@@ -142,12 +142,6 @@ export default function LeadForm() {
           />
         </div>
       </div>
-
-     
-
-      
-
-    
 
       {/* Comentarios */}
       <div className="space-y-2">
