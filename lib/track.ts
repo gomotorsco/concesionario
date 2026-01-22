@@ -43,8 +43,8 @@ export function readAttributionFromUrl() {
 
 /**
  * Persiste first-touch.
- * ✔ acepta attribution opcional
- * ✔ no pisa si ya existe
+ * - acepta attribution opcional
+ * - no pisa si ya existe
  */
 export function persistFirstTouch(attrib?: any) {
   try {
@@ -64,9 +64,7 @@ export function persistFirstTouch(attrib?: any) {
   }
 }
 
-/**
- * Compatibilidad con código previo
- */
+/** Compatibilidad */
 export function getFirstTouch() {
   return persistFirstTouch();
 }

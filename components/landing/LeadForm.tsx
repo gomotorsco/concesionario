@@ -10,12 +10,6 @@ export default function LeadForm() {
   const [email, setEmail] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [province, setProvince] = useState("");
-  const [city, setCity] = useState("");
-  const [contactChannel, setContactChannel] = useState("");
-  const [contactFrom, setContactFrom] = useState("");
-  const [contactTo, setContactTo] = useState("");
-  const [hasUsedCar, setHasUsedCar] = useState("");
   const [notes, setNotes] = useState("");
 
   const [status, setStatus] = useState<Status>("idle");
@@ -44,14 +38,8 @@ export default function LeadForm() {
         full_name: fullName || null,
         email: email || null,
         phone: buildPhone(),
-        province: province || null,
-        city: city || null,
         notes: notes || null,
         extra_data: {
-          canal_contacto: contactChannel || null,
-          horario_desde: contactFrom || null,
-          horario_hasta: contactTo || null,
-          tiene_auto_usado: hasUsedCar || null,
           attribution: firstTouch,
         },
       };
@@ -75,30 +63,24 @@ export default function LeadForm() {
 
       setStatus("success");
 
-      // 1) Tracking interno
+      // 1) EVENTO INTERNO (para tu dashboard)
       trackInternal({
         type: "lead_submit",
         origin: "lead_form",
         meta: { attribution: firstTouch },
       });
 
-      // 2) GA/Ads event
+      // 2) EVENTO gtag (para GA/Ads)
       trackGtag("lead_submit", { origin: "lead_form", ...(firstTouch || {}) });
 
-      // 3) Google Ads conversion (REEMPLAZA send_to si cambia)
+      // 3) CONVERSION GOOGLE ADS (si este send_to es el correcto)
       trackGtag("conversion", { send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC" });
 
-      // Limpiar
+      // limpiar
       setFullName("");
       setEmail("");
       setPhoneCode("");
       setPhoneNumber("");
-      setProvince("");
-      setCity("");
-      setContactChannel("");
-      setContactFrom("");
-      setContactTo("");
-      setHasUsedCar("");
       setNotes("");
     } catch (err: any) {
       console.error("Error enviando lead:", err);
