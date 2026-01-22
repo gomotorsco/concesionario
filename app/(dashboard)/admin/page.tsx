@@ -121,8 +121,6 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <AdminMetricsPanel />
-
       {/* Encabezado */}
       <div className="flex items-center justify-between gap-3">
         <div>

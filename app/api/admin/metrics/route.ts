@@ -1,183 +1,146 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-type SeriesPoint = { date: string; count: number };
-
 function daysAgoISO(days: number) {
   const d = new Date();
-  d.setUTCDate(d.getUTCDate() - days);
+  d.setDate(d.getDate() - days);
   return d.toISOString();
 }
 
-function dayKey(iso: string) {
-  return new Date(iso).toISOString().slice(0, 10);
-}
-
-function ensureSeriesKeys(rangeDays: number) {
-  // Devuelve array de días YYYY-MM-DD (incluye hoy) para que el gráfico no “salte”
-  const out: string[] = [];
-  const now = new Date();
-  for (let i = rangeDays - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setUTCDate(d.getUTCDate() - i);
-    out.push(d.toISOString().slice(0, 10));
-  }
-  return out;
+function pct(num: number, den: number) {
+  if (!den) return 0;
+  return Math.round((num / den) * 1000) / 10; // 1 decimal
 }
 
 export async function GET(req: Request) {
-  try {
-    const url = new URL(req.url);
-    const range = url.searchParams.get("range") || "7d"; // 7d | 30d
-    const days = range === "30d" ? 30 : 7;
-    const since = daysAgoISO(days);
+  const url = new URL(req.url);
+  const range = (url.searchParams.get("range") || "7d") as "7d" | "30d";
+  const days = range === "30d" ? 30 : 7;
+  const since = daysAgoISO(days);
 
-    // Traemos meta porque ahí guardamos device_type + utm + etc
-    const { data: rows, error } = await supabaseAdmin
-      .from("events")
-      .select("type, origin, vehicle_id, vehicle_name, created_at, meta")
-      .gte("created_at", since);
+  const { data: rows, error } = await supabaseAdmin
+    .from("events")
+    .select("type, origin, vehicle_id, vehicle_name, created_at, meta")
+    .gte("created_at", since);
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
-
-    const events = (rows ?? []) as any[];
-
-    const totalsByType: Record<string, number> = {};
-    const totalsByOrigin: Record<string, number> = {};
-
-    // seriesByType[type][day] = count
-    const seriesByTypeDay: Record<string, Record<string, number>> = {};
-    const allDays = ensureSeriesKeys(days);
-
-    // Funnel
-    let pageViews = 0;
-    let modalOpens = 0;
-    let whatsappTotal = 0;
-    let whatsappVehicle = 0;
-    let leadSubmit = 0;
-
-    // Top vehicles (por whatsapp_click_vehicle)
-    const vehicleCounts = new Map<
-      string,
-      { vehicle_id: number | null; vehicle_name: string | null; count: number }
-    >();
-
-    // Dispositivos
-    const devices: Record<string, number> = { mobile: 0, desktop: 0, tablet: 0, unknown: 0 };
-
-    // UTM / keywords
-    const utmSource: Record<string, number> = {};
-    const utmCampaign: Record<string, number> = {};
-    const utmTerm: Record<string, number> = {};
-    const landing: Record<string, number> = {};
-
-    // Orígenes de WhatsApp
-    const whatsappByOrigin: Record<string, number> = {};
-
-    for (const e of events) {
-      const type = e.type || "unknown";
-      const origin = e.origin || "unknown";
-      const created_at = e.created_at;
-      const meta = e.meta || {};
-
-      totalsByType[type] = (totalsByType[type] || 0) + 1;
-      totalsByOrigin[origin] = (totalsByOrigin[origin] || 0) + 1;
-
-      const day = dayKey(created_at);
-
-      // series por type
-      if (!seriesByTypeDay[type]) seriesByTypeDay[type] = {};
-      seriesByTypeDay[type][day] = (seriesByTypeDay[type][day] || 0) + 1;
-
-      // Funnel
-      if (type === "page_view") pageViews += 1;
-      if (type === "entry_modal_open") modalOpens += 1;
-      if (type === "whatsapp_click") whatsappTotal += 1;
-      if (type === "whatsapp_click_vehicle") whatsappVehicle += 1;
-      if (type === "lead_submit") leadSubmit += 1;
-
-      // WhatsApp por origen
-      if (type === "whatsapp_click" || type === "whatsapp_click_vehicle") {
-        whatsappByOrigin[origin] = (whatsappByOrigin[origin] || 0) + 1;
-      }
-
-      // Top vehicles
-      if (type === "whatsapp_click_vehicle") {
-        const key = `${e.vehicle_id ?? "null"}::${e.vehicle_name ?? ""}`;
-        const curr = vehicleCounts.get(key) || {
-          vehicle_id: e.vehicle_id ?? null,
-          vehicle_name: e.vehicle_name ?? null,
-          count: 0,
-        };
-        curr.count += 1;
-        vehicleCounts.set(key, curr);
-      }
-
-      // Device
-      const device = (meta.device_type || meta.device || "unknown") as string;
-      if (devices[device] === undefined) devices[device] = 0;
-      devices[device] += 1;
-
-      // UTM
-      const src = meta.utm_source || meta.attrib?.utm_source;
-      const camp = meta.utm_campaign || meta.attrib?.utm_campaign;
-      const term = meta.utm_term || meta.attrib?.utm_term;
-      const land = meta.landing || meta.attrib?.landing || meta.page_path || null;
-
-      if (src) utmSource[String(src)] = (utmSource[String(src)] || 0) + 1;
-      if (camp) utmCampaign[String(camp)] = (utmCampaign[String(camp)] || 0) + 1;
-      if (term) utmTerm[String(term)] = (utmTerm[String(term)] || 0) + 1;
-      if (land) landing[String(land)] = (landing[String(land)] || 0) + 1;
-    }
-
-    // seriesByType: array ordenada por fecha, con 0 en días sin eventos
-    const seriesByType: Record<string, SeriesPoint[]> = {};
-    for (const [type, byDay] of Object.entries(seriesByTypeDay)) {
-      seriesByType[type] = allDays.map((d) => ({ date: d, count: byDay[d] || 0 }));
-    }
-
-    const topVehicles = Array.from(vehicleCounts.values())
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 20);
-
-    function topKV(obj: Record<string, number>, limit = 10) {
-      return Object.entries(obj)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, limit)
-        .map(([key, count]) => ({ key, count }));
-    }
-
-    const funnel = {
-      page_views: pageViews,
-      modal_opens: modalOpens,
-      whatsapp_total: whatsappTotal,
-      whatsapp_vehicle: whatsappVehicle,
-      lead_submit: leadSubmit,
-      // Conversión simple
-      conv_lead_from_pv: pageViews > 0 ? Number(((leadSubmit / pageViews) * 100).toFixed(2)) : 0,
-      conv_whatsapp_from_pv: pageViews > 0 ? Number(((whatsappTotal / pageViews) * 100).toFixed(2)) : 0,
-    };
-
-    return NextResponse.json({
-      range,
-      since,
-      totalEvents: events.length,
-      totalsByType,
-      totalsByOrigin,
-      seriesByType,
-      funnel,
-      topVehicles,
-      devices,
-      whatsappByOrigin,
-      topUtmSource: topKV(utmSource, 10),
-      topUtmCampaign: topKV(utmCampaign, 10),
-      topUtmTerm: topKV(utmTerm, 10),
-      topLanding: topKV(landing, 10),
-    });
-  } catch (err: any) {
-    console.error("GET /api/admin/metrics error:", err);
-    return NextResponse.json({ error: "Bad request" }, { status: 400 });
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const events = (rows ?? []) as any[];
+
+  const totalsByType: Record<string, number> = {};
+  const totalsByOrigin: Record<string, number> = {};
+  const devices: Record<string, number> = {};
+  const whatsappByOrigin: Record<string, number> = {};
+
+  const byTypeByDay: Record<string, Record<string, number>> = {};
+  const topVehiclesMap = new Map<
+    string,
+    { vehicle_id: number | null; vehicle_name: string | null; count: number }
+  >();
+
+  const countMap = new Map<string, number>();
+  const bump = (m: Map<string, number>, k: string | null | undefined) => {
+    const key = (k && String(k).trim()) || "(none)";
+    m.set(key, (m.get(key) || 0) + 1);
+  };
+
+  const utmSource = new Map<string, number>();
+  const utmCampaign = new Map<string, number>();
+  const utmTerm = new Map<string, number>();
+  const landing = new Map<string, number>();
+
+  for (const e of events) {
+    const type = e.type || "unknown";
+    const origin = e.origin || "unknown";
+
+    totalsByType[type] = (totalsByType[type] || 0) + 1;
+    totalsByOrigin[origin] = (totalsByOrigin[origin] || 0) + 1;
+
+    const device =
+      e?.meta?.device_type ||
+      e?.meta?.device ||
+      e?.meta?.deviceKind ||
+      "unknown";
+    devices[String(device)] = (devices[String(device)] || 0) + 1;
+
+    if (type === "whatsapp_click" || type === "whatsapp_click_vehicle") {
+      whatsappByOrigin[origin] = (whatsappByOrigin[origin] || 0) + 1;
+    }
+
+    // series por día por type
+    const day = new Date(e.created_at).toISOString().slice(0, 10);
+    byTypeByDay[type] = byTypeByDay[type] || {};
+    byTypeByDay[type][day] = (byTypeByDay[type][day] || 0) + 1;
+
+    // top vehicles
+    if (type === "whatsapp_click_vehicle") {
+      const key = `${e.vehicle_id ?? "null"}::${e.vehicle_name ?? ""}`;
+      const curr = topVehiclesMap.get(key) || {
+        vehicle_id: e.vehicle_id ?? null,
+        vehicle_name: e.vehicle_name ?? null,
+        count: 0,
+      };
+      curr.count += 1;
+      topVehiclesMap.set(key, curr);
+    }
+
+    // attribution (UTM + landing)
+    const meta = e.meta || {};
+    bump(utmSource, meta.utm_source);
+    bump(utmCampaign, meta.utm_campaign);
+    bump(utmTerm, meta.utm_term);
+    bump(landing, meta.page_path || meta.landing || meta.path);
+  }
+
+  // seriesByType: { [type]: [{date,count}] }
+  const seriesByType: Record<string, { date: string; count: number }[]> = {};
+  for (const [type, byDay] of Object.entries(byTypeByDay)) {
+    seriesByType[type] = Object.entries(byDay)
+      .sort(([a], [b]) => (a < b ? -1 : 1))
+      .map(([date, count]) => ({ date, count }));
+  }
+
+  const page_views = totalsByType.page_view || 0;
+  const modal_opens =
+    (totalsByType.entry_modal_open || 0) + (totalsByType.cta_open_modal_vehicle || 0);
+  const whatsapp_total = (totalsByType.whatsapp_click || 0) + (totalsByType.whatsapp_click_vehicle || 0);
+  const whatsapp_vehicle = totalsByType.whatsapp_click_vehicle || 0;
+  const lead_submit = totalsByType.lead_submit || 0;
+
+  const topVehicles = Array.from(topVehiclesMap.values())
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 30);
+
+  const topFromMap = (m: Map<string, number>) =>
+    Array.from(m.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 15)
+      .map(([key, count]) => ({ key, count }));
+
+  return NextResponse.json({
+    range,
+    since,
+    totalEvents: events.length,
+    totalsByType,
+    totalsByOrigin,
+    seriesByType,
+    funnel: {
+      page_views,
+      modal_opens,
+      whatsapp_total,
+      whatsapp_vehicle,
+      lead_submit,
+      conv_lead_from_pv: pct(lead_submit, page_views),
+      conv_whatsapp_from_pv: pct(whatsapp_total, page_views),
+    },
+    topVehicles,
+    devices,
+    whatsappByOrigin,
+    topUtmSource: topFromMap(utmSource),
+    topUtmCampaign: topFromMap(utmCampaign),
+    topUtmTerm: topFromMap(utmTerm),
+    topLanding: topFromMap(landing),
+  });
 }
