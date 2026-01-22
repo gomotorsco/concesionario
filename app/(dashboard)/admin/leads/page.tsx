@@ -14,25 +14,33 @@ type Lead = {
   [key: string]: any;
 };
 
-type DashboardResponse = {
+type Metrics = {
   recent: Lead[];
 };
 
-type Tab = "nuevos" | "seguimiento" | "todos";
+function Card({ title, value }: { title: string; value: number | string }) {
+  return (
+    <div className="bg-slate-950/50 border border-slate-800 p-4 rounded-xl">
+      <p className="text-xs text-slate-400">{title}</p>
+      <p className="text-3xl font-semibold text-slate-50">{value}</p>
+    </div>
+  );
+}
 
-export default function LeadsPage() {
-  const [data, setData] = useState<DashboardResponse | null>(null);
+function humanLabel(key: string): string {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+export default function AdminLeadsPage() {
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [tab, setTab] = useState<Tab>("nuevos");
-  const [selected, setSelected] = useState<Lead | null>(null);
+  const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  // Seguimiento
-  const [editingSeguimiento, setEditingSeguimiento] = useState(false);
   const [seguimientoDraft, setSeguimientoDraft] = useState("");
+  const [editingSeguimiento, setEditingSeguimiento] = useState(false);
   const [savingSeguimiento, setSavingSeguimiento] = useState(false);
 
-  // Edit datos
   const [editMode, setEditMode] = useState(false);
   const [editNombre, setEditNombre] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -43,12 +51,13 @@ export default function LeadsPage() {
   const [statusError, setStatusError] = useState<string | null>(null);
 
   async function load() {
-    setLoading(true);
     try {
-      // Reutilizamos tu API existente del dashboard (que ya trae leads)
       const r = await fetch("/api/dashboard", { cache: "no-store" });
-      const j = (await r.json()) as any;
-      setData({ recent: j.recent ?? [] });
+      const data = (await r.json()) as any;
+
+      setMetrics({
+        recent: data.recent ?? [],
+      });
     } catch (e) {
       console.error("Error cargando leads:", e);
     } finally {
@@ -58,17 +67,32 @@ export default function LeadsPage() {
 
   useEffect(() => {
     load();
-    const id = setInterval(load, 12000);
+    const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, []);
 
-  const filtered = useMemo(() => {
-    const arr = data?.recent ?? [];
-    if (tab === "nuevos") return arr.filter((l) => !l.visto);
-    if (tab === "seguimiento")
-      return arr.filter((l) => (l.seguimiento ?? "").toString().trim() !== "");
-    return arr;
-  }, [data, tab]);
+  const leads = metrics?.recent ?? [];
+
+  const isFrenado = (l: Lead) => (l.estado ?? "") === "frenado";
+  const hasSeguimiento = (l: Lead) => (l.seguimiento ?? "").toString().trim() !== "";
+  const isVisto = (l: Lead) => !!l.visto;
+
+  const nuevos = useMemo(
+    () => leads.filter((l) => !isFrenado(l) && !isVisto(l) && !hasSeguimiento(l)),
+    [leads]
+  );
+
+  const enSeguimiento = useMemo(
+    () => leads.filter((l) => !isFrenado(l) && hasSeguimiento(l)),
+    [leads]
+  );
+
+  const leidos = useMemo(
+    () => leads.filter((l) => !isFrenado(l) && isVisto(l) && !hasSeguimiento(l)),
+    [leads]
+  );
+
+  const frenados = useMemo(() => leads.filter((l) => isFrenado(l)), [leads]);
 
   async function markLeadAsSeen(id: number) {
     try {
@@ -78,38 +102,37 @@ export default function LeadsPage() {
         body: JSON.stringify({ type: "update_lead", id, visto: true }),
       });
 
-      setData((prev) =>
+      setMetrics((prev) =>
         prev
           ? { ...prev, recent: prev.recent.map((l) => (l.id === id ? { ...l, visto: true } : l)) }
           : prev
       );
     } catch (e) {
-      console.error("Error marcando lead visto:", e);
+      console.error("Error marcando lead como visto:", e);
     }
   }
 
-  function handleSelect(lead: Lead) {
-    setSelected(lead);
+  function handleSelectLead(lead: Lead) {
+    setSelectedLead(lead);
+    setSeguimientoDraft(lead.seguimiento ?? "");
+    setEditingSeguimiento(false);
+    setEditMode(false);
     setStatusError(null);
     setStatusMessage(null);
 
-    setEditingSeguimiento(false);
-    setSeguimientoDraft(lead.seguimiento ?? "");
-
-    setEditMode(false);
     setEditNombre(lead.nombre ?? "");
     setEditEmail(lead.email ?? "");
     setEditTelefono(lead.telefono_numero ?? "");
 
     if (!lead.visto) {
       markLeadAsSeen(lead.id);
-      setSelected({ ...lead, visto: true });
+      setSelectedLead({ ...lead, visto: true });
     }
   }
 
   async function handleSaveSeguimiento(e: FormEvent) {
     e.preventDefault();
-    if (!selected) return;
+    if (!selectedLead) return;
 
     setSavingSeguimiento(true);
     setStatusError(null);
@@ -121,15 +144,13 @@ export default function LeadsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "update_lead",
-          id: selected.id,
+          id: selectedLead.id,
           seguimiento: seguimientoDraft,
           visto: true,
         }),
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error guardando seguimiento:", res.status, text);
         setStatusError("No se pudo guardar el seguimiento.");
         return;
       }
@@ -137,14 +158,14 @@ export default function LeadsPage() {
       const json = await res.json();
       const updated: Lead = json.lead;
 
-      setData((prev) =>
+      setMetrics((prev) =>
         prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
       );
-      setSelected(updated);
+      setSelectedLead(updated);
       setEditingSeguimiento(false);
-      setStatusMessage("Seguimiento guardado.");
+      setStatusMessage("Seguimiento guardado correctamente.");
     } catch (err) {
-      console.error(err);
+      console.error("Error update_lead seguimiento:", err);
       setStatusError("Ocurrió un error al guardar el seguimiento.");
     } finally {
       setSavingSeguimiento(false);
@@ -153,7 +174,7 @@ export default function LeadsPage() {
 
   async function handleSaveDatos(e: FormEvent) {
     e.preventDefault();
-    if (!selected) return;
+    if (!selectedLead) return;
 
     setSavingDatos(true);
     setStatusError(null);
@@ -165,7 +186,7 @@ export default function LeadsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           type: "update_lead",
-          id: selected.id,
+          id: selectedLead.id,
           nombre: editNombre,
           email: editEmail,
           telefono: editTelefono,
@@ -173,31 +194,29 @@ export default function LeadsPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error guardando datos:", res.status, text);
-        setStatusError("No se pudieron guardar los datos.");
+        setStatusError("No se pudieron guardar los datos del lead.");
         return;
       }
 
       const json = await res.json();
       const updated: Lead = json.lead;
 
-      setData((prev) =>
+      setMetrics((prev) =>
         prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
       );
-      setSelected(updated);
+      setSelectedLead(updated);
       setEditMode(false);
-      setStatusMessage("Datos guardados.");
+      setStatusMessage("Datos del lead guardados correctamente.");
     } catch (err) {
-      console.error(err);
-      setStatusError("Ocurrió un error al guardar los datos.");
+      console.error("Error update_lead datos:", err);
+      setStatusError("Ocurrió un error al guardar los datos del lead.");
     } finally {
       setSavingDatos(false);
     }
   }
 
   async function handleMarkFrenado() {
-    if (!selected) return;
+    if (!selectedLead) return;
 
     setStatusError(null);
     setStatusMessage(null);
@@ -206,34 +225,37 @@ export default function LeadsPage() {
       const res = await fetch("/api/dashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "update_lead", id: selected.id, estado: "frenado", visto: true }),
+        body: JSON.stringify({
+          type: "update_lead",
+          id: selectedLead.id,
+          estado: "frenado",
+          visto: true,
+        }),
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error marcando frenado:", res.status, text);
-        setStatusError("No se pudo marcar como frenado.");
+        setStatusError("No se pudo marcar el dato como frenado.");
         return;
       }
 
       const json = await res.json();
       const updated: Lead = json.lead;
 
-      setData((prev) =>
+      setMetrics((prev) =>
         prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
       );
-      setSelected(updated);
+      setSelectedLead(updated);
       setStatusMessage("Dato marcado como frenado.");
     } catch (err) {
-      console.error(err);
-      setStatusError("Ocurrió un error.");
+      console.error("Error marcando frenado:", err);
+      setStatusError("Ocurrió un error al marcar el dato como frenado.");
     }
   }
 
   async function handleDeleteLead() {
-    if (!selected) return;
+    if (!selectedLead) return;
 
-    const ok = window.confirm("¿Seguro que querés borrar este lead? No se puede deshacer.");
+    const ok = window.confirm("¿Seguro que querés borrar este lead? Esta acción no se puede deshacer.");
     if (!ok) return;
 
     setStatusError(null);
@@ -243,136 +265,78 @@ export default function LeadsPage() {
       const res = await fetch("/api/dashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "delete_lead", id: selected.id }),
+        body: JSON.stringify({ type: "delete_lead", id: selectedLead.id }),
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error borrando:", res.status, text);
         setStatusError("No se pudo borrar el lead.");
         return;
       }
 
-      setData((prev) =>
-        prev ? { ...prev, recent: prev.recent.filter((l) => l.id !== selected.id) } : prev
+      setMetrics((prev) =>
+        prev ? { ...prev, recent: prev.recent.filter((l) => l.id !== selectedLead.id) } : prev
       );
-      setSelected(null);
-      setStatusMessage("Lead borrado.");
+      setSelectedLead(null);
+      setSeguimientoDraft("");
+      setEditMode(false);
+      setEditingSeguimiento(false);
+      setStatusMessage("Lead borrado correctamente.");
     } catch (err) {
-      console.error(err);
-      setStatusError("Ocurrió un error.");
+      console.error("Error delete_lead:", err);
+      setStatusError("Ocurrió un error al borrar el lead.");
     }
   }
 
-  const nuevosCount = useMemo(() => (data?.recent ?? []).filter((l) => !l.visto).length, [data]);
-  const segCount = useMemo(
-    () => (data?.recent ?? []).filter((l) => (l.seguimiento ?? "").toString().trim() !== "").length,
-    [data]
-  );
-  const totalCount = useMemo(() => (data?.recent ?? []).length, [data]);
+  if (loading && !metrics) return <p className="text-slate-400">Cargando…</p>;
 
   return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-semibold text-slate-100">Leads</h1>
-          <p className="text-xs text-slate-400">Nuevos / Seguimiento / Todos</p>
-        </div>
+    <div className="space-y-6">
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card title="Nuevos" value={nuevos.length} />
+        <Card title="En seguimiento" value={enSeguimiento.length} />
+        <Card title="Leídos" value={leidos.length} />
+        <Card title="Frenados" value={frenados.length} />
+      </section>
 
-        <div className="flex items-center gap-2">
-          <TabButton active={tab === "nuevos"} onClick={() => setTab("nuevos")} label={`Nuevos (${nuevosCount})`} />
-          <TabButton
-            active={tab === "seguimiento"}
-            onClick={() => setTab("seguimiento")}
-            label={`Seguimiento (${segCount})`}
-          />
-          <TabButton active={tab === "todos"} onClick={() => setTab("todos")} label={`Todos (${totalCount})`} />
-        </div>
-      </div>
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <ListBox title={`Nuevos (${nuevos.length})`} tone="new">
+          <LeadList leads={nuevos} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+        </ListBox>
 
-      <div className="bg-slate-950/60 rounded-xl border border-slate-800 p-4">
-        {loading && !data ? <p className="text-slate-400">Cargando…</p> : null}
+        <ListBox title={`En seguimiento (${enSeguimiento.length})`} tone="followup">
+          <LeadList leads={enSeguimiento} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+        </ListBox>
 
-        <div className="grid gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)]">
-          {/* LISTA */}
-          <div className="space-y-2 max-h-[72vh] overflow-y-auto pr-1">
-            {filtered.length === 0 ? (
-              <p className="text-slate-400 text-sm">No hay leads para este filtro.</p>
-            ) : (
-              filtered.map((l) => {
-                const isSelected = selected?.id === l.id;
-                const isNew = !l.visto;
-                const isFrenado = (l.estado ?? "") === "frenado";
-                const hasSeguimiento = (l.seguimiento ?? "").trim() !== "";
+        <ListBox title={`Leídos (${leidos.length})`} tone="read">
+          <LeadList leads={leidos} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+        </ListBox>
 
-                return (
-                  <button
-                    key={l.id}
-                    type="button"
-                    onClick={() => handleSelect(l)}
-                    className={`w-full text-left rounded-lg border px-3 py-2 transition ${
-                      isSelected
-                        ? "border-sky-500 bg-slate-900"
-                        : isFrenado
-                        ? "border-amber-500/70 bg-amber-900/20"
-                        : isNew
-                        ? "border-emerald-500/70 bg-emerald-900/20"
-                        : hasSeguimiento
-                        ? "border-indigo-500/60 bg-indigo-900/15"
-                        : "border-slate-800 bg-slate-950/50 hover:bg-slate-900"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <p className="text-[13px] font-semibold text-slate-100 flex items-center gap-2">
-                          {l.nombre}
-                          {isNew && !isFrenado ? (
-                            <span className="text-[10px] font-semibold text-emerald-400">Nuevo</span>
-                          ) : null}
-                          {hasSeguimiento ? (
-                            <span className="text-[10px] font-semibold text-indigo-300">Seguimiento</span>
-                          ) : null}
-                          {isFrenado ? (
-                            <span className="text-[10px] font-semibold text-amber-300">Frenado</span>
-                          ) : null}
-                        </p>
-                        <p className="text-[11px] text-slate-400">
-                          {l.email} — {l.telefono_numero}
-                        </p>
-                      </div>
-                      <p className="text-[10px] text-slate-500 whitespace-nowrap">
-                        {l.created_at
-                          ? new Date(l.created_at).toLocaleString("es-AR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })
-                          : ""}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })
-            )}
-          </div>
+        <ListBox title={`Frenados (${frenados.length})`} tone="blocked">
+          <LeadList leads={frenados} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+        </ListBox>
+      </section>
 
-          {/* DETALLE */}
-          <div className="border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-4">
-            {!selected ? (
-              <p className="text-xs text-slate-400">Seleccioná un lead para ver el detalle.</p>
-            ) : (
+      <section>
+        <h2 className="text-lg font-semibold text-slate-100 mb-3">Detalle / Gestión</h2>
+
+        <div className="bg-slate-950/60 rounded-xl p-4 text-sm">
+          {!selectedLead ? (
+            <p className="text-slate-400">
+              Seleccioná un lead de cualquiera de las listas para ver todos los datos y gestionarlo.
+            </p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
               <div className="space-y-3">
                 <div>
-                  <p className="text-xs font-semibold text-slate-300">Detalle</p>
-                  <p className="text-sm text-slate-100">{selected.nombre}</p>
+                  <p className="text-xs font-semibold text-slate-300">Lead</p>
+                  <p className="text-sm text-slate-100">{selectedLead.nombre}</p>
                   <p className="text-xs text-slate-400">
-                    {selected.email} — {selected.telefono_numero}
+                    {selectedLead.email} — {selectedLead.telefono_numero}
                   </p>
-                  {selected.created_at ? (
+                  {selectedLead.created_at ? (
                     <p className="text-[10px] text-slate-500 mt-1">
-                      Recibido:{" "}
-                      {new Date(selected.created_at).toLocaleString("es-AR", {
+                      Recibido el{" "}
+                      {new Date(selectedLead.created_at).toLocaleString("es-AR", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -381,13 +345,47 @@ export default function LeadsPage() {
                       })}
                     </p>
                   ) : null}
+                  {selectedLead.estado ? (
+                    <p className="text-[10px] text-slate-400 mt-1">
+                      Estado: <span className="uppercase">{selectedLead.estado}</span>
+                    </p>
+                  ) : null}
                 </div>
 
-                {/* ACCIONES */}
+                <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
+                  <p className="text-[11px] font-semibold text-slate-300 mb-1">Datos del formulario</p>
+                  <div className="space-y-1 max-h-56 overflow-y-auto pr-1">
+                    {Object.entries(selectedLead as Record<string, any>)
+                      .filter(([key, value]) => {
+                        if (value === null || value === undefined || value === "") return false;
+                        if (["id", "created_at", "seguimiento", "visto", "telefono_numero", "estado"].includes(key))
+                          return false;
+                        if (typeof value === "object") return true; // mostramos objetos abajo
+                        return true;
+                      })
+                      .map(([key, value]) => (
+                        <div key={key} className="text-[11px]">
+                          <div className="flex justify-between gap-2">
+                            <span className="text-slate-400">{humanLabel(key)}</span>
+                          </div>
+                          {typeof value === "object" ? (
+                            <pre className="mt-1 text-[10px] text-slate-100 bg-slate-950/60 border border-slate-800 rounded-md p-2 overflow-auto">
+                              {JSON.stringify(value, null, 2)}
+                            </pre>
+                          ) : (
+                            <p className="text-slate-100">{String(value)}</p>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
-                    onClick={() => setEditMode((p) => !p)}
+                    onClick={() => setEditMode((prev) => !prev)}
                     className="px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900 hover:bg-slate-800 text-[11px] font-medium text-slate-50"
                   >
                     {editMode ? "Cerrar edición" : "Editar datos"}
@@ -395,7 +393,7 @@ export default function LeadsPage() {
 
                   <button
                     type="button"
-                    onClick={() => setEditingSeguimiento((p) => !p)}
+                    onClick={() => setEditingSeguimiento((prev) => !prev)}
                     className="px-3 py-1.5 rounded-md border border-slate-700 bg-slate-900 hover:bg-slate-800 text-[11px] font-medium text-slate-50"
                   >
                     Seguimiento
@@ -418,114 +416,179 @@ export default function LeadsPage() {
                   </button>
                 </div>
 
-                {/* EDICION DATOS */}
                 {editMode ? (
-                  <form onSubmit={handleSaveDatos} className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
-                    <p className="text-[11px] font-semibold text-slate-300">Editar datos</p>
-
-                    <Field label="Nombre">
-                      <input
-                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
-                        value={editNombre}
-                        onChange={(e) => setEditNombre(e.target.value)}
-                      />
-                    </Field>
-
-                    <Field label="Email">
-                      <input
-                        type="email"
-                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
-                        value={editEmail}
-                        onChange={(e) => setEditEmail(e.target.value)}
-                      />
-                    </Field>
-
-                    <Field label="Teléfono">
-                      <input
-                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
-                        value={editTelefono}
-                        onChange={(e) => setEditTelefono(e.target.value)}
-                      />
-                    </Field>
-
+                  <form
+                    onSubmit={handleSaveDatos}
+                    className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2"
+                  >
+                    <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar datos principales</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-0.5">Nombre</label>
+                        <input
+                          type="text"
+                          value={editNombre}
+                          onChange={(e) => setEditNombre(e.target.value)}
+                          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-0.5">Email</label>
+                        <input
+                          type="email"
+                          value={editEmail}
+                          onChange={(e) => setEditEmail(e.target.value)}
+                          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] text-slate-400 mb-0.5">Teléfono</label>
+                        <input
+                          type="text"
+                          value={editTelefono}
+                          onChange={(e) => setEditTelefono(e.target.value)}
+                          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                        />
+                      </div>
+                    </div>
                     <button
                       type="submit"
                       disabled={savingDatos}
-                      className="mt-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60"
+                      className="mt-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                       {savingDatos ? "Guardando…" : "Guardar datos"}
                     </button>
                   </form>
                 ) : null}
 
-                {/* SEGUIMIENTO */}
-                {!editingSeguimiento ? (
-                  <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2 min-h-[60px]">
-                    <p className="text-[11px] font-semibold text-slate-300 mb-1">Seguimiento</p>
-                    {selected.seguimiento?.trim() ? (
-                      <p className="text-xs text-slate-100 whitespace-pre-line">{selected.seguimiento}</p>
-                    ) : (
-                      <p className="text-[11px] text-slate-500">Sin notas todavía.</p>
-                    )}
-                  </div>
-                ) : (
-                  <form onSubmit={handleSaveSeguimiento} className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
-                    <p className="text-[11px] font-semibold text-slate-300">Editar seguimiento</p>
-                    <textarea
-                      value={seguimientoDraft}
-                      onChange={(e) => setSeguimientoDraft(e.target.value)}
-                      className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-2 text-xs text-slate-50 min-h-[90px]"
-                      placeholder="Notas de llamadas, WhatsApp, estado, etc."
-                    />
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="submit"
-                        disabled={savingSeguimiento}
-                        className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60"
-                      >
-                        {savingSeguimiento ? "Guardando…" : "Guardar"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingSeguimiento(false)}
-                        className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-[11px] font-medium text-slate-50"
-                      >
-                        Cancelar
-                      </button>
+                <div className="space-y-2">
+                  {!editingSeguimiento ? (
+                    <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2 min-h-[52px]">
+                      <p className="text-[11px] font-semibold text-slate-300 mb-1">Seguimiento</p>
+                      {selectedLead.seguimiento && selectedLead.seguimiento.trim() !== "" ? (
+                        <p className="text-xs text-slate-100 whitespace-pre-line">{selectedLead.seguimiento}</p>
+                      ) : (
+                        <p className="text-[11px] text-slate-500">Sin notas de seguimiento todavía.</p>
+                      )}
                     </div>
-                  </form>
-                )}
+                  ) : (
+                    <form
+                      onSubmit={handleSaveSeguimiento}
+                      className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2"
+                    >
+                      <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar seguimiento</p>
+                      <textarea
+                        value={seguimientoDraft}
+                        onChange={(e) => setSeguimientoDraft(e.target.value)}
+                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-2 text-xs text-slate-50 min-h-[90px]"
+                        placeholder="Escribí aquí el seguimiento (llamadas, WhatsApp, estado, etc.)"
+                      />
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="submit"
+                          disabled={savingSeguimiento}
+                          className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                          {savingSeguimiento ? "Guardando…" : "Guardar seguimiento"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingSeguimiento(false)}
+                          className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-[11px] font-medium text-slate-50"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  )}
 
-                {statusMessage ? <p className="text-[11px] text-emerald-400">{statusMessage}</p> : null}
-                {statusError ? <p className="text-[11px] text-red-400">{statusError}</p> : null}
+                  {statusMessage ? <p className="text-[11px] text-emerald-400">{statusMessage}</p> : null}
+                  {statusError ? <p className="text-[11px] text-red-400">{statusError}</p> : null}
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
     </div>
   );
 }
 
-function TabButton({ active, onClick, label }: { active: boolean; onClick: () => void; label: string }) {
+function ListBox({
+  title,
+  tone,
+  children,
+}: {
+  title: string;
+  tone: "new" | "followup" | "read" | "blocked";
+  children: React.ReactNode;
+}) {
+  const border =
+    tone === "new"
+      ? "border-emerald-500/40"
+      : tone === "followup"
+      ? "border-sky-500/40"
+      : tone === "blocked"
+      ? "border-amber-500/40"
+      : "border-slate-800";
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg border text-xs ${
-        active ? "border-emerald-500 bg-emerald-500/15 text-slate-50" : "border-slate-700 bg-slate-950/40 text-slate-200 hover:bg-slate-900"
-      }`}
-    >
-      {label}
-    </button>
+    <div className={`rounded-xl border ${border} bg-slate-950/60 p-4`}>
+      <p className="text-sm font-semibold text-slate-100 mb-3">{title}</p>
+      {children}
+    </div>
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function LeadList({
+  leads,
+  selectedId,
+  onSelect,
+}: {
+  leads: Lead[];
+  selectedId: number | null;
+  onSelect: (lead: Lead) => void;
+}) {
+  if (!leads || leads.length === 0) {
+    return <p className="text-xs text-slate-400">Sin datos.</p>;
+  }
+
   return (
-    <div>
-      <label className="block text-[10px] text-slate-400 mb-0.5">{label}</label>
-      {children}
+    <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1">
+      {leads.map((l) => {
+        const isSelected = selectedId === l.id;
+        return (
+          <button
+            key={l.id}
+            type="button"
+            onClick={() => onSelect(l)}
+            className={`w-full text-left rounded-lg border px-3 py-2 transition ${
+              isSelected
+                ? "border-sky-500 bg-slate-900"
+                : "border-slate-800 bg-slate-950/60 hover:bg-slate-900"
+            }`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div>
+                <p className="text-[13px] font-semibold text-slate-100">{l.nombre}</p>
+                <p className="text-[11px] text-slate-400">
+                  {l.email} — {l.telefono_numero}
+                </p>
+              </div>
+              <p className="text-[10px] text-slate-500 whitespace-nowrap">
+                {l.created_at
+                  ? new Date(l.created_at).toLocaleString("es-AR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : ""}
+              </p>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
