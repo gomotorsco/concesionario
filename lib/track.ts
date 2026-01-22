@@ -1,16 +1,26 @@
+export type DeviceKind = "mobile" | "tablet" | "desktop" | "unknown";
+
+export function getDeviceKind(): DeviceKind {
+  try {
+    if (typeof window === "undefined") return "unknown";
+    const ua = navigator.userAgent || "";
+    const s = ua.toLowerCase();
+
+    if (/(ipad|tablet|kindle|silk|playbook)/i.test(s)) return "tablet";
+    if (/(mobi|android|iphone|ipod)/i.test(s)) return "mobile";
+    return "desktop";
+  } catch {
+    return "unknown";
+  }
+}
+
 export function getClientMeta() {
   try {
     if (typeof window === "undefined") return {};
     const ua = navigator.userAgent || "";
     const lang = navigator.language || null;
 
-    const s = ua.toLowerCase();
-    const device_type =
-      /(ipad|tablet|kindle|silk|playbook)/i.test(s)
-        ? "tablet"
-        : /(mobi|android|iphone|ipod)/i.test(s)
-        ? "mobile"
-        : "desktop";
+    const device_type = getDeviceKind();
 
     const page_location = window.location.href;
     const page_path = window.location.pathname + window.location.search;
@@ -22,16 +32,16 @@ export function getClientMeta() {
   }
 }
 
-export function getFirstTouch() {
+/**
+ * Lee attribution desde URL (UTM/GCLID/FBCLID).
+ * Nota: NO persiste por sí sola; usar persistFirstTouch().
+ */
+export function readAttributionFromUrl() {
   try {
     if (typeof window === "undefined") return null;
-
-    const key = "first_touch";
-    const existing = window.localStorage.getItem(key);
-    if (existing) return JSON.parse(existing);
-
     const params = new URLSearchParams(window.location.search);
-    const payload = {
+
+    return {
       ts: new Date().toISOString(),
       utm_source: params.get("utm_source"),
       utm_medium: params.get("utm_medium"),
@@ -43,6 +53,25 @@ export function getFirstTouch() {
       referrer: document.referrer || null,
       landing: window.location.pathname + window.location.search,
     };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persiste primer touch (solo si no existe).
+ * Devuelve el objeto persistido (o el existente).
+ */
+export function persistFirstTouch() {
+  try {
+    if (typeof window === "undefined") return null;
+
+    const key = "first_touch";
+    const existing = window.localStorage.getItem(key);
+    if (existing) return JSON.parse(existing);
+
+    const payload = readAttributionFromUrl();
+    if (!payload) return null;
 
     window.localStorage.setItem(key, JSON.stringify(payload));
     return payload;
@@ -51,6 +80,17 @@ export function getFirstTouch() {
   }
 }
 
+/**
+ * Compatibilidad con tu código previo.
+ * Devuelve el first touch y lo crea si no existe.
+ */
+export function getFirstTouch() {
+  return persistFirstTouch();
+}
+
+/**
+ * Tracking interno (DB events)
+ */
 export function trackInternal(event: {
   type: string;
   origin?: string;
@@ -78,6 +118,9 @@ export function trackInternal(event: {
   } catch {}
 }
 
+/**
+ * Google gtag wrapper (Ads/GA4)
+ */
 export function trackGtag(eventName: string, params?: Record<string, any>) {
   if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
     (window as any).gtag("event", eventName, params || {});
