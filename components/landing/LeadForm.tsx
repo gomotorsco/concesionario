@@ -75,11 +75,17 @@ export default function LeadForm() {
 
       setStatus("success");
 
-      // Tracking interno + Ads/GA
-      trackInternal({ type: "lead_submit", origin: "lead_form", meta: { attribution: firstTouch } });
-      trackGtag("lead_submit", { origin: "lead_form", ...firstTouch });
+      // 1) Tracking interno
+      trackInternal({
+        type: "lead_submit",
+        origin: "lead_form",
+        meta: { attribution: firstTouch },
+      });
 
-      // Google Ads conversion (si ya tenés send_to)
+      // 2) GA/Ads event
+      trackGtag("lead_submit", { origin: "lead_form", ...(firstTouch || {}) });
+
+      // 3) Google Ads conversion (REEMPLAZA send_to si cambia)
       trackGtag("conversion", { send_to: "AW-17876395056/vsMTCPpGg-BYbELDlIMxC" });
 
       // Limpiar

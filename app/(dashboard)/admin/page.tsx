@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type Lead = {
   id: number;
@@ -11,41 +11,41 @@ type Lead = {
   seguimiento: string | null;
   visto: boolean | null;
   estado?: string | null;
-  // Permitimos campos extra del formulario
   [key: string]: any;
 };
 
-type Metrics = {
+type DashboardMetrics = {
   visits: number;
   leads: number;
   conversion: number;
   recent: Lead[];
 };
 
-type InternalMetrics = {
+type EventsMetrics = {
   range: string;
   since: string;
-  totalEvents: number;
   totalsByType: Record<string, number>;
   totalsByOrigin: Record<string, number>;
-  topVehicles: Array<{
-    vehicle_id: number | null;
-    vehicle_name: string | null;
-    count: number;
-  }>;
+  totalsByDevice?: Record<string, number>;
+  totalsByUtmSource?: Record<string, number>;
+  totalsByUtmCampaign?: Record<string, number>;
+  series: { date: string; count: number }[];
+  topVehicles: { vehicle_id: number | null; vehicle_name: string | null; count: number }[];
+  totalEvents: number;
 };
 
 export default function DashboardPage() {
-  const [metrics, setMetrics] = useState<Metrics | null>(null);
-  const [internal, setInternal] = useState<InternalMetrics | null>(null);
+  const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
+  const [eventsMetrics, setEventsMetrics] = useState<EventsMetrics | null>(null);
+
   const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState<"7d" | "30d" | "90d">("7d");
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [seguimientoDraft, setSeguimientoDraft] = useState("");
   const [editingSeguimiento, setEditingSeguimiento] = useState(false);
   const [savingSeguimiento, setSavingSeguimiento] = useState(false);
 
-  // Edición de datos principales
   const [editMode, setEditMode] = useState(false);
   const [editNombre, setEditNombre] = useState("");
   const [editEmail, setEditEmail] = useState("");
@@ -55,60 +55,39 @@ export default function DashboardPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [statusError, setStatusError] = useState<string | null>(null);
 
-  async function load() {
+  async function loadLeadsDashboard() {
+    const r = await fetch("/api/dashboard", { cache: "no-store" });
+    const data = (await r.json()) as DashboardMetrics;
+    setMetrics({
+      visits: data.visits ?? 0,
+      leads: data.leads ?? 0,
+      conversion: data.conversion ?? 0,
+      recent: data.recent ?? [],
+    });
+  }
+
+  async function loadEventsMetrics(currentRange: string) {
+    const r = await fetch(`/api/events/metrics?range=${currentRange}`, { cache: "no-store" });
+    const data = (await r.json()) as EventsMetrics;
+    setEventsMetrics(data);
+  }
+
+  async function loadAll() {
     try {
-      const r = await fetch("/api/dashboard", { cache: "no-store" });
-      const data = (await r.json()) as Metrics;
-      setMetrics({
-        visits: data.visits ?? 0,
-        leads: data.leads ?? 0,
-        conversion: data.conversion ?? 0,
-        recent: data.recent ?? [],
-      });
+      await Promise.all([loadLeadsDashboard(), loadEventsMetrics(range)]);
     } catch (e) {
-      console.error("Error cargando métricas:", e);
+      console.error("Error cargando dashboard:", e);
     } finally {
       setLoading(false);
     }
   }
 
-  async function loadInternal(range: "7d" | "30d" = "7d") {
-    try {
-      const r = await fetch(`/api/admin/metrics?range=${range}`, {
-        cache: "no-store",
-      });
-
-      if (!r.ok) {
-        const text = await r.text().catch(() => "");
-        console.error("Error cargando métricas internas:", r.status, text);
-        return;
-      }
-
-      const data = (await r.json()) as InternalMetrics;
-      setInternal({
-        range: data.range ?? range,
-        since: data.since ?? "",
-        totalEvents: data.totalEvents ?? 0,
-        totalsByType: data.totalsByType ?? {},
-        totalsByOrigin: data.totalsByOrigin ?? {},
-        topVehicles: data.topVehicles ?? [],
-      });
-    } catch (e) {
-      console.error("Error cargando métricas internas:", e);
-    }
-  }
-
   useEffect(() => {
-    load();
-    loadInternal("7d");
-
-    const id = setInterval(() => {
-      load();
-      loadInternal("7d");
-    }, 8000);
-
+    loadAll();
+    const id = setInterval(loadAll, 8000);
     return () => clearInterval(id);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [range]);
 
   async function markLeadAsSeen(id: number) {
     try {
@@ -120,12 +99,7 @@ export default function DashboardPage() {
 
       setMetrics((prev) =>
         prev
-          ? {
-              ...prev,
-              recent: prev.recent.map((l) =>
-                l.id === id ? { ...l, visto: true } : l
-              ),
-            }
+          ? { ...prev, recent: prev.recent.map((l) => (l.id === id ? { ...l, visto: true } : l)) }
           : prev
       );
     } catch (e) {
@@ -149,12 +123,7 @@ export default function DashboardPage() {
       markLeadAsSeen(lead.id);
       setMetrics((prev) =>
         prev
-          ? {
-              ...prev,
-              recent: prev.recent.map((l) =>
-                l.id === lead.id ? { ...l, visto: true } : l
-              ),
-            }
+          ? { ...prev, recent: prev.recent.map((l) => (l.id === lead.id ? { ...l, visto: true } : l)) }
           : prev
       );
       setSelectedLead({ ...lead, visto: true });
@@ -182,8 +151,6 @@ export default function DashboardPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error guardando seguimiento:", res.status, text);
         setStatusError("No se pudo guardar el seguimiento.");
         return;
       }
@@ -192,18 +159,13 @@ export default function DashboardPage() {
       const updated: Lead = json.lead;
 
       setMetrics((prev) =>
-        prev
-          ? {
-              ...prev,
-              recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)),
-            }
-          : prev
+        prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
       );
       setSelectedLead(updated);
       setEditingSeguimiento(false);
       setStatusMessage("Seguimiento guardado correctamente.");
     } catch (err) {
-      console.error("Error llamando a /api/dashboard (update_lead):", err);
+      console.error("Error update_lead seguimiento:", err);
       setStatusError("Ocurrió un error al guardar el seguimiento.");
     } finally {
       setSavingSeguimiento(false);
@@ -232,8 +194,6 @@ export default function DashboardPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error guardando datos del lead:", res.status, text);
         setStatusError("No se pudieron guardar los datos del lead.");
         return;
       }
@@ -242,18 +202,13 @@ export default function DashboardPage() {
       const updated: Lead = json.lead;
 
       setMetrics((prev) =>
-        prev
-          ? {
-              ...prev,
-              recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)),
-            }
-          : prev
+        prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
       );
       setSelectedLead(updated);
       setEditMode(false);
       setStatusMessage("Datos del lead guardados correctamente.");
     } catch (err) {
-      console.error("Error llamando a /api/dashboard (update_lead datos):", err);
+      console.error("Error update_lead datos:", err);
       setStatusError("Ocurrió un error al guardar los datos del lead.");
     } finally {
       setSavingDatos(false);
@@ -279,8 +234,6 @@ export default function DashboardPage() {
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error marcando dato frenado:", res.status, text);
         setStatusError("No se pudo marcar el dato como frenado.");
         return;
       }
@@ -289,27 +242,19 @@ export default function DashboardPage() {
       const updated: Lead = json.lead;
 
       setMetrics((prev) =>
-        prev
-          ? {
-              ...prev,
-              recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)),
-            }
-          : prev
+        prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
       );
       setSelectedLead(updated);
       setStatusMessage("Dato marcado como frenado.");
     } catch (err) {
-      console.error("Error llamando a /api/dashboard (dato frenado):", err);
+      console.error("Error dato frenado:", err);
       setStatusError("Ocurrió un error al marcar el dato como frenado.");
     }
   }
 
   async function handleDeleteLead() {
     if (!selectedLead) return;
-
-    const ok = window.confirm(
-      "¿Seguro que querés borrar este lead? Esta acción no se puede deshacer."
-    );
+    const ok = window.confirm("¿Seguro que querés borrar este lead? Esta acción no se puede deshacer.");
     if (!ok) return;
 
     setStatusError(null);
@@ -319,26 +264,16 @@ export default function DashboardPage() {
       const res = await fetch("/api/dashboard", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "delete_lead",
-          id: selectedLead.id,
-        }),
+        body: JSON.stringify({ type: "delete_lead", id: selectedLead.id }),
       });
 
       if (!res.ok) {
-        const text = await res.text().catch(() => "");
-        console.error("Error borrando lead:", res.status, text);
         setStatusError("No se pudo borrar el lead.");
         return;
       }
 
       setMetrics((prev) =>
-        prev
-          ? {
-              ...prev,
-              recent: prev.recent.filter((l) => l.id !== selectedLead.id),
-            }
-          : prev
+        prev ? { ...prev, recent: prev.recent.filter((l) => l.id !== selectedLead.id) } : prev
       );
       setSelectedLead(null);
       setSeguimientoDraft("");
@@ -346,108 +281,119 @@ export default function DashboardPage() {
       setEditingSeguimiento(false);
       setStatusMessage("Lead borrado correctamente.");
     } catch (err) {
-      console.error("Error llamando a /api/dashboard (delete_lead):", err);
+      console.error("Error delete_lead:", err);
       setStatusError("Ocurrió un error al borrar el lead.");
     }
   }
 
-  if (loading && !metrics) {
-    return <p className="text-slate-400">Cargando…</p>;
-  }
-
-  if (!metrics) {
-    return (
-      <p className="text-slate-400">
-        No se pudieron cargar las métricas por el momento.
-      </p>
-    );
-  }
-
-  // NUEVAS TARJETAS: leads nuevos y en seguimiento
-  const leadsNuevos = metrics.recent?.filter((l) => !l.visto)?.length ?? 0;
+  const leadsNuevos = metrics?.recent?.filter((l) => !l.visto)?.length ?? 0;
   const leadsEnSeguimiento =
-    metrics.recent?.filter((l) => (l.seguimiento ?? "").toString().trim() !== "")
-      ?.length ?? 0;
+    metrics?.recent?.filter((l) => (l.seguimiento ?? "").toString().trim() !== "").length ?? 0;
 
-  const whatsappTotal = internal?.totalsByType?.["whatsapp_click"] ?? 0;
-  const whatsappVehiculo = internal?.totalsByType?.["whatsapp_click_vehicle"] ?? 0;
-  const modalOpen = internal?.totalsByType?.["entry_modal_open"] ?? 0;
-  const leadSubmitEvent = internal?.totalsByType?.["lead_submit"] ?? 0;
+  const internal = useMemo(() => {
+    const t = eventsMetrics?.totalsByType || {};
+    return {
+      page_views: t.page_view || 0,
+      whatsapp_total: t.whatsapp_click || 0,
+      whatsapp_vehicle: t.whatsapp_click_vehicle || 0,
+      modal_open: t.entry_modal_open || 0,
+      lead_submit: t.lead_submit || 0,
+    };
+  }, [eventsMetrics]);
+
+  if (loading && !metrics) return <p className="text-slate-400">Cargando…</p>;
+  if (!metrics) return <p className="text-slate-400">No se pudieron cargar las métricas por el momento.</p>;
 
   return (
     <div className="space-y-6">
-      {/* TARJETAS DE LEADS (no más visitas / conversión inventada) */}
+      {/* Selector rango */}
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-100">Visión general de leads y rendimiento</p>
+          <p className="text-xs text-slate-400">Rango eventos internos: {range}</p>
+        </div>
+
+        <select
+          value={range}
+          onChange={(e) => setRange(e.target.value as any)}
+          className="rounded-md border border-slate-700 bg-slate-950/60 px-3 py-2 text-xs text-slate-100"
+        >
+          <option value="7d">7 días</option>
+          <option value="30d">30 días</option>
+          <option value="90d">90 días</option>
+        </select>
+      </div>
+
+      {/* Tarjetas leads */}
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card title="Leads nuevos" value={leadsNuevos} />
         <Card title="Leads en seguimiento" value={leadsEnSeguimiento} />
       </section>
 
-      {/* MÉTRICAS INTERNAS (EVENTS) */}
+      {/* Métricas internas */}
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold text-slate-100">
-          Métricas internas
-        </h2>
+        <h2 className="text-lg font-semibold text-slate-100">Métricas internas</h2>
 
-        {!internal ? (
-          <p className="text-slate-400 text-sm">Cargando métricas internas…</p>
-        ) : (
-          <>
-            <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <Card title="Clicks WhatsApp (total)" value={whatsappTotal} />
-              <Card title="Clicks WhatsApp (vehículo)" value={whatsappVehiculo} />
-              <Card title="Aperturas modal" value={modalOpen} />
-              <Card title="Leads enviados (event)" value={leadSubmitEvent} />
-            </section>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card title="Page views" value={internal.page_views} />
+          <Card title="Clicks WhatsApp (total)" value={internal.whatsapp_total} />
+          <Card title="Clicks WhatsApp (vehículo)" value={internal.whatsapp_vehicle} />
+          <Card title="Aperturas modal" value={internal.modal_open} />
+        </div>
 
-            <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800">
-              <p className="text-xs text-slate-400 mb-2">
-                Rango: {internal.range} · Desde:{" "}
-                {String(internal.since).slice(0, 10)} · Total eventos:{" "}
-                {internal.totalEvents}
-              </p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card title="Leads enviados (event)" value={internal.lead_submit} />
+          <Card title="Total eventos" value={eventsMetrics?.totalEvents ?? 0} />
+          <Card title="Desde" value={(eventsMetrics?.since ?? "").slice(0, 10)} />
+          <Card title="Rango" value={eventsMetrics?.range ?? range} />
+        </div>
 
-              <h3 className="text-sm font-semibold text-slate-100 mb-2">
-                Top vehículos por WhatsApp
-              </h3>
+        {/* Top vehicles */}
+        <div className="bg-slate-950/60 rounded-xl border border-slate-800 p-4">
+          <p className="text-sm font-semibold text-slate-100 mb-3">Top vehículos por WhatsApp</p>
+          {(!eventsMetrics?.topVehicles || eventsMetrics.topVehicles.length === 0) ? (
+            <p className="text-xs text-slate-400">Todavía no hay clicks por vehículo.</p>
+          ) : (
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-slate-400">
+                  <th className="text-left py-2">Vehículo</th>
+                  <th className="text-right py-2">Clicks</th>
+                </tr>
+              </thead>
+              <tbody>
+                {eventsMetrics.topVehicles.map((v, idx) => (
+                  <tr key={idx} className="border-t border-slate-800">
+                    <td className="py-2 text-slate-100">{v.vehicle_name || `ID ${v.vehicle_id}`}</td>
+                    <td className="py-2 text-right text-slate-100">{v.count}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
 
-              {internal.topVehicles.length === 0 ? (
-                <p className="text-slate-400 text-sm">
-                  Todavía no hay clicks por vehículo.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="text-slate-400">
-                      <tr>
-                        <th className="text-left py-2">Vehículo</th>
-                        <th className="text-right py-2">Clicks</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {internal.topVehicles.map((v, idx) => (
-                        <tr key={idx} className="border-t border-slate-800">
-                          <td className="py-2 text-slate-100">
-                            {v.vehicle_name || "Sin nombre"}
-                          </td>
-                          <td className="py-2 text-right text-slate-100 font-semibold">
-                            {v.count}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+        {/* Series simple (sin chart aún) */}
+        <div className="bg-slate-950/60 rounded-xl border border-slate-800 p-4">
+          <p className="text-sm font-semibold text-slate-100 mb-3">Eventos por día (serie)</p>
+          {(!eventsMetrics?.series || eventsMetrics.series.length === 0) ? (
+            <p className="text-xs text-slate-400">Sin datos en el rango.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+              {eventsMetrics.series.map((s) => (
+                <div key={s.date} className="rounded-lg border border-slate-800 bg-slate-950/70 p-2">
+                  <p className="text-[10px] text-slate-400">{s.date}</p>
+                  <p className="text-lg font-semibold text-slate-100">{s.count}</p>
                 </div>
-              )}
+              ))}
             </div>
-          </>
-        )}
+          )}
+        </div>
       </section>
 
       {/* ULTIMOS LEADS */}
       <section>
-        <h2 className="text-lg font-semibold text-slate-100 mb-3">
-          Últimos leads
-        </h2>
+        <h2 className="text-lg font-semibold text-slate-100 mb-3">Últimos leads</h2>
 
         <div className="bg-slate-950/60 rounded-xl p-4 text-sm">
           {(!metrics.recent || metrics.recent.length === 0) && (
@@ -456,7 +402,6 @@ export default function DashboardPage() {
 
           {metrics.recent && metrics.recent.length > 0 && (
             <div className="grid gap-4 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1.2fr)]">
-              {/* Lista de leads */}
               <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
                 {metrics.recent.map((l) => {
                   const isSelected = selectedLead?.id === l.id;
@@ -483,14 +428,10 @@ export default function DashboardPage() {
                           <p className="text-[13px] font-semibold text-slate-100 flex items-center gap-2">
                             {l.nombre}
                             {isNew && !isFrenado && (
-                              <span className="text-[10px] font-semibold text-emerald-400">
-                                Nuevo
-                              </span>
+                              <span className="text-[10px] font-semibold text-emerald-400">Nuevo</span>
                             )}
                             {isFrenado && (
-                              <span className="text-[10px] font-semibold text-amber-300">
-                                Frenado
-                              </span>
+                              <span className="text-[10px] font-semibold text-amber-300">Frenado</span>
                             )}
                           </p>
                           <p className="text-[11px] text-slate-400">
@@ -513,91 +454,60 @@ export default function DashboardPage() {
                 })}
               </div>
 
-              {/* Detalle / acciones / seguimiento */}
               <div className="border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-4">
                 {!selectedLead ? (
                   <p className="text-xs text-slate-400">
-                    Seleccioná un lead de la lista para ver todos los datos y
-                    gestionar el seguimiento.
+                    Seleccioná un lead de la lista para ver todos los datos y gestionar el seguimiento.
                   </p>
                 ) : (
                   <div className="space-y-3">
-                    {/* Encabezado */}
                     <div>
-                      <p className="text-xs font-semibold text-slate-300">
-                        Detalle del lead
-                      </p>
-                      <p className="text-sm text-slate-100">
-                        {selectedLead.nombre}
-                      </p>
+                      <p className="text-xs font-semibold text-slate-300">Detalle del lead</p>
+                      <p className="text-sm text-slate-100">{selectedLead.nombre}</p>
                       <p className="text-xs text-slate-400">
                         {selectedLead.email} — {selectedLead.telefono_numero}
                       </p>
                       {selectedLead.created_at && (
                         <p className="text-[10px] text-slate-500 mt-1">
                           Recibido el{" "}
-                          {new Date(selectedLead.created_at).toLocaleString(
-                            "es-AR",
-                            {
-                              day: "2-digit",
-                              month: "2-digit",
-                              year: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
+                          {new Date(selectedLead.created_at).toLocaleString("es-AR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </p>
                       )}
                       {selectedLead.estado && (
                         <p className="text-[10px] text-slate-400 mt-1">
-                          Estado:{" "}
-                          <span className="uppercase">{selectedLead.estado}</span>
+                          Estado: <span className="uppercase">{selectedLead.estado}</span>
                         </p>
                       )}
                     </div>
 
-                    {/* DATOS COMPLETOS DEL FORMULARIO */}
                     <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
-                      <p className="text-[11px] font-semibold text-slate-300 mb-1">
-                        Datos del formulario
-                      </p>
+                      <p className="text-[11px] font-semibold text-slate-300 mb-1">Datos del formulario</p>
                       <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
                         {Object.entries(selectedLead as Record<string, any>)
                           .filter(([key, value]) => {
-                            if (value === null || value === undefined || value === "")
-                              return false;
-                            // Campos que no mostramos aquí porque ya se ven arriba o son técnicos
+                            if (value === null || value === undefined || value === "") return false;
                             if (
-                              [
-                                "id",
-                                "created_at",
-                                "seguimiento",
-                                "visto",
-                                "telefono_numero",
-                                "estado",
-                              ].includes(key)
+                              ["id", "created_at", "seguimiento", "visto", "telefono_numero", "estado"].includes(key)
                             )
                               return false;
                             if (typeof value === "object") return false;
                             return true;
                           })
                           .map(([key, value]) => (
-                            <div
-                              key={key}
-                              className="flex justify-between gap-2 text-[11px]"
-                            >
-                              <span className="text-slate-400">
-                                {humanLabel(key)}
-                              </span>
-                              <span className="text-slate-100 text-right">
-                                {String(value)}
-                              </span>
+                            <div key={key} className="flex justify-between gap-2 text-[11px]">
+                              <span className="text-slate-400">{humanLabel(key)}</span>
+                              <span className="text-slate-100 text-right">{String(value)}</span>
                             </div>
                           ))}
                       </div>
                     </div>
 
-                    {/* BOTONES DE ACCIÓN */}
                     <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
@@ -629,20 +539,15 @@ export default function DashboardPage() {
                       </button>
                     </div>
 
-                    {/* EDICIÓN DE DATOS PRINCIPALES */}
                     {editMode && (
                       <form
                         onSubmit={handleSaveDatos}
                         className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2"
                       >
-                        <p className="text-[11px] font-semibold text-slate-300 mb-1">
-                          Editar datos principales
-                        </p>
+                        <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar datos principales</p>
                         <div className="grid grid-cols-1 gap-2">
                           <div>
-                            <label className="block text-[10px] text-slate-400 mb-0.5">
-                              Nombre
-                            </label>
+                            <label className="block text-[10px] text-slate-400 mb-0.5">Nombre</label>
                             <input
                               type="text"
                               value={editNombre}
@@ -651,9 +556,7 @@ export default function DashboardPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] text-slate-400 mb-0.5">
-                              Email
-                            </label>
+                            <label className="block text-[10px] text-slate-400 mb-0.5">Email</label>
                             <input
                               type="email"
                               value={editEmail}
@@ -662,9 +565,7 @@ export default function DashboardPage() {
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] text-slate-400 mb-0.5">
-                              Teléfono
-                            </label>
+                            <label className="block text-[10px] text-slate-400 mb-0.5">Teléfono</label>
                             <input
                               type="text"
                               value={editTelefono}
@@ -683,22 +584,14 @@ export default function DashboardPage() {
                       </form>
                     )}
 
-                    {/* SEGUIMIENTO */}
                     <div className="space-y-2">
                       {!editingSeguimiento && (
                         <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2 min-h-[52px]">
-                          <p className="text-[11px] font-semibold text-slate-300 mb-1">
-                            Seguimiento
-                          </p>
-                          {selectedLead.seguimiento &&
-                          selectedLead.seguimiento.trim() !== "" ? (
-                            <p className="text-xs text-slate-100 whitespace-pre-line">
-                              {selectedLead.seguimiento}
-                            </p>
+                          <p className="text-[11px] font-semibold text-slate-300 mb-1">Seguimiento</p>
+                          {selectedLead.seguimiento && selectedLead.seguimiento.trim() !== "" ? (
+                            <p className="text-xs text-slate-100 whitespace-pre-line">{selectedLead.seguimiento}</p>
                           ) : (
-                            <p className="text-[11px] text-slate-500">
-                              Sin notas de seguimiento todavía.
-                            </p>
+                            <p className="text-[11px] text-slate-500">Sin notas de seguimiento todavía.</p>
                           )}
                         </div>
                       )}
@@ -708,9 +601,7 @@ export default function DashboardPage() {
                           onSubmit={handleSaveSeguimiento}
                           className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2"
                         >
-                          <p className="text-[11px] font-semibold text-slate-300 mb-1">
-                            Editar seguimiento
-                          </p>
+                          <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar seguimiento</p>
                           <textarea
                             value={seguimientoDraft}
                             onChange={(e) => setSeguimientoDraft(e.target.value)}
@@ -736,12 +627,8 @@ export default function DashboardPage() {
                         </form>
                       )}
 
-                      {statusMessage && (
-                        <p className="text-[11px] text-emerald-400">{statusMessage}</p>
-                      )}
-                      {statusError && (
-                        <p className="text-[11px] text-red-400">{statusError}</p>
-                      )}
+                      {statusMessage && <p className="text-[11px] text-emerald-400">{statusMessage}</p>}
+                      {statusError && <p className="text-[11px] text-red-400">{statusError}</p>}
                     </div>
                   </div>
                 )}
@@ -764,7 +651,5 @@ function Card({ title, value }: { title: string; value: number | string }) {
 }
 
 function humanLabel(key: string): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
