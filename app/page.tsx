@@ -5,6 +5,7 @@ import EntryModal from "@/components/landing/EntryModal";
 import FloatingActions from "@/components/landing/FloatingActions";
 import HeroWhatsAppButton from "@/components/landing/HeroWhatsAppButton";
 import VehiclesSection from "@/components/landing/VehiclesSection";
+import ClientAnalytics from "@/components/landing/ClientAnalytics";
 import { getWhatsappNumber } from "@/lib/config";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -89,6 +90,9 @@ export default async function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#f3f1eb] text-slate-900">
+      {/* ✅ Analytics (page_view + first_touch + device + referrer) */}
+      <ClientAnalytics />
+
       <Header />
       <AnnouncementBar />
       <EntryModal />
@@ -150,10 +154,7 @@ export default async function LandingPage() {
               En este momento no hay modelos disponibles para mostrar.
             </p>
           ) : (
-            <VehiclesSection
-              sections={sectionsConAutos}
-              whatsappUrl={whatsappUrl}
-            />
+            <VehiclesSection sections={sectionsConAutos} whatsappUrl={whatsappUrl} />
           )}
         </div>
       </section>
