@@ -23,7 +23,6 @@ export async function POST(req: Request) {
       vehicle_id: body.vehicle_id ?? null,
       vehicle_name: body.vehicle_name ?? null,
       meta: body.meta ?? null,
-      // created_at lo pone la DB (default now())
     });
 
     if (error) {

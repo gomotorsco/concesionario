@@ -5,7 +5,7 @@ import Image from "next/image";
 import LeadForm from "@/components/landing/LeadForm";
 import { trackGtag, trackInternal } from "@/lib/track";
 
-import logo from "./logo.png";
+import logo from "../layout/logo.png";
 
 export default function EntryModal() {
   const [open, setOpen] = useState(false);
@@ -43,7 +43,9 @@ export default function EntryModal() {
     trackInternal({ type: "entry_modal_close", origin: "close_button" });
 
     setOpen(false);
-    window.sessionStorage.setItem("entry-modal-dismissed", "1");
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem("entry-modal-dismissed", "1");
+    }
   }
 
   if (!open) return null;

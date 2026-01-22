@@ -10,7 +10,6 @@ export default function FloatingActions({ whatsappUrl }: Props) {
   const handleWhatsAppClick = () => {
     trackGtag("whatsapp_click", { origin: "floating" });
     trackInternal({ type: "whatsapp_click", origin: "floating" });
-
     window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 

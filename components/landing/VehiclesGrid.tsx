@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { trackGtag, trackInternal } from "@/lib/track";
 
 type Vehicle = {
   id: number;
@@ -17,7 +18,7 @@ type Section = {
 };
 
 type Props = {
-  whatsappUrl: string; // viene desde la landing (DB -> buildWhatsAppUrl)
+  whatsappUrl: string;
 };
 
 export default function VehiclesGrid({ whatsappUrl }: Props) {
@@ -64,8 +65,7 @@ export default function VehiclesGrid({ whatsappUrl }: Props) {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {section.vehicles?.map((v) => {
-              const vehicleName = `${section.title} ${v.title}`.trim();
-              const waLink = buildWhatsAppLink(v.title);
+              const wa = buildWhatsAppLink(v.title);
 
               return (
                 <article
@@ -90,8 +90,7 @@ export default function VehiclesGrid({ whatsappUrl }: Props) {
                       <p className="text-sm text-slate-700">
                         Cuota desde{" "}
                         <span className="font-semibold">
-                          {v.moneda ?? "ARS"}{" "}
-                          {Number(v.cuota_desde).toLocaleString("es-AR")}
+                          {v.moneda ?? "ARS"} {Number(v.cuota_desde).toLocaleString("es-AR")}
                         </span>
                       </p>
                     )}
@@ -100,13 +99,8 @@ export default function VehiclesGrid({ whatsappUrl }: Props) {
                       <a
                         href="#form"
                         onClick={() => {
-                          if (typeof window !== "undefined" && typeof window.gtag === "function") {
-                            window.gtag("event", "vehicle_interest", {
-                              vehicle_id: v.id,
-                              vehicle_name: vehicleName,
-                              origin: "vehicles_grid",
-                            });
-                          }
+                          trackGtag("cta_form_click", { origin: "vehicle_card", vehicle_name: v.title });
+                          trackInternal({ type: "cta_form_click", origin: "vehicle_card", vehicle_id: v.id, vehicle_name: v.title });
                         }}
                         className="w-full inline-flex justify-center items-center rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold py-2.5 transition-colors"
                       >
@@ -114,17 +108,17 @@ export default function VehiclesGrid({ whatsappUrl }: Props) {
                       </a>
 
                       <a
-                        href={waLink}
+                        href={wa}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => {
-                          if (typeof window !== "undefined" && typeof window.gtag === "function") {
-                            window.gtag("event", "whatsapp_click_vehicle", {
-                              vehicle_id: v.id,
-                              vehicle_name: vehicleName,
-                              origin: "vehicles_grid",
-                            });
-                          }
+                          trackGtag("whatsapp_click", { origin: "vehicle_card", vehicle_name: v.title });
+                          trackInternal({
+                            type: "whatsapp_click_vehicle",
+                            origin: "vehicle_card",
+                            vehicle_id: v.id,
+                            vehicle_name: v.title,
+                          });
                         }}
                         className="w-full inline-flex justify-center items-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold py-2.5 transition-colors"
                       >
