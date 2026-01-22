@@ -1,55 +1,38 @@
 export type DeviceKind = "mobile" | "tablet" | "desktop" | "unknown";
 
+/* =========================
+   DEVICE
+========================= */
 export function getDeviceKind(): DeviceKind {
   try {
     if (typeof window === "undefined") return "unknown";
-    const ua = navigator.userAgent || "";
-    const s = ua.toLowerCase();
+    const ua = navigator.userAgent.toLowerCase();
 
-    if (/(ipad|tablet|kindle|silk|playbook)/i.test(s)) return "tablet";
-    if (/(mobi|android|iphone|ipod)/i.test(s)) return "mobile";
+    if (/ipad|tablet|kindle|silk|playbook/.test(ua)) return "tablet";
+    if (/mobi|android|iphone|ipod/.test(ua)) return "mobile";
     return "desktop";
   } catch {
     return "unknown";
   }
 }
 
-export function getClientMeta() {
-  try {
-    if (typeof window === "undefined") return {};
-    const ua = navigator.userAgent || "";
-    const lang = navigator.language || null;
-
-    const device_type = getDeviceKind();
-
-    const page_location = window.location.href;
-    const page_path = window.location.pathname + window.location.search;
-    const referrer = document.referrer || null;
-
-    return { ua, lang, device_type, page_location, page_path, referrer };
-  } catch {
-    return {};
-  }
-}
-
-/**
- * Lee attribution desde URL (UTM/GCLID/FBCLID).
- * Nota: NO persiste por sí sola; usar persistFirstTouch().
- */
+/* =========================
+   ATTRIBUTION
+========================= */
 export function readAttributionFromUrl() {
   try {
     if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
+    const p = new URLSearchParams(window.location.search);
 
     return {
       ts: new Date().toISOString(),
-      utm_source: params.get("utm_source"),
-      utm_medium: params.get("utm_medium"),
-      utm_campaign: params.get("utm_campaign"),
-      utm_content: params.get("utm_content"),
-      utm_term: params.get("utm_term"),
-      gclid: params.get("gclid"),
-      fbclid: params.get("fbclid"),
+      utm_source: p.get("utm_source"),
+      utm_medium: p.get("utm_medium"),
+      utm_campaign: p.get("utm_campaign"),
+      utm_content: p.get("utm_content"),
+      utm_term: p.get("utm_term"),
+      gclid: p.get("gclid"),
+      fbclid: p.get("fbclid"),
       referrer: document.referrer || null,
       landing: window.location.pathname + window.location.search,
     };
@@ -59,10 +42,11 @@ export function readAttributionFromUrl() {
 }
 
 /**
- * Persiste primer touch (solo si no existe).
- * Devuelve el objeto persistido (o el existente).
+ * Persiste first-touch.
+ * ✔ acepta attribution opcional
+ * ✔ no pisa si ya existe
  */
-export function persistFirstTouch() {
+export function persistFirstTouch(attrib?: any) {
   try {
     if (typeof window === "undefined") return null;
 
@@ -70,7 +54,7 @@ export function persistFirstTouch() {
     const existing = window.localStorage.getItem(key);
     if (existing) return JSON.parse(existing);
 
-    const payload = readAttributionFromUrl();
+    const payload = attrib ?? readAttributionFromUrl();
     if (!payload) return null;
 
     window.localStorage.setItem(key, JSON.stringify(payload));
@@ -81,16 +65,34 @@ export function persistFirstTouch() {
 }
 
 /**
- * Compatibilidad con tu código previo.
- * Devuelve el first touch y lo crea si no existe.
+ * Compatibilidad con código previo
  */
 export function getFirstTouch() {
   return persistFirstTouch();
 }
 
-/**
- * Tracking interno (DB events)
- */
+/* =========================
+   CLIENT META
+========================= */
+export function getClientMeta() {
+  try {
+    if (typeof window === "undefined") return {};
+    return {
+      device_type: getDeviceKind(),
+      lang: navigator.language || null,
+      page_location: window.location.href,
+      page_path: window.location.pathname + window.location.search,
+      referrer: document.referrer || null,
+      ua: navigator.userAgent || null,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/* =========================
+   INTERNAL TRACKING
+========================= */
 export function trackInternal(event: {
   type: string;
   origin?: string;
@@ -99,30 +101,23 @@ export function trackInternal(event: {
   meta?: any;
 }) {
   try {
-    const meta = { ...(getClientMeta() as any), ...(event.meta || {}) };
-
-    const payload = {
-      type: event.type,
-      origin: event.origin,
-      vehicle_id: event.vehicle_id,
-      vehicle_name: event.vehicle_name,
-      meta,
-    };
-
     fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
       keepalive: true,
+      body: JSON.stringify({
+        ...event,
+        meta: { ...getClientMeta(), ...(event.meta || {}) },
+      }),
     }).catch(() => {});
   } catch {}
 }
 
-/**
- * Google gtag wrapper (Ads/GA4)
- */
-export function trackGtag(eventName: string, params?: Record<string, any>) {
+/* =========================
+   GTAG
+========================= */
+export function trackGtag(event: string, params?: Record<string, any>) {
   if (typeof window !== "undefined" && typeof (window as any).gtag === "function") {
-    (window as any).gtag("event", eventName, params || {});
+    (window as any).gtag("event", event, params || {});
   }
 }
