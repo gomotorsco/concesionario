@@ -1,0 +1,115 @@
+diff --git a/app/(dashboard)/admin/page.tsx b/app/(dashboard)/admin/page.tsx
+--- a/app/(dashboard)/admin/page.tsx
++++ b/app/(dashboard)/admin/page.tsx
+@@ -1,6 +1,24 @@
+ "use client";
+ 
+ import { FormEvent, useEffect, useState } from "react";
++
++type StatsResponse = {
++  range: string;
++  since: string;
++  totalsByType: Record<string, number>;
++  totalsByOrigin: Record<string, number>;
++  totalsByDevice: Record<string, number>;
++  series: { date: string; count: number }[];
++  seriesByType: { date: string; totals: Record<string, number> }[];
++  topVehicles: { vehicle_id: number | null; vehicle_name: string | null; count: number }[];
++  totalEvents: number;
++};
+ 
+ type Lead = {
+   id: number;
+@@ -24,6 +42,7 @@ type Metrics = {
+   leads: number;
+   conversion: number;
+   recent: Lead[];
+ };
+ 
+ export default function DashboardPage() {
+   const [metrics, setMetrics] = useState<Metrics | null>(null);
++  const [stats, setStats] = useState<StatsResponse | null>(null);
+   const [loading, setLoading] = useState(true);
+ 
+   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+@@ -47,16 +66,28 @@ export default function DashboardPage() {
+ 
+   async function load() {
+     try {
+-      const r = await fetch("/api/dashboard", { cache: "no-store" });
+-      const data = (await r.json()) as Metrics;
++      const [rDash, rStats] = await Promise.all([
++        fetch("/api/dashboard", { cache: "no-store" }),
++        fetch("/api/events/stats?range=7d", { cache: "no-store" }),
++      ]);
++
++      const data = (await rDash.json()) as Metrics;
+       setMetrics({
+         visits: data.visits ?? 0,
+         leads: data.leads ?? 0,
+         conversion: data.conversion ?? 0,
+         recent: data.recent ?? [],
+       });
++
++      if (rStats.ok) {
++        const s = (await rStats.json()) as StatsResponse;
++        setStats(s);
++      } else {
++        setStats(null);
++      }
+     } catch (e) {
+       console.error("Error cargando métricas:", e);
+     } finally {
+@@ -382,6 +413,47 @@ export default function DashboardPage() {
+   const leadsEnSeguimiento =
+     metrics.recent?.filter(
+       (l) => (l.seguimiento ?? "").toString().trim() !== ""
+     ).length ?? 0;
++
++  const deviceMobile = stats?.totalsByDevice?.mobile ?? 0;
++  const deviceDesktop = stats?.totalsByDevice?.desktop ?? 0;
++  const deviceTablet = stats?.totalsByDevice?.tablet ?? 0;
+ 
+   return (
+     <div className="space-y-6">
+@@ -396,6 +468,42 @@ export default function DashboardPage() {
+         <Card title="Leads en seguimiento" value={leadsEnSeguimiento} />
+       </section>
++
++      {/* NUEVO: Eventos por día + dispositivos */}
++      {stats && (
++        <section className="space-y-4">
++          <h2 className="text-lg font-semibold text-slate-100">Eventos por día (últimos {stats.range})</h2>
++
++          <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
++            <Card title="Mobile" value={deviceMobile} />
++            <Card title="Desktop" value={deviceDesktop} />
++            <Card title="Tablet" value={deviceTablet} />
++          </section>
++
++          <div className="bg-slate-950/60 rounded-xl p-4 text-sm border border-slate-800">
++            <p className="text-xs text-slate-400 mb-2">
++              Desde: {stats.since.slice(0, 10)} · Total eventos: {stats.totalEvents}
++            </p>
++
++            {(!stats.series || stats.series.length === 0) ? (
++              <p className="text-slate-400">Todavía no hay eventos en este rango.</p>
++            ) : (
++              <div className="space-y-2">
++                {stats.series.map((p) => (
++                  <div key={p.date} className="flex items-center justify-between">
++                    <span className="text-slate-300">{p.date}</span>
++                    <span className="text-slate-50 font-semibold">{p.count}</span>
++                  </div>
++                ))}
++              </div>
++            )}
++          </div>
++        </section>
++      )}
+ 
+       {/* ULTIMOS LEADS */}
+       <section>
+         <h2 className="text-lg font-semibold text-slate-100 mb-3">
+           Últimos leads
+         </h2>
