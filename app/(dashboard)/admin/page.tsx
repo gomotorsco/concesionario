@@ -1,3 +1,4 @@
+cat > app/(dashboard)/admin/page.tsx <<'EOF'
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
@@ -658,3 +659,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+EOF
