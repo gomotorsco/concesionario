@@ -11,7 +11,17 @@ type Lead = {
   seguimiento: string | null;
   visto: boolean | null;
   estado?: string | null;
+  vendedor_id?: string | null;
+  vehicle_name?: string | null;
   [key: string]: any;
+};
+
+type Vendedor = {
+  id: string;
+  nombre: string;
+  email: string;
+  meta_mensual: number;
+  activo: boolean;
 };
 
 type Metrics = {
@@ -33,6 +43,7 @@ function humanLabel(key: string): string {
 
 export default function AdminLeadsPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [vendedores, setVendedores] = useState<Vendedor[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -65,48 +76,84 @@ export default function AdminLeadsPage() {
     }
   }
 
+  async function loadVendedores() {
+    try {
+      const r = await fetch("/api/vendedores", { cache: "no-store" });
+      const data = await r.json();
+      setVendedores(data.vendedores ?? []);
+    } catch (e) {
+      console.error("Error cargando vendedores:", e);
+    }
+  }
+
   useEffect(() => {
     load();
+    loadVendedores();
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
   }, []);
 
   const leads = metrics?.recent ?? [];
 
-  const isFrenado = (l: Lead) => (l.estado ?? "") === "frenado";
+  const estadoOf = (l: Lead) => l.estado ?? "nuevo";
   const hasSeguimiento = (l: Lead) => (l.seguimiento ?? "").toString().trim() !== "";
   const isVisto = (l: Lead) => !!l.visto;
 
   const nuevos = useMemo(
-    () => leads.filter((l) => !isFrenado(l) && !isVisto(l) && !hasSeguimiento(l)),
+    () => leads.filter((l) => estadoOf(l) === "nuevo" && !isVisto(l) && !hasSeguimiento(l)),
     [leads]
   );
 
   const enSeguimiento = useMemo(
-    () => leads.filter((l) => !isFrenado(l) && hasSeguimiento(l)),
+    () => leads.filter((l) => estadoOf(l) === "en_seguimiento" || hasSeguimiento(l)),
     [leads]
   );
 
-  const leidos = useMemo(
-    () => leads.filter((l) => !isFrenado(l) && isVisto(l) && !hasSeguimiento(l)),
+  const vendidos = useMemo(
+    () => leads.filter((l) => estadoOf(l) === "vendido"),
     [leads]
   );
 
-  const frenados = useMemo(() => leads.filter((l) => isFrenado(l)), [leads]);
+  const perdidos = useMemo(
+    () => leads.filter((l) => estadoOf(l) === "perdido"),
+    [leads]
+  );
+
+  const sinAsignar = useMemo(
+    () => leads.filter((l) => !l.vendedor_id).length,
+    [leads]
+  );
+
+  function vendedorNombre(id?: string | null) {
+    if (!id) return "Sin asignar";
+    return vendedores.find((v) => v.id === id)?.nombre ?? "Vendedor no encontrado";
+  }
+
+  async function updateLead(id: number, payload: Record<string, any>) {
+    const res = await fetch("/api/dashboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "update_lead", id, ...payload }),
+    });
+
+    if (!res.ok) {
+      throw new Error("No se pudo actualizar el lead.");
+    }
+
+    const json = await res.json();
+    const updated: Lead = json.lead;
+
+    setMetrics((prev) =>
+      prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
+    );
+
+    setSelectedLead(updated);
+    return updated;
+  }
 
   async function markLeadAsSeen(id: number) {
     try {
-      await fetch("/api/dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type: "update_lead", id, visto: true }),
-      });
-
-      setMetrics((prev) =>
-        prev
-          ? { ...prev, recent: prev.recent.map((l) => (l.id === id ? { ...l, visto: true } : l)) }
-          : prev
-      );
+      await updateLead(id, { visto: true });
     } catch (e) {
       console.error("Error marcando lead como visto:", e);
     }
@@ -139,29 +186,12 @@ export default function AdminLeadsPage() {
     setStatusMessage(null);
 
     try {
-      const res = await fetch("/api/dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "update_lead",
-          id: selectedLead.id,
-          seguimiento: seguimientoDraft,
-          visto: true,
-        }),
+      await updateLead(selectedLead.id, {
+        seguimiento: seguimientoDraft,
+        estado: "en_seguimiento",
+        visto: true,
       });
 
-      if (!res.ok) {
-        setStatusError("No se pudo guardar el seguimiento.");
-        return;
-      }
-
-      const json = await res.json();
-      const updated: Lead = json.lead;
-
-      setMetrics((prev) =>
-        prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
-      );
-      setSelectedLead(updated);
       setEditingSeguimiento(false);
       setStatusMessage("Seguimiento guardado correctamente.");
     } catch (err) {
@@ -181,30 +211,12 @@ export default function AdminLeadsPage() {
     setStatusMessage(null);
 
     try {
-      const res = await fetch("/api/dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "update_lead",
-          id: selectedLead.id,
-          nombre: editNombre,
-          email: editEmail,
-          telefono: editTelefono,
-        }),
+      await updateLead(selectedLead.id, {
+        nombre: editNombre,
+        email: editEmail,
+        telefono: editTelefono,
       });
 
-      if (!res.ok) {
-        setStatusError("No se pudieron guardar los datos del lead.");
-        return;
-      }
-
-      const json = await res.json();
-      const updated: Lead = json.lead;
-
-      setMetrics((prev) =>
-        prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
-      );
-      setSelectedLead(updated);
       setEditMode(false);
       setStatusMessage("Datos del lead guardados correctamente.");
     } catch (err) {
@@ -215,47 +227,43 @@ export default function AdminLeadsPage() {
     }
   }
 
-  async function handleMarkFrenado() {
+  async function handleChangeEstado(estado: string) {
     if (!selectedLead) return;
 
     setStatusError(null);
     setStatusMessage(null);
 
     try {
-      const res = await fetch("/api/dashboard", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "update_lead",
-          id: selectedLead.id,
-          estado: "frenado",
-          visto: true,
-        }),
-      });
-
-      if (!res.ok) {
-        setStatusError("No se pudo marcar el dato como frenado.");
-        return;
-      }
-
-      const json = await res.json();
-      const updated: Lead = json.lead;
-
-      setMetrics((prev) =>
-        prev ? { ...prev, recent: prev.recent.map((l) => (l.id === updated.id ? updated : l)) } : prev
-      );
-      setSelectedLead(updated);
-      setStatusMessage("Dato marcado como frenado.");
+      await updateLead(selectedLead.id, { estado, visto: true });
+      setStatusMessage(`Estado cambiado a ${estado}.`);
     } catch (err) {
-      console.error("Error marcando frenado:", err);
-      setStatusError("Ocurrió un error al marcar el dato como frenado.");
+      console.error("Error cambiando estado:", err);
+      setStatusError("No se pudo cambiar el estado.");
+    }
+  }
+
+  async function handleAssignVendedor(vendedor_id: string) {
+    if (!selectedLead) return;
+
+    setStatusError(null);
+    setStatusMessage(null);
+
+    try {
+      await updateLead(selectedLead.id, {
+        vendedor_id: vendedor_id || null,
+        visto: true,
+      });
+      setStatusMessage("Vendedor asignado correctamente.");
+    } catch (err) {
+      console.error("Error asignando vendedor:", err);
+      setStatusError("No se pudo asignar el vendedor.");
     }
   }
 
   async function handleDeleteLead() {
     if (!selectedLead) return;
 
-    const ok = window.confirm("¿Seguro que querés borrar este lead? Esta acción no se puede deshacer.");
+    const ok = window.confirm("¿Seguro que querés eliminar este lead del flujo comercial?");
     if (!ok) return;
 
     setStatusError(null);
@@ -269,7 +277,7 @@ export default function AdminLeadsPage() {
       });
 
       if (!res.ok) {
-        setStatusError("No se pudo borrar el lead.");
+        setStatusError("No se pudo eliminar el lead.");
         return;
       }
 
@@ -280,10 +288,10 @@ export default function AdminLeadsPage() {
       setSeguimientoDraft("");
       setEditMode(false);
       setEditingSeguimiento(false);
-      setStatusMessage("Lead borrado correctamente.");
+      setStatusMessage("Lead eliminado del flujo comercial.");
     } catch (err) {
       console.error("Error delete_lead:", err);
-      setStatusError("Ocurrió un error al borrar el lead.");
+      setStatusError("Ocurrió un error al eliminar el lead.");
     }
   }
 
@@ -291,38 +299,39 @@ export default function AdminLeadsPage() {
 
   return (
     <div className="space-y-6">
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <section className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card title="Nuevos" value={nuevos.length} />
         <Card title="En seguimiento" value={enSeguimiento.length} />
-        <Card title="Leídos" value={leidos.length} />
-        <Card title="Frenados" value={frenados.length} />
+        <Card title="Vendidos" value={vendidos.length} />
+        <Card title="Perdidos" value={perdidos.length} />
+        <Card title="Sin asignar" value={sinAsignar} />
       </section>
 
       <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <ListBox title={`Nuevos (${nuevos.length})`} tone="new">
-          <LeadList leads={nuevos} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+          <LeadList leads={nuevos} vendedores={vendedores} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
         </ListBox>
 
         <ListBox title={`En seguimiento (${enSeguimiento.length})`} tone="followup">
-          <LeadList leads={enSeguimiento} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+          <LeadList leads={enSeguimiento} vendedores={vendedores} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
         </ListBox>
 
-        <ListBox title={`Leídos (${leidos.length})`} tone="read">
-          <LeadList leads={leidos} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+        <ListBox title={`Vendidos (${vendidos.length})`} tone="sold">
+          <LeadList leads={vendidos} vendedores={vendedores} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
         </ListBox>
 
-        <ListBox title={`Frenados (${frenados.length})`} tone="blocked">
-          <LeadList leads={frenados} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
+        <ListBox title={`Perdidos (${perdidos.length})`} tone="blocked">
+          <LeadList leads={perdidos} vendedores={vendedores} selectedId={selectedLead?.id ?? null} onSelect={handleSelectLead} />
         </ListBox>
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-slate-100 mb-3">Detalle / Gestión</h2>
+        <h2 className="text-lg font-semibold text-slate-100 mb-3">Detalle / Gestión comercial</h2>
 
         <div className="bg-slate-950/60 rounded-xl p-4 text-sm">
           {!selectedLead ? (
             <p className="text-slate-400">
-              Seleccioná un lead de cualquiera de las listas para ver todos los datos y gestionarlo.
+              Seleccioná un lead para asignarlo, gestionarlo y medirlo comercialmente.
             </p>
           ) : (
             <div className="grid gap-4 md:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
@@ -333,10 +342,15 @@ export default function AdminLeadsPage() {
                   <p className="text-xs text-slate-400">
                     {selectedLead.email} — {selectedLead.telefono_numero}
                   </p>
+                  {selectedLead.vehicle_name ? (
+                    <p className="text-[11px] text-sky-300 mt-1">
+                      Vehículo: {selectedLead.vehicle_name}
+                    </p>
+                  ) : null}
                   {selectedLead.created_at ? (
                     <p className="text-[10px] text-slate-500 mt-1">
                       Recibido el{" "}
-                      {new Date(selectedLead.created_at).toLocaleString("es-AR", {
+                      {new Date(selectedLead.created_at).toLocaleString("es-CO", {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -345,11 +359,12 @@ export default function AdminLeadsPage() {
                       })}
                     </p>
                   ) : null}
-                  {selectedLead.estado ? (
-                    <p className="text-[10px] text-slate-400 mt-1">
-                      Estado: <span className="uppercase">{selectedLead.estado}</span>
-                    </p>
-                  ) : null}
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Estado: <span className="uppercase">{selectedLead.estado ?? "nuevo"}</span>
+                  </p>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Vendedor: <span className="text-slate-100">{vendedorNombre(selectedLead.vendedor_id)}</span>
+                  </p>
                 </div>
 
                 <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
@@ -358,16 +373,24 @@ export default function AdminLeadsPage() {
                     {Object.entries(selectedLead as Record<string, any>)
                       .filter(([key, value]) => {
                         if (value === null || value === undefined || value === "") return false;
-                        if (["id", "created_at", "seguimiento", "visto", "telefono_numero", "estado"].includes(key))
+                        if (
+                          [
+                            "id",
+                            "created_at",
+                            "updated_at",
+                            "seguimiento",
+                            "visto",
+                            "telefono_numero",
+                            "estado",
+                            "vendedor_id",
+                          ].includes(key)
+                        )
                           return false;
-                        if (typeof value === "object") return true; // mostramos objetos abajo
                         return true;
                       })
                       .map(([key, value]) => (
                         <div key={key} className="text-[11px]">
-                          <div className="flex justify-between gap-2">
-                            <span className="text-slate-400">{humanLabel(key)}</span>
-                          </div>
+                          <span className="text-slate-400">{humanLabel(key)}</span>
                           {typeof value === "object" ? (
                             <pre className="mt-1 text-[10px] text-slate-100 bg-slate-950/60 border border-slate-800 rounded-md p-2 overflow-auto">
                               {JSON.stringify(value, null, 2)}
@@ -382,6 +405,22 @@ export default function AdminLeadsPage() {
               </div>
 
               <div className="space-y-3">
+                <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
+                  <p className="text-[11px] font-semibold text-slate-300 mb-1">Asignar vendedor</p>
+                  <select
+                    value={selectedLead.vendedor_id ?? ""}
+                    onChange={(e) => handleAssignVendedor(e.target.value)}
+                    className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                  >
+                    <option value="">Sin asignar</option>
+                    {vendedores.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.nombre} — Meta {v.meta_mensual}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <button
                     type="button"
@@ -401,10 +440,26 @@ export default function AdminLeadsPage() {
 
                   <button
                     type="button"
-                    onClick={handleMarkFrenado}
+                    onClick={() => handleChangeEstado("en_seguimiento")}
+                    className="px-3 py-1.5 rounded-md border border-sky-500/70 bg-sky-900/40 hover:bg-sky-800/70 text-[11px] font-medium text-sky-100"
+                  >
+                    En seguimiento
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChangeEstado("vendido")}
+                    className="px-3 py-1.5 rounded-md border border-emerald-500/70 bg-emerald-900/40 hover:bg-emerald-800/70 text-[11px] font-medium text-emerald-100"
+                  >
+                    Vendido
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleChangeEstado("perdido")}
                     className="px-3 py-1.5 rounded-md border border-amber-500/70 bg-amber-900/30 hover:bg-amber-800/60 text-[11px] font-medium text-amber-100"
                   >
-                    Dato frenado
+                    Perdido
                   </button>
 
                   <button
@@ -412,7 +467,7 @@ export default function AdminLeadsPage() {
                     onClick={handleDeleteLead}
                     className="px-3 py-1.5 rounded-md border border-red-500/70 bg-red-900/40 hover:bg-red-800/70 text-[11px] font-medium text-red-100"
                   >
-                    Borrar
+                    Eliminar
                   </button>
                 </div>
 
@@ -423,88 +478,80 @@ export default function AdminLeadsPage() {
                   >
                     <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar datos principales</p>
                     <div className="grid grid-cols-1 gap-2">
-                      <div>
-                        <label className="block text-[10px] text-slate-400 mb-0.5">Nombre</label>
-                        <input
-                          type="text"
-                          value={editNombre}
-                          onChange={(e) => setEditNombre(e.target.value)}
-                          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-slate-400 mb-0.5">Email</label>
-                        <input
-                          type="email"
-                          value={editEmail}
-                          onChange={(e) => setEditEmail(e.target.value)}
-                          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] text-slate-400 mb-0.5">Teléfono</label>
-                        <input
-                          type="text"
-                          value={editTelefono}
-                          onChange={(e) => setEditTelefono(e.target.value)}
-                          className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
-                        />
-                      </div>
+                      <input
+                        type="text"
+                        value={editNombre}
+                        onChange={(e) => setEditNombre(e.target.value)}
+                        placeholder="Nombre"
+                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                      />
+                      <input
+                        type="email"
+                        value={editEmail}
+                        onChange={(e) => setEditEmail(e.target.value)}
+                        placeholder="Email"
+                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                      />
+                      <input
+                        type="text"
+                        value={editTelefono}
+                        onChange={(e) => setEditTelefono(e.target.value)}
+                        placeholder="Teléfono"
+                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-1.5 text-xs text-slate-50"
+                      />
                     </div>
                     <button
                       type="submit"
                       disabled={savingDatos}
-                      className="mt-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
+                      className="mt-1 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60"
                     >
                       {savingDatos ? "Guardando…" : "Guardar datos"}
                     </button>
                   </form>
                 ) : null}
 
-                <div className="space-y-2">
-                  {!editingSeguimiento ? (
-                    <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2 min-h-[52px]">
-                      <p className="text-[11px] font-semibold text-slate-300 mb-1">Seguimiento</p>
-                      {selectedLead.seguimiento && selectedLead.seguimiento.trim() !== "" ? (
-                        <p className="text-xs text-slate-100 whitespace-pre-line">{selectedLead.seguimiento}</p>
-                      ) : (
-                        <p className="text-[11px] text-slate-500">Sin notas de seguimiento todavía.</p>
-                      )}
+                {!editingSeguimiento ? (
+                  <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2 min-h-[52px]">
+                    <p className="text-[11px] font-semibold text-slate-300 mb-1">Seguimiento</p>
+                    {selectedLead.seguimiento && selectedLead.seguimiento.trim() !== "" ? (
+                      <p className="text-xs text-slate-100 whitespace-pre-line">{selectedLead.seguimiento}</p>
+                    ) : (
+                      <p className="text-[11px] text-slate-500">Sin notas de seguimiento todavía.</p>
+                    )}
+                  </div>
+                ) : (
+                  <form
+                    onSubmit={handleSaveSeguimiento}
+                    className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2"
+                  >
+                    <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar seguimiento</p>
+                    <textarea
+                      value={seguimientoDraft}
+                      onChange={(e) => setSeguimientoDraft(e.target.value)}
+                      className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-2 text-xs text-slate-50 min-h-[90px]"
+                      placeholder="Llamadas, WhatsApp, objeciones, próximo contacto..."
+                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={savingSeguimiento}
+                        className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60"
+                      >
+                        {savingSeguimiento ? "Guardando…" : "Guardar seguimiento"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingSeguimiento(false)}
+                        className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-[11px] font-medium text-slate-50"
+                      >
+                        Cancelar
+                      </button>
                     </div>
-                  ) : (
-                    <form
-                      onSubmit={handleSaveSeguimiento}
-                      className="space-y-2 rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2"
-                    >
-                      <p className="text-[11px] font-semibold text-slate-300 mb-1">Editar seguimiento</p>
-                      <textarea
-                        value={seguimientoDraft}
-                        onChange={(e) => setSeguimientoDraft(e.target.value)}
-                        className="w-full rounded-md border border-slate-700 bg-slate-950/80 px-2 py-2 text-xs text-slate-50 min-h-[90px]"
-                        placeholder="Escribí aquí el seguimiento (llamadas, WhatsApp, estado, etc.)"
-                      />
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="submit"
-                          disabled={savingSeguimiento}
-                          className="px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-[11px] font-medium text-white disabled:opacity-60 disabled:cursor-not-allowed"
-                        >
-                          {savingSeguimiento ? "Guardando…" : "Guardar seguimiento"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setEditingSeguimiento(false)}
-                          className="px-3 py-1.5 rounded-md bg-slate-700 hover:bg-slate-600 text-[11px] font-medium text-slate-50"
-                        >
-                          Cancelar
-                        </button>
-                      </div>
-                    </form>
-                  )}
+                  </form>
+                )}
 
-                  {statusMessage ? <p className="text-[11px] text-emerald-400">{statusMessage}</p> : null}
-                  {statusError ? <p className="text-[11px] text-red-400">{statusError}</p> : null}
-                </div>
+                {statusMessage ? <p className="text-[11px] text-emerald-400">{statusMessage}</p> : null}
+                {statusError ? <p className="text-[11px] text-red-400">{statusError}</p> : null}
               </div>
             </div>
           )}
@@ -520,7 +567,7 @@ function ListBox({
   children,
 }: {
   title: string;
-  tone: "new" | "followup" | "read" | "blocked";
+  tone: "new" | "followup" | "sold" | "blocked";
   children: React.ReactNode;
 }) {
   const border =
@@ -528,9 +575,9 @@ function ListBox({
       ? "border-emerald-500/40"
       : tone === "followup"
       ? "border-sky-500/40"
-      : tone === "blocked"
-      ? "border-amber-500/40"
-      : "border-slate-800";
+      : tone === "sold"
+      ? "border-emerald-700/60"
+      : "border-amber-500/40";
 
   return (
     <div className={`rounded-xl border ${border} bg-slate-950/60 p-4`}>
@@ -542,15 +589,22 @@ function ListBox({
 
 function LeadList({
   leads,
+  vendedores,
   selectedId,
   onSelect,
 }: {
   leads: Lead[];
+  vendedores: Vendedor[];
   selectedId: number | null;
   onSelect: (lead: Lead) => void;
 }) {
   if (!leads || leads.length === 0) {
     return <p className="text-xs text-slate-400">Sin datos.</p>;
+  }
+
+  function vendedorNombre(id?: string | null) {
+    if (!id) return "Sin asignar";
+    return vendedores.find((v) => v.id === id)?.nombre ?? "No encontrado";
   }
 
   return (
@@ -574,10 +628,13 @@ function LeadList({
                 <p className="text-[11px] text-slate-400">
                   {l.email} — {l.telefono_numero}
                 </p>
+                <p className="text-[10px] text-sky-300 mt-1">
+                  {vendedorNombre(l.vendedor_id)}
+                </p>
               </div>
               <p className="text-[10px] text-slate-500 whitespace-nowrap">
                 {l.created_at
-                  ? new Date(l.created_at).toLocaleString("es-AR", {
+                  ? new Date(l.created_at).toLocaleString("es-CO", {
                       day: "2-digit",
                       month: "2-digit",
                       hour: "2-digit",
