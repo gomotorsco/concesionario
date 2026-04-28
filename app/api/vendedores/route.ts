@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const SAFE_SELECT =
-  "id, nombre, email, whatsapp, zona, rol, meta_mensual, meta_conversion, meta_leads_trabajados, fecha_ingreso, notas, activo, last_login, last_activity, created_at, updated_at";
-
 export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("vendedores")
-    .select(SAFE_SELECT)
+    .select("*")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -48,7 +45,7 @@ export async function POST(req: NextRequest) {
       .insert([
         {
           nombre: String(nombre).trim(),
-          email: String(email).trim().toLowerCase(),
+          email: String(email).trim(),
           password: String(password),
           whatsapp: whatsapp ? String(whatsapp).trim() : null,
           zona: zona ? String(zona).trim() : null,
@@ -59,16 +56,15 @@ export async function POST(req: NextRequest) {
           meta_leads_trabajados: Number(meta_leads_trabajados || 50),
           notas: notas ? String(notas).trim() : null,
           activo: true,
-          updated_at: new Date().toISOString(),
         },
       ])
-      .select(SAFE_SELECT)
+      .select("*")
       .single();
 
     if (error) {
       console.error("POST /api/vendedores create error", error);
       return NextResponse.json(
-        { message: "No se pudo crear el vendedor.", detail: error.message },
+        { message: "No se pudo crear el vendedor." },
         { status: 500 }
       );
     }
@@ -77,21 +73,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (body.type === "update") {
-    const {
-      id,
-      nombre,
-      email,
-      password,
-      whatsapp,
-      zona,
-      rol,
-      fecha_ingreso,
-      meta_mensual,
-      meta_conversion,
-      meta_leads_trabajados,
-      notas,
-      activo,
-    } = body;
+    const { id } = body;
 
     if (!id) {
       return NextResponse.json({ message: "id requerido." }, { status: 400 });
@@ -101,30 +83,38 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    if (nombre !== undefined) update.nombre = String(nombre).trim();
-    if (email !== undefined) update.email = String(email).trim().toLowerCase();
-    if (password !== undefined && String(password).trim() !== "") update.password = String(password);
-    if (whatsapp !== undefined) update.whatsapp = whatsapp ? String(whatsapp).trim() : null;
-    if (zona !== undefined) update.zona = zona ? String(zona).trim() : null;
-    if (rol !== undefined) update.rol = rol || "vendedor";
-    if (fecha_ingreso !== undefined) update.fecha_ingreso = fecha_ingreso || null;
-    if (meta_mensual !== undefined) update.meta_mensual = Number(meta_mensual);
-    if (meta_conversion !== undefined) update.meta_conversion = Number(meta_conversion);
-    if (meta_leads_trabajados !== undefined) update.meta_leads_trabajados = Number(meta_leads_trabajados);
-    if (notas !== undefined) update.notas = notas ? String(notas).trim() : null;
-    if (activo !== undefined) update.activo = Boolean(activo);
+    [
+      "nombre",
+      "email",
+      "whatsapp",
+      "zona",
+      "rol",
+      "fecha_ingreso",
+      "notas",
+    ].forEach((key) => {
+      if (body[key] !== undefined) update[key] = body[key] || null;
+    });
+
+    if (body.password !== undefined && body.password !== "") {
+      update.password = String(body.password);
+    }
+
+    if (body.meta_mensual !== undefined) update.meta_mensual = Number(body.meta_mensual);
+    if (body.meta_conversion !== undefined) update.meta_conversion = Number(body.meta_conversion);
+    if (body.meta_leads_trabajados !== undefined) update.meta_leads_trabajados = Number(body.meta_leads_trabajados);
+    if (body.activo !== undefined) update.activo = Boolean(body.activo);
 
     const { data, error } = await supabaseAdmin
       .from("vendedores")
       .update(update)
       .eq("id", id)
-      .select(SAFE_SELECT)
+      .select("*")
       .single();
 
     if (error) {
       console.error("POST /api/vendedores update error", error);
       return NextResponse.json(
-        { message: "No se pudo actualizar el vendedor.", detail: error.message },
+        { message: "No se pudo actualizar el vendedor." },
         { status: 500 }
       );
     }
