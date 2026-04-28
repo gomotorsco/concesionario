@@ -63,10 +63,7 @@ export async function POST(req: NextRequest) {
 
     if (error) {
       console.error("POST /api/vendedores create error", error);
-      return NextResponse.json(
-        { message: "No se pudo crear el vendedor." },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: error.message, details: error.details, code: error.code }, { status: 500 });
     }
 
     return NextResponse.json({ vendedor: data });
