@@ -14,248 +14,265 @@ export default function DealershipHome() {
             <p className="mt-1 text-xl font-black tracking-tight text-[#101010]">
               AutoMarket Premium
             </p>
-          </a>
+EOF;</article>Name="mt-2 text-sm leading-6 text-black/55">{text}</p>r rounded-fu
 
-          <nav className="hidden items-center gap-8 text-sm font-medium text-black/65 md:flex">
-            <a href="#stock" className="hover:text-black">Stock</a>
-            <a href="/preaprobacion" className="hover:text-black">Financiación</a>
-            <a href="#parte-pago" className="hover:text-black">Parte de pago</a>
-            <a href="#proceso" className="hover:text-black">Cómo funciona</a>
-          </nav>
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ cat > components/landing/PremiumVehiclesCatalog.tsx <<'EOF'
+"use client";
 
-          <div className="flex items-center gap-3">
-            <a
-              href="#stock"
-              className="hidden rounded-full border border-black/15 px-5 py-2.5 text-sm font-bold text-black hover:bg-black hover:text-white md:inline-flex"
-            >
-              Ver stock
-            </a>
-            <a
-              href="/preaprobacion"
-              className="rounded-full bg-[#151515] px-5 py-2.5 text-sm font-bold text-white shadow-[0_16px_40px_rgba(0,0,0,0.22)] hover:bg-[#2a2a2a]"
-            >
-              Evaluar financiación
-            </a>
-          </div>
-        </div>
-      </header>
+import { useEffect, useMemo, useState } from "react";
 
-      <section className="relative overflow-hidden bg-[#0b0b0b] text-white">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(198,161,91,0.20),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,0.11),transparent_30%)]" />
+type Vehicle = {
+  id: number;
+  title: string;
+  slug?: string | null;
+  tipo?: string | null;
+  marca?: string | null;
+  modelo?: string | null;
+  anio?: number | null;
+  km?: number | null;
+  precio?: number | null;
+  cuota_desde?: number | null;
+  moneda?: string | null;
+  estado?: string | null;
+  destacado?: boolean | null;
+  imagen_url?: string | null;
+};
 
-        <div className="relative mx-auto grid max-w-7xl gap-12 px-5 py-20 md:grid-cols-[0.95fr_1.05fr] md:py-28">
-          <div className="flex flex-col justify-center">
-            <div className="mb-6 flex w-fit items-center gap-3 rounded-full border border-white/15 bg-white/5 px-4 py-2 backdrop-blur">
-              <span className="h-2 w-2 rounded-full bg-[#c6a15b]" />
-              <span className="text-xs font-semibold uppercase tracking-[0.22em] text-white/75">
-                Stock verificado · Financiación · Parte de pago
-              </span>
-            </div>
+type Section = {
+  id: number;
+EOF;</div>v></article>aluar financiaciónover:bg-[#c6a15b] hover:border-[#c6a15b]
 
-            <h1 className="max-w-3xl text-5xl font-black leading-[0.92] tracking-[-0.055em] md:text-7xl">
-              Tu próximo vehículo empieza con una buena decisión.
-            </h1>
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ git add components/landing/DealershipHome.tsx components/landing/PremiumVehiclesCatalog.tsx
+git commit -m "style: redesign public home with premium dealership branding"
+git push origin main
+warning: in the working copy of 'components/landing/DealershipHome.tsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'components/landing/PremiumVehiclesCatalog.tsx', LF will be replaced by CRLF the next time Git touches it
+[main 3ad30fa] style: redesign public home with premium dealership branding
+ 2 files changed, 242 insertions(+), 167 deletions(-)
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (6/6), done.
+Writing objects: 100% (6/6), 4.65 KiB | 432.00 KiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
+To https://github.com/DavidFlautero/concesionarioBogota.git
+   4468df9..3ad30fa  main -> main
 
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-white/68">
-              Autos, motos y opciones de financiación con asesoría comercial real.
-              Revisamos tu perfil, tu inicial y si tenés vehículo para entregar.
-            </p>
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ cd ~/desktop/concesionario-pro
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a
-                href="#stock"
-                className="rounded-full bg-[#c6a15b] px-7 py-4 text-center text-sm font-black text-black shadow-[0_20px_50px_rgba(198,161,91,0.25)] hover:bg-[#d9b66d]"
-              >
-                Ver stock disponible
-              </a>
+cat app/api/vendedores/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-              <a
-                href="/preaprobacion"
-                className="rounded-full border border-white/20 bg-white/5 px-7 py-4 text-center text-sm font-black text-white hover:bg-white/10"
-              >
-                Evaluar financiación
-              </a>
+export async function GET() {
+  const { data, error } = await supabaseAdmin
+    .from("vendedores")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-              <a
-                href="#parte-pago"
-                className="rounded-full border border-white/10 px-7 py-4 text-center text-sm font-bold text-white/75 hover:text-white"
-              >
-                Entregar mi usado
-              </a>
-            </div>
+  if (error) {
+    console.error("GET /api/vendedores error", error);
+    return NextResponse.json({ vendedores: [] }, { status: 500 });
+  }
 
-            <div className="mt-12 grid max-w-2xl grid-cols-3 gap-3">
-              <HeroMetric value="+200" label="consultas gestionadas" />
-              <HeroMetric value="0" label="documentos al inicio" />
-              <HeroMetric value="24h" label="respuesta comercial" />
-            </div>
-          </div>
-
-          <div className="relative min-h-[520px]">
-            <div className="absolute inset-0 rounded-[2.2rem] border border-white/10 bg-gradient-to-br from-white/12 to-white/[0.03] p-3 shadow-[0_35px_100px_rgba(0,0,0,0.55)]">
-              <div className="relative h-full overflow-hidden rounded-[1.8rem] bg-zinc-900">
-                <img
-                  src="/hero-0km.png"
-                  alt="Vehículo premium"
-                  className="h-full w-full object-cover opacity-95"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/10 to-transparent" />
-
-                <div className="absolute bottom-5 left-5 right-5 rounded-3xl border border-white/10 bg-black/70 p-5 backdrop-blur-xl">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.32em] text-[#c6a15b]">
-                    Asesoría personalizada
-                  </p>
-                  <p className="mt-2 text-lg font-black">
-                    Elegí, consultá y avanzá con información clara.
-                  </p>
-                  <p className="mt-1 text-sm text-white/55">
-                    Financiación, stock y parte de pago desde un solo flujo.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute -left-5 top-12 hidden rounded-3xl border border-white/10 bg-black/75 p-4 shadow-2xl backdrop-blur-xl lg:block">
-              <p className="text-xs text-white/50">Evaluación inicial</p>
-              <p className="mt-1 text-xl font-black text-white">Sin costo</p>
-            </div>
-
-            <div className="absolute -right-5 bottom-20 hidden rounded-3xl border border-[#c6a15b]/25 bg-[#15110a]/90 p-4 shadow-2xl backdrop-blur-xl lg:block">
-              <p className="text-xs text-[#c6a15b]">Parte de pago</p>
-              <p className="mt-1 text-xl font-black text-white">Disponible</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="border-b border-black/10 bg-[#f4f1ea]">
-        <div className="mx-auto grid max-w-7xl gap-4 px-5 py-10 md:grid-cols-4">
-          <TrustCard title="Financiación" text="Evaluación inicial con datos básicos." />
-          <TrustCard title="Parte de pago" text="Recibimos usado, moto o vehículo como inicial." />
-          <TrustCard title="Asesor real" text="Un vendedor hace seguimiento personalizado." />
-          <TrustCard title="Stock claro" text="Cada vehículo tiene ficha, estado y consulta." />
-        </div>
-      </section>
-
-      <section id="stock" className="bg-[#f7f3ea]">
-        <div className="mx-auto max-w-7xl px-5 py-20">
-          <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-[#8b6f3e]">
-                Catálogo disponible
-              </p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.04em] text-[#111] md:text-5xl">
-                Elegí según lo que necesitás.
-              </h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-black/55">
-                Filtrá por autos, motos o ciclomotores. Revisá detalles, solicitá
-                preaprobación o hablá con un asesor.
-              </p>
-            </div>
-
-            <a
-              href="/preaprobacion"
-              className="rounded-full border border-black/15 bg-white px-6 py-3 text-center text-sm font-black text-black shadow-sm hover:bg-black hover:text-white"
-            >
-              Quiero evaluar mi financiación
-            </a>
-          </div>
-
-          <PremiumVehiclesCatalog />
-        </div>
-      </section>
-
-      <section id="parte-pago" className="bg-[#111] text-white">
-        <div className="mx-auto grid max-w-7xl gap-10 px-5 py-20 md:grid-cols-[0.9fr_1.1fr] md:items-center">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-[#c6a15b]">
-              Parte de pago
-            </p>
-            <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-5xl">
-              Tu usado puede acercarte al vehículo que querés.
-            </h2>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <ProcessCard number="01" title="Indicás el vehículo" text="Marca, modelo, año, kilometraje y estado general." />
-            <ProcessCard number="02" title="Evaluación inicial" text="Un asesor revisa si puede tomarse como parte de pago." />
-            <ProcessCard number="03" title="Opciones reales" text="Se combinan inicial, financiación y disponibilidad." />
-            <ProcessCard number="04" title="Seguimiento" text="Todo queda en CRM para no perder la oportunidad." />
-          </div>
-        </div>
-      </section>
-
-      <section id="proceso" className="bg-[#f4f1ea]">
-        <div className="mx-auto max-w-7xl px-5 py-20">
-          <div className="rounded-[2rem] border border-black/10 bg-white p-8 shadow-[0_30px_80px_rgba(0,0,0,0.08)] md:p-12">
-            <p className="text-xs font-black uppercase tracking-[0.3em] text-[#8b6f3e]">
-              Cómo funciona
-            </p>
-            <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] text-[#111]">
-              Un proceso simple, comercial y medible.
-            </h2>
-
-            <div className="mt-10 grid gap-5 md:grid-cols-3">
-              <Step number="1" title="Elegís vehículo" text="Ves stock, detalles y opciones según categoría." />
-              <Step number="2" title="Solicitás evaluación" text="Dejás datos básicos sin cargar documentos sensibles." />
-              <Step number="3" title="Te contacta un asesor" text="El equipo comercial toma el lead, lo trabaja y mide el avance." />
-            </div>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
+  return NextResponse.json({ vendedores: data ?? [] });
 }
 
-function TopTrustBar() {
-  return (
-    <div className="hidden border-b border-black/10 bg-[#111] text-white md:block">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
-        <span>Financiación disponible</span>
-        <span>Recibimos vehículo en parte de pago</span>
-        <span>Atención comercial personalizada</span>
-      </div>
-    </div>
-  );
+export async function POST(req: NextRequest) {
+  const body = await req.json();
+
+  if (body.type === "create") {
+    const {
+      nombre,
+      email,
+      password,
+      whatsapp,
+      zona,
+      rol,
+      fecha_ingreso,
+      meta_mensual,
+      meta_conversion,
+      meta_leads_trabajados,
+      notas,
+    } = body;
+
+    if (!nombre || !email || !password) {
+      return NextResponse.json(
+        { message: "Nombre, email y contraseña son obligatorios." },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("vendedores")
+      .insert([
+        {
+          nombre: String(nombre).trim(),
+          email: String(email).trim(),
+          password: String(password),
+          whatsapp: whatsapp ? String(whatsapp).trim() : null,
+          zona: zona ? String(zona).trim() : null,
+          rol: rol || "vendedor",
+          fecha_ingreso: fecha_ingreso || null,
+          meta_mensual: Number(meta_mensual || 10),
+          meta_conversion: Number(meta_conversion || 10),
+          meta_leads_trabajados: Number(meta_leads_trabajados || 50),
+          notas: notas ? String(notas).trim() : null,
+          activo: true,
+        },
+      ])
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("POST /api/vendedores create error", error);
+      return NextResponse.json(
+        { message: "No se pudo crear el vendedor." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ vendedor: data });
+  }
+
+  if (body.type === "update") {
+    const { id } = body;
+
+    if (!id) {
+      return NextResponse.json({ message: "id requerido." }, { status: 400 });
+    }
+
+    const update: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    [
+      "nombre",
+      "email",
+      "whatsapp",
+      "zona",
+      "rol",
+      "fecha_ingreso",
+      "notas",
+    ].forEach((key) => {
+      if (body[key] !== undefined) update[key] = body[key] || null;
+    });
+
+    if (body.password !== undefined && body.password !== "") {
+      update.password = String(body.password);
+    }
+
+    if (body.meta_mensual !== undefined) update.meta_mensual = Number(body.meta_mensual);
+    if (body.meta_conversion !== undefined) update.meta_conversion = Number(body.meta_conversion);
+    if (body.meta_leads_trabajados !== undefined) update.meta_leads_trabajados = Number(body.meta_leads_trabajados);
+    if (body.activo !== undefined) update.activo = Boolean(body.activo);
+
+    const { data, error } = await supabaseAdmin
+      .from("vendedores")
+      .update(update)
+      .eq("id", id)
+      .select("*")
+      .single();
+
+    if (error) {
+      console.error("POST /api/vendedores update error", error);
+      return NextResponse.json(
+        { message: "No se pudo actualizar el vendedor." },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ vendedor: data });
+  }
+
+  return NextResponse.json({ message: "Tipo no soportado." }, { status: 400 });
 }
 
-function HeroMetric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
-      <p className="text-xl font-black text-white">{value}</p>
-      <p className="mt-1 text-[11px] leading-4 text-white/45">{label}</p>
-    </div>
-  );
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ cd ~/desktop/concesionario-pro
+
+perl -0pi -e 's/return NextResponse\.json\(\s*\{ message: "No se pudo crear el vendedor\." \},\s*\{ status: 500 \}\s*\);/return NextResponse.json({ message: error.message, details: error.details, code: error.code }, { status: 500 });/s' app/api/vendedores/route.ts
+
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ git add app/api/vendedores/route.ts
+git commit -m "fix: expose seller create error"
+git push origin main
+warning: in the working copy of 'app/api/vendedores/route.ts', LF will be replaced by CRLF the next time Git touches it
+[main accaf5b] fix: expose seller create error
+ 1 file changed, 1 insertion(+), 4 deletions(-)
+Enumerating objects: 11, done.
+Counting objects: 100% (11/11), done.
+Delta compression using up to 4 threads
+Compressing objects: 100% (5/5), done.
+Writing objects: 100% (6/6), 539 bytes | 179.00 KiB/s, done.
+Total 6 (delta 4), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (4/4), completed with 4 local objects.
+To https://github.com/DavidFlautero/concesionarioBogota.git
+   3ad30fa..accaf5b  main -> main
+
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ cd ~/desktop/concesionario-pro
+
+cat > app/api/vendedores/route.ts <<'EOF'
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
+
+export async function GET() {
+  const { data, error } = await supabaseAdmin
+    .from("vendedores")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ vendedores: [], message: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ vendedores: data ?? [] });
 }
 
-function TrustCard({ title, text }: { title: string; text: string }) {
-  return (
-    <article className="rounded-3xl border border-black/10 bg-white p-5 shadow-[0_20px_50px_rgba(0,0,0,0.05)]">
-      <div className="mb-4 h-9 w-9 rounded-full bg-[#151515]" />
-      <h3 className="text-base font-black text-[#111]">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-black/55">{text}</p>
-    </article>
-  );
-}
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
 
-function ProcessCard({ number, title, text }: { number: string; title: string; text: string }) {
-  return (
-    <article className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-      <p className="text-xs font-black tracking-[0.25em] text-[#c6a15b]">{number}</p>
-      <h3 className="mt-5 text-xl font-black">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-white/55">{text}</p>
-    </article>
-  );
-}
+EOFs: 500 });xtResponse.json({ message: err?.message || "Error interno." }, { st
 
-function Step({ number, title, text }: { number: string; title: string; text: string }) {
-  return (
-    <article className="rounded-3xl border border-black/10 bg-[#f7f3ea] p-6">
-      <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-full bg-[#151515] text-sm font-black text-white">
-        {number}
-      </div>
-      <h3 className="text-xl font-black text-[#111]">{title}</h3>
-      <p className="mt-2 text-sm leading-6 text-black/55">{text}</p>
-    </article>
-  );
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ cat > app/\(dashboard\)/admin/equipo/page.tsx <<'EOF'
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+
+type Vendedor = {
+  id: string;
+  nombre: string;
+  email: string;
+  whatsapp?: string | null;
+  zona?: string | null;
+  rol?: string | null;
+  fecha_ingreso?: string | null;
+  meta_mensual?: number;
+  meta_conversion?: number;
+  meta_leads_trabajados?: number;
+  activo?: boolean;
+  notas?: string | null;
+  last_login?: string | null;
+  last_activity?: string | null;
+};
+
+function today() {
+  return new Date().toISOString().slice(0, 10);
+EOF;</div>xt-slate-100"ll rounded-lg border border-slate-700 bg-black px-3 py-2
+
+VIRGINIA@DESKTOP-0F61TFG MINGW64 ~/desktop/concesionario-pro (main)
+$ mkdir -p app/\(public\)/vehiculos
+
+cat > app/\(public\)/vehiculos/page.tsx <<'EOF'
+import { redirect } from "next/navigation";
+
+export default function VehiculosIndexPage() {
+  redirect("/#stock");
 }
