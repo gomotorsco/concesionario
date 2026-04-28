@@ -15,7 +15,7 @@ export async function GET() {
     .limit(300);
 
   if (error) {
-    return NextResponse.json({ ok: false, actions: [] }, { status: 500 });
+    return NextResponse.json({ ok: false, actions: [], message: error.message }, { status: 500 });
   }
 
   const actions = (data ?? []).flatMap((l: any) => {
@@ -28,6 +28,9 @@ export async function GET() {
         priority: "alta",
         action: "Asignar vendedor",
         reason: "Lead sin responsable comercial.",
+        nombre: l.nombre,
+        telefono: l.telefono,
+        vehicle_name: l.vehicle_name,
       });
     }
 
@@ -37,24 +40,13 @@ export async function GET() {
         priority: "alta",
         action: "Contactar ahora",
         reason: "Lead nuevo sin actividad por más de 24 horas.",
+        nombre: l.nombre,
+        telefono: l.telefono,
+        vehicle_name: l.vehicle_name,
       });
     }
 
-    if ((l.estado ?? "") === "en_seguimiento" && h >= 48) {
-      items.push({
-        lead_id: l.id,
-        priority: "media",
-        action: "Hacer seguimiento",
-        reason: "Lead en seguimiento sin actualización reciente.",
-      });
-    }
-
-    return items.map((x) => ({
-      ...x,
-      nombre: l.nombre,
-      telefono: l.telefono,
-      vehicle_name: l.vehicle_name,
-    }));
+    return items;
   });
 
   return NextResponse.json({ ok: true, actions });
