@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { CreditAssistantWidget } from "@/components/landing/CreditAssistantWidget";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -32,7 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <head>
-        {/* Google tag (gtag.js) - Google Ads */}
         <Script
           id="gtag-src"
           async
@@ -49,7 +49,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           `}
         </Script>
 
-        {/* Microsoft Clarity */}
         {clarityId ? (
           <Script id="clarity" strategy="afterInteractive">
             {`
@@ -62,7 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </Script>
         ) : null}
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <CreditAssistantWidget />
+      </body>
     </html>
   );
 }
