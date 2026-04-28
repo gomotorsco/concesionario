@@ -12,8 +12,10 @@ type Item = {
 const items: Item[] = [
   { label: "Dashboard", href: "/admin" },
   { label: "Leads", href: "/admin/leads" },
-  { label: "Contenido", href: "/admin/contenido" },
   { label: "Vendedores", href: "/admin/vendedores", pro: true },
+  { label: "Funnel", href: "/admin/funnel", pro: true },
+  { label: "Acciones", href: "/admin/acciones", pro: true },
+  { label: "Contenido", href: "/admin/contenido" },
   { label: "Campañas", href: "/admin/campañas", pro: true },
   { label: "Configuración", href: "/admin/configuracion" },
 ];
@@ -29,7 +31,7 @@ export function Sidebar() {
             PLAN 0KM
           </p>
           <p className="text-xs text-gray-400">
-            Panel de captación · Demo interna
+            Sistema comercial
           </p>
         </div>
       </div>
@@ -62,8 +64,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 text-[11px] text-gray-500">
-        Módulos Pro son solo visuales en esta etapa para mostrar el potencial
-        del sistema completo.
+        Control comercial · CRM · vendedores · funnel
       </div>
     </aside>
   );

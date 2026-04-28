@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-function monthStartISO() {
-  const d = new Date();
-  return new Date(d.getFullYear(), d.getMonth(), 1).toISOString();
+function getMonthInfo() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const totalDays = end.getDate();
+  const currentDay = now.getDate();
+  const remainingDays = totalDays - currentDay;
+
+  return {
+    startISO: start.toISOString(),
+    totalDays,
+    currentDay,
+    remainingDays,
+  };
 }
 
 function pct(num: number, den: number) {
@@ -11,134 +23,82 @@ function pct(num: number, den: number) {
   return Math.round((num / den) * 1000) / 10;
 }
 
-function emptyResponse(message?: string) {
-  return NextResponse.json({
-    ok: false,
-    message: message ?? null,
-    since: monthStartISO(),
-    summary: {
-      vendedores: 0,
-      activos: 0,
-      total_leads: 0,
-      total_ventas: 0,
-      total_perdidos: 0,
-      sin_asignar: 0,
-      conversion_general: 0,
-    },
-    rows: [],
-    ranking: [],
-    alerts: message ? [message] : [],
-  });
+function probabilidad(proyeccion: number, meta: number) {
+  if (proyeccion >= meta) return "alta";
+  if (proyeccion >= meta * 0.7) return "media";
+  return "baja";
 }
 
-function semaforo(total: number, nuevos: number, vendidos: number, perdidos: number, conversion: number, progresoMeta: number) {
-  if (total === 0) return "gris";
-  if (progresoMeta >= 70 || conversion >= 12) return "verde";
-  if (total >= 10 && vendidos === 0) return "rojo";
-  if (perdidos > vendidos && total >= 5) return "rojo";
-  if (nuevos > 10) return "amarillo";
-  return "amarillo";
+function semaforoPredictivo(proyeccion: number, meta: number) {
+  if (proyeccion >= meta) return "verde";
+  if (proyeccion >= meta * 0.7) return "amarillo";
+  return "rojo";
 }
 
 export async function GET() {
   try {
-    const since = monthStartISO();
+    const { startISO, totalDays, currentDay, remainingDays } = getMonthInfo();
 
-    const { data: vendedores, error: vendedoresError } = await supabaseAdmin
+    const { data: vendedores } = await supabaseAdmin
       .from("vendedores")
-      .select("id, nombre, email, meta_mensual, activo, created_at")
-      .order("created_at", { ascending: true });
+      .select("*");
 
-    if (vendedoresError) {
-      console.error("commercial-metrics vendedores error", vendedoresError);
-      return emptyResponse("No se pudieron cargar vendedores.");
-    }
-
-    const { data: leads, error: leadsError } = await supabaseAdmin
+    const { data: leads } = await supabaseAdmin
       .from("landing_leads")
-      .select("id, vendedor_id, estado, seguimiento, created_at")
-      .gte("created_at", since);
+      .select("*")
+      .gte("created_at", startISO)
+      .neq("estado", "eliminado");
 
-    if (leadsError) {
-      console.error("commercial-metrics leads error", leadsError);
-      return emptyResponse("No se pudieron cargar leads.");
-    }
+    const allLeads = leads ?? [];
 
-    const allLeads = (leads ?? []).filter((l: any) => (l.estado ?? "nuevo") !== "eliminado");
-    const sellers = vendedores ?? [];
-
-    const rows = sellers.map((v: any) => {
+    const rows = (vendedores ?? []).map((v: any) => {
       const assigned = allLeads.filter((l: any) => l.vendedor_id === v.id);
+
       const total = assigned.length;
       const nuevos = assigned.filter((l: any) => (l.estado ?? "nuevo") === "nuevo").length;
-      const enSeguimiento = assigned.filter((l: any) => (l.estado ?? "") === "en_seguimiento" || String(l.seguimiento ?? "").trim() !== "").length;
-      const vendidos = assigned.filter((l: any) => (l.estado ?? "") === "vendido").length;
-      const perdidos = assigned.filter((l: any) => (l.estado ?? "") === "perdido").length;
-      const trabajados = enSeguimiento + vendidos + perdidos;
+      const vendidos = assigned.filter((l: any) => l.estado === "vendido").length;
+      const perdidos = assigned.filter((l: any) => l.estado === "perdido").length;
+
       const meta = Number(v.meta_mensual ?? 10);
-      const conversion = pct(vendidos, total);
-      const progresoMeta = pct(vendidos, meta);
-      const ratioTrabajo = pct(trabajados, total);
+
+      // 🔥 PROYECCIÓN
+      const ritmoActual = currentDay > 0 ? vendidos / currentDay : 0;
+      const ritmoNecesario = remainingDays > 0 ? (meta - vendidos) / remainingDays : 0;
+
+      const proyeccionFinal = Math.round(ritmoActual * totalDays);
+
+      const prob = probabilidad(proyeccionFinal, meta);
+      const semaforo = semaforoPredictivo(proyeccionFinal, meta);
 
       return {
         id: v.id,
         nombre: v.nombre,
-        email: v.email,
-        activo: Boolean(v.activo),
         meta_mensual: meta,
+        vendidos,
         total_leads: total,
         nuevos,
-        en_seguimiento: enSeguimiento,
-        vendidos,
         perdidos,
-        trabajados,
-        sin_trabajar: nuevos,
-        conversion,
-        progreso_meta: progresoMeta,
-        ratio_trabajo: ratioTrabajo,
-        ventas_faltantes: Math.max(meta - vendidos, 0),
-        semaforo: semaforo(total, nuevos, vendidos, perdidos, conversion, progresoMeta),
+
+        ritmo_actual: Number(ritmoActual.toFixed(2)),
+        ritmo_necesario: Number(ritmoNecesario.toFixed(2)),
+        proyeccion_final: proyeccionFinal,
+
+        probabilidad: prob,
+        semaforo,
       };
     });
 
-    const sinAsignar = allLeads.filter((l: any) => !l.vendedor_id).length;
-    const totalVentas = rows.reduce((acc: number, r: any) => acc + r.vendidos, 0);
-    const totalLeads = rows.reduce((acc: number, r: any) => acc + r.total_leads, 0);
-    const totalPerdidos = rows.reduce((acc: number, r: any) => acc + r.perdidos, 0);
-
-    const ranking = [...rows].sort((a: any, b: any) => {
-      if (b.vendidos !== a.vendidos) return b.vendidos - a.vendidos;
-      return b.conversion - a.conversion;
-    });
-
-    const alerts: string[] = [];
-    if (sinAsignar > 0) alerts.push(`Hay ${sinAsignar} leads sin asignar a vendedores.`);
-
-    for (const r of rows) {
-      if (r.total_leads >= 10 && r.vendidos === 0) alerts.push(`${r.nombre} tiene ${r.total_leads} leads este mes y todavía no registra ventas.`);
-      if (r.conversion > 0 && r.conversion < 10 && r.total_leads >= 10) alerts.push(`${r.nombre} tiene conversión baja (${r.conversion}%).`);
-      if (r.perdidos > r.vendidos && r.total_leads >= 5) alerts.push(`${r.nombre} tiene más leads perdidos que vendidos.`);
-      if (r.nuevos >= 8) alerts.push(`${r.nombre} tiene ${r.nuevos} leads nuevos sin trabajar.`);
-    }
-
     return NextResponse.json({
       ok: true,
-      since,
-      summary: {
-        vendedores: rows.length,
-        activos: rows.filter((r: any) => r.activo).length,
-        total_leads: totalLeads,
-        total_ventas: totalVentas,
-        total_perdidos: totalPerdidos,
-        sin_asignar: sinAsignar,
-        conversion_general: pct(totalVentas, totalLeads),
+      month: {
+        totalDays,
+        currentDay,
+        remainingDays,
       },
       rows,
-      ranking,
-      alerts,
     });
   } catch (err) {
-    console.error("GET /api/admin/commercial-metrics fatal", err);
-    return emptyResponse("Error interno cargando Command Center Comercial.");
+    console.error(err);
+    return NextResponse.json({ ok: false });
   }
 }
