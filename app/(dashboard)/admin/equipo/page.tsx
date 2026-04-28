@@ -19,6 +19,10 @@ type Vendedor = {
   last_activity?: string | null;
 };
 
+function today() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 const emptyForm = {
   nombre: "",
   email: "",
@@ -26,7 +30,7 @@ const emptyForm = {
   whatsapp: "",
   zona: "",
   rol: "vendedor",
-  fecha_ingreso: "",
+  fecha_ingreso: today(),
   meta_mensual: "10",
   meta_conversion: "10",
   meta_leads_trabajados: "50",
@@ -38,6 +42,8 @@ export default function EquipoPage() {
   const [form, setForm] = useState<any>(emptyForm);
   const [selected, setSelected] = useState<Vendedor | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   async function load() {
     const res = await fetch("/api/vendedores", { cache: "no-store" });
@@ -49,8 +55,21 @@ export default function EquipoPage() {
     load();
   }, []);
 
+  function setField(key: string, value: string) {
+    setForm((prev: any) => ({ ...prev, [key]: value }));
+  }
+
+  function resetForm() {
+    setSelected(null);
+    setError("");
+    setShowPassword(false);
+    setForm({ ...emptyForm, fecha_ingreso: today() });
+  }
+
   function selectVendedor(v: Vendedor) {
     setSelected(v);
+    setError("");
+    setShowPassword(false);
     setForm({
       nombre: v.nombre ?? "",
       email: v.email ?? "",
@@ -58,7 +77,7 @@ export default function EquipoPage() {
       whatsapp: v.whatsapp ?? "",
       zona: v.zona ?? "",
       rol: v.rol ?? "vendedor",
-      fecha_ingreso: v.fecha_ingreso ?? "",
+      fecha_ingreso: v.fecha_ingreso ?? today(),
       meta_mensual: String(v.meta_mensual ?? 10),
       meta_conversion: String(v.meta_conversion ?? 10),
       meta_leads_trabajados: String(v.meta_leads_trabajados ?? 50),
@@ -66,14 +85,10 @@ export default function EquipoPage() {
     });
   }
 
-  function resetForm() {
-    setSelected(null);
-    setForm(emptyForm);
-  }
-
   async function submit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setError("");
 
     const payload = {
       type: selected ? "update" : "create",
@@ -87,10 +102,11 @@ export default function EquipoPage() {
       body: JSON.stringify(payload),
     });
 
+    const json = await res.json();
     setSaving(false);
 
     if (!res.ok) {
-      alert("No se pudo guardar el vendedor.");
+      setError(json.message || "No se pudo guardar el vendedor.");
       return;
     }
 
@@ -107,8 +123,26 @@ export default function EquipoPage() {
     await load();
   }
 
-  function setField(key: string, value: string) {
-    setForm((prev: any) => ({ ...prev, [key]: value }));
+  async function resetPassword(v: Vendedor) {
+    const newPass = window.prompt(`Nueva contraseña para ${v.nombre}:`, "123456");
+
+    if (!newPass) return;
+
+    const res = await fetch("/api/vendedores", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "reset_password", id: v.id, password: newPass }),
+    });
+
+    const json = await res.json();
+
+    if (!res.ok) {
+      alert(json.message || "No se pudo restaurar contraseña.");
+      return;
+    }
+
+    alert("Contraseña restaurada correctamente.");
+    await load();
   }
 
   return (
@@ -116,7 +150,7 @@ export default function EquipoPage() {
       <section>
         <h1 className="text-2xl font-semibold text-slate-100">Gestión de equipo</h1>
         <p className="text-xs text-slate-400">
-          Crear vendedores, configurar metas, zonas, roles y control operativo.
+          Crear vendedores, configurar metas, zonas, roles y actividad comercial.
         </p>
       </section>
 
@@ -128,17 +162,40 @@ export default function EquipoPage() {
             </h2>
             {selected ? (
               <button type="button" onClick={resetForm} className="text-xs text-slate-400 hover:text-white">
-                Nuevo
+                Crear nuevo
               </button>
             ) : null}
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <Input label="Nombre completo" value={form.nombre} onChange={(v) => setField("nombre", v)} />
-            <Input label="Email / usuario" value={form.email} onChange={(v) => setField("email", v)} />
-            <Input label={selected ? "Nueva contraseña (opcional)" : "Contraseña inicial"} value={form.password} onChange={(v) => setField("password", v)} type="password" />
-            <Input label="WhatsApp" value={form.whatsapp} onChange={(v) => setField("whatsapp", v)} />
-            <Input label="Zona / sede" value={form.zona} onChange={(v) => setField("zona", v)} />
+            <Input label="Nombre completo" value={form.nombre} onChange={(v) => setField("nombre", v)} placeholder="Ej: Juan Pérez" />
+
+            <Input label="Email / usuario" value={form.email} onChange={(v) => setField("email", v)} placeholder="ejemplo@gmail.com" />
+
+            <div>
+              <label className="mb-1 block text-xs text-slate-400">
+                {selected ? "Nueva contraseña opcional" : "Contraseña inicial"}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => setField("password", e.target.value)}
+                  placeholder="123456"
+                  className="w-full rounded-lg border border-slate-700 bg-black px-3 py-2 text-sm text-slate-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="rounded-lg border border-slate-700 px-3 text-xs text-slate-200 hover:bg-slate-800"
+                >
+                  {showPassword ? "Ocultar" : "Ver"}
+                </button>
+              </div>
+            </div>
+
+            <Input label="WhatsApp" value={form.whatsapp} onChange={(v) => setField("whatsapp", v)} placeholder="Ej: 573001112233" />
+            <Input label="Zona / sede" value={form.zona} onChange={(v) => setField("zona", v)} placeholder="Bogotá, Norte, Medellín..." />
 
             <div>
               <label className="mb-1 block text-xs text-slate-400">Rol</label>
@@ -161,9 +218,15 @@ export default function EquipoPage() {
               value={form.notas}
               onChange={(e) => setField("notas", e.target.value)}
               className="min-h-[100px] w-full rounded-lg border border-slate-700 bg-black px-3 py-2 text-sm text-slate-100"
-              placeholder="Observaciones, perfil comercial, fortalezas, puntos a mejorar..."
+              placeholder="Observaciones, fortalezas, puntos a mejorar..."
             />
           </div>
+
+          {error ? (
+            <p className="rounded-lg border border-red-500/30 bg-red-950/30 px-3 py-2 text-xs text-red-200">
+              {error}
+            </p>
+          ) : null}
 
           <button disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
             {saving ? "Guardando..." : selected ? "Guardar cambios" : "Crear vendedor"}
@@ -187,16 +250,19 @@ export default function EquipoPage() {
                         {v.rol ?? "vendedor"} · {v.zona ?? "sin zona"} · meta {v.meta_mensual ?? 10}
                       </p>
                       <p className="mt-1 text-[11px] text-slate-500">
-                        Último login: {v.last_login ? new Date(v.last_login).toLocaleString("es-CO") : "sin registro"}
+                        Ingreso: {v.fecha_ingreso ? new Date(v.fecha_ingreso).toLocaleDateString("es-CO") : "sin fecha"}
                       </p>
                       <p className="text-[11px] text-slate-500">
-                        Última actividad: {v.last_activity ? new Date(v.last_activity).toLocaleString("es-CO") : "sin registro"}
+                        Último login: {v.last_login ? new Date(v.last_login).toLocaleString("es-CO") : "sin registro"}
                       </p>
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <button onClick={() => selectVendedor(v)} className="rounded-lg border border-slate-700 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-800">
                         Editar
+                      </button>
+                      <button onClick={() => resetPassword(v)} className="rounded-lg border border-amber-500/40 px-3 py-1.5 text-xs text-amber-300 hover:bg-amber-950/40">
+                        Restaurar contraseña
                       </button>
                       <button
                         onClick={() => toggleActivo(v)}
@@ -225,11 +291,13 @@ function Input({
   value,
   onChange,
   type = "text",
+  placeholder,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
+  placeholder?: string;
 }) {
   return (
     <div>
@@ -237,6 +305,7 @@ function Input({
       <input
         type={type}
         value={value}
+        placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
         className="w-full rounded-lg border border-slate-700 bg-black px-3 py-2 text-sm text-slate-100"
       />
