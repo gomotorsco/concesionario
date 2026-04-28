@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { trackGtag, trackInternal } from "@/lib/track";
 
 type Vehicle = {
   id: number;
   title: string;
+  slug: string;
   cuota_desde: number | null;
   moneda: string | null;
   imagen_url: string | null;
@@ -27,111 +27,79 @@ export default function VehiclesGrid({ whatsappUrl }: Props) {
 
   useEffect(() => {
     async function load() {
-      try {
-        const res = await fetch("/api/vehicles");
-        const json = await res.json();
-        setSections(json.sections ?? []);
-      } catch (e) {
-        console.error("Error cargando vehículos", e);
-      } finally {
-        setLoading(false);
-      }
+      const res = await fetch("/api/vehicles");
+      const json = await res.json();
+      setSections(json.sections ?? []);
+      setLoading(false);
     }
     load();
   }, []);
 
-  if (loading && sections.length === 0) {
-    return <p className="text-sm text-slate-500">Cargando autos disponibles...</p>;
+  if (loading) {
+    return <p className="text-sm text-slate-500">Cargando vehículos...</p>;
   }
-
-  if (sections.length === 0) {
-    return (
-      <p className="text-sm text-slate-500">
-        Todavía no hay autos cargados en el panel interno.
-      </p>
-    );
-  }
-
-  const buildWhatsAppLink = (modelTitle: string) => {
-    const text = `Hola! Quiero reservar mi cupo y recibir info por ${modelTitle}.`;
-    return `${whatsappUrl}?text=${encodeURIComponent(text)}`;
-  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       {sections.map((section) => (
         <div key={section.id}>
-          <h3 className="text-lg font-semibold text-slate-900 mb-3">{section.title}</h3>
+          <h2 className="text-2xl font-bold mb-4 text-slate-900">
+            {section.title}
+          </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {section.vehicles?.map((v) => {
-              const wa = buildWhatsAppLink(v.title);
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {section.vehicles.map((v) => {
+              const wa = `${whatsappUrl}?text=${encodeURIComponent(
+                `Hola, me interesa ${v.title}`
+              )}`;
 
               return (
-                <article
+                <div
                   key={v.id}
-                  className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col"
+                  className="bg-white rounded-2xl shadow-md overflow-hidden flex flex-col"
                 >
                   {v.imagen_url && (
-                    <div className="aspect-[16/9] w-full overflow-hidden bg-slate-100">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={v.imagen_url}
-                        alt={v.title}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
+                    <img
+                      src={v.imagen_url}
+                      className="h-52 w-full object-cover"
+                    />
                   )}
 
                   <div className="p-4 flex flex-col gap-2 flex-1">
-                    <h4 className="text-base font-semibold text-slate-900">{v.title}</h4>
+                    <h3 className="font-semibold text-lg">{v.title}</h3>
 
-                    {v.cuota_desde != null && (
-                      <p className="text-sm text-slate-700">
-                        Cuota desde{" "}
-                        <span className="font-semibold">
-                          {v.moneda ?? "ARS"} {Number(v.cuota_desde).toLocaleString("es-AR")}
-                        </span>
+                    {v.cuota_desde && (
+                      <p className="text-sm text-slate-600">
+                        Desde {v.moneda ?? "COP"}{" "}
+                        {Number(v.cuota_desde).toLocaleString()}
                       </p>
                     )}
 
-                    <div className="mt-auto space-y-2 pt-2">
+                    <div className="mt-auto space-y-2">
                       <a
-                        href="#form"
-                        onClick={() => {
-                          trackGtag("cta_form_click", { origin: "vehicle_card", vehicle_name: v.title });
-                          trackInternal({ type: "cta_form_click", origin: "vehicle_card", vehicle_id: v.id, vehicle_name: v.title });
-                        }}
-                        className="w-full inline-flex justify-center items-center rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-semibold py-2.5 transition-colors"
+                        href={`/vehiculos/${v.slug}`}
+                        className="block text-center bg-blue-600 text-white py-2 rounded-xl font-semibold"
                       >
-                        Reservá tu cupo
+                        Ver vehículo
+                      </a>
+
+                      <a
+                        href={`/preaprobacion?vehiculo=${encodeURIComponent(v.title)}`}
+                        className="block text-center border border-blue-600 text-blue-600 py-2 rounded-xl font-semibold"
+                      >
+                        Solicitar preaprobación
                       </a>
 
                       <a
                         href={wa}
                         target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={() => {
-                          trackGtag("whatsapp_click", { origin: "vehicle_card", vehicle_name: v.title });
-                          trackInternal({
-                            type: "whatsapp_click_vehicle",
-                            origin: "vehicle_card",
-                            vehicle_id: v.id,
-                            vehicle_name: v.title,
-                          });
-                        }}
-                        className="w-full inline-flex justify-center items-center rounded-xl border border-emerald-300 text-emerald-700 hover:bg-emerald-50 text-sm font-semibold py-2.5 transition-colors"
+                        className="block text-center border border-green-500 text-green-600 py-2 rounded-xl"
                       >
-                        Reservar por WhatsApp
+                        WhatsApp
                       </a>
-
-                      <p className="text-[11px] text-slate-500">
-                        Ejemplo ilustrativo. Los valores finales dependen del plan, cupo disponible y
-                        condiciones vigentes.
-                      </p>
                     </div>
                   </div>
-                </article>
+                </div>
               );
             })}
           </div>

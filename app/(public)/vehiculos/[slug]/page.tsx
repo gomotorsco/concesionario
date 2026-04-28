@@ -9,123 +9,115 @@ type Props = {
 export default async function VehiclePage({ params }: Props) {
   const { slug } = await params;
 
-  const { data: vehicle, error } = await supabaseAdmin
+  const { data: vehicle } = await supabaseAdmin
     .from("vehicles")
     .select("*")
     .eq("slug", slug)
     .single();
 
-  if (error || !vehicle) {
-    notFound();
-  }
+  if (!vehicle) return notFound();
 
-  const images = [
-    vehicle.imagen_url,
-    vehicle.imagen_url_2,
-    vehicle.imagen_url_3,
-  ].filter(Boolean);
+  const name = vehicle.title;
+  const price = vehicle.precio || vehicle.cuota_desde;
 
-  const vehicleName = vehicle.title || `${vehicle.marca ?? ""} ${vehicle.modelo ?? ""}`.trim();
-
-  const whatsappText = encodeURIComponent(
-    `Hola, me interesa este vehículo: ${vehicleName}`
-  );
+  const wa = encodeURIComponent(`Hola, me interesa este vehículo: ${name}`);
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      <section className="mx-auto max-w-6xl px-4 py-10">
-        <a href="/" className="text-xs text-zinc-400 hover:text-white">
-          ← Volver al inicio
+    <main className="min-h-screen bg-[#050505] text-white">
+      <section className="mx-auto max-w-7xl px-4 py-10">
+        <a href="/" className="text-sm text-zinc-400 hover:text-white">
+          ← Volver
         </a>
 
-        <div className="mt-6 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <div>
-            <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-950">
-              {images[0] ? (
-                <img src={images[0]} alt={vehicleName} className="h-[420px] w-full object-cover" />
+        <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          
+          {/* GALERÍA */}
+          <div className="space-y-4">
+            <div className="overflow-hidden rounded-3xl border border-white/10">
+              {vehicle.imagen_url ? (
+                <img src={vehicle.imagen_url} className="h-[420px] w-full object-cover" />
               ) : (
-                <div className="flex h-[420px] items-center justify-center bg-zinc-900 text-zinc-500">
+                <div className="h-[420px] flex items-center justify-center text-zinc-500">
                   Sin imagen
                 </div>
               )}
             </div>
-
-            {images.length > 1 ? (
-              <div className="mt-4 grid grid-cols-2 gap-4">
-                {images.slice(1).map((img: string) => (
-                  <img key={img} src={img} alt={vehicleName} className="h-44 rounded-xl object-cover" />
-                ))}
-              </div>
-            ) : null}
-
-            <section className="mt-8 rounded-2xl border border-white/10 bg-zinc-950 p-5">
-              <h1 className="text-3xl font-bold">{vehicleName}</h1>
-
-              <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <Spec label="Marca" value={vehicle.marca} />
-                <Spec label="Modelo" value={vehicle.modelo} />
-                <Spec label="Año" value={vehicle.anio} />
-                <Spec label="Km" value={vehicle.km ? `${Number(vehicle.km).toLocaleString("es-CO")} km` : null} />
-                <Spec label="Transmisión" value={vehicle.transmision} />
-                <Spec label="Combustible" value={vehicle.combustible} />
-                <Spec label="Estado" value={vehicle.estado} />
-                <Spec label="Tipo" value={vehicle.tipo} />
-              </div>
-
-              <div className="mt-6">
-                <p className="text-sm text-zinc-400">Precio</p>
-                <p className="text-3xl font-semibold text-emerald-300">
-                  {vehicle.precio
-                    ? `${vehicle.moneda ?? "COP"} ${Number(vehicle.precio).toLocaleString("es-CO")}`
-                    : "Precio a consultar"}
-                </p>
-                {vehicle.cuota_desde ? (
-                  <p className="mt-1 text-sm text-blue-300">
-                    Cuota desde {vehicle.moneda ?? "COP"} {Number(vehicle.cuota_desde).toLocaleString("es-CO")}
-                  </p>
-                ) : null}
-              </div>
-
-              {vehicle.descripcion ? (
-                <div className="mt-6">
-                  <p className="text-sm text-zinc-400">Descripción</p>
-                  <p className="mt-2 whitespace-pre-line text-sm leading-6 text-zinc-200">
-                    {vehicle.descripcion}
-                  </p>
-                </div>
-              ) : null}
-            </section>
           </div>
 
-          <aside className="space-y-4">
-            <VehicleLeadForm vehicleId={vehicle.id} vehicleName={vehicleName} />
+          {/* PANEL DERECHO */}
+          <div className="space-y-6">
+            <div>
+              <h1 className="text-3xl font-black">{name}</h1>
 
-            <a
-              href={`https://wa.me/?text=${whatsappText}`}
-              target="_blank"
-              className="block rounded-2xl bg-emerald-600 px-5 py-4 text-center text-sm font-semibold text-white"
-            >
-              Consultar por WhatsApp
-            </a>
+              <p className="mt-2 text-zinc-400">
+                {vehicle.marca} · {vehicle.modelo} · {vehicle.anio}
+              </p>
+            </div>
 
-            <a
-              href={`/preaprobacion?vehiculo=${encodeURIComponent(vehicleName)}`}
-              className="block rounded-2xl border border-blue-500/40 bg-blue-950/20 px-5 py-4 text-center text-sm font-semibold text-blue-100"
-            >
-              Solicitar preaprobación
-            </a>
-          </aside>
+            {/* PRECIO */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              <p className="text-xs text-zinc-500">Precio</p>
+              <p className="text-3xl font-bold text-emerald-400">
+                {price
+                  ? `${vehicle.moneda ?? "COP"} ${Number(price).toLocaleString()}`
+                  : "Consultar"}
+              </p>
+            </div>
+
+            {/* BENEFICIOS */}
+            <div className="space-y-2 text-sm text-zinc-300">
+              <p>✔ Financiación disponible</p>
+              <p>✔ Recibimos vehículo en parte de pago</p>
+              <p>✔ Evaluación inicial sin costo</p>
+            </div>
+
+            {/* BOTONES */}
+            <div className="space-y-3">
+              <a
+                href={`/preaprobacion?vehiculo=${encodeURIComponent(name)}`}
+                className="block text-center bg-blue-600 py-3 rounded-xl font-bold"
+              >
+                Solicitar preaprobación
+              </a>
+
+              <a
+                href={`https://wa.me/?text=${wa}`}
+                target="_blank"
+                className="block text-center border border-green-500 text-green-400 py-3 rounded-xl"
+              >
+                WhatsApp
+              </a>
+            </div>
+
+            {/* FORMULARIO */}
+            <VehicleLeadForm vehicleId={vehicle.id} vehicleName={name} />
+          </div>
         </div>
+
+        {/* DETALLES */}
+        <section className="mt-12 grid gap-6 md:grid-cols-4">
+          <Spec label="Marca" value={vehicle.marca} />
+          <Spec label="Modelo" value={vehicle.modelo} />
+          <Spec label="Año" value={vehicle.anio} />
+          <Spec label="Km" value={vehicle.km} />
+        </section>
+
+        {vehicle.descripcion && (
+          <section className="mt-10">
+            <h2 className="text-xl font-bold">Descripción</h2>
+            <p className="mt-3 text-zinc-300">{vehicle.descripcion}</p>
+          </section>
+        )}
       </section>
     </main>
   );
 }
 
-function Spec({ label, value }: { label: string; value: any }) {
+function Spec({ label, value }: any) {
   return (
-    <div className="rounded-xl border border-white/10 bg-black p-3">
-      <p className="text-[11px] text-zinc-500">{label}</p>
-      <p className="text-sm font-medium text-zinc-100">{value || "—"}</p>
+    <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
+      <p className="text-xs text-zinc-500">{label}</p>
+      <p className="font-semibold">{value || "—"}</p>
     </div>
   );
 }
