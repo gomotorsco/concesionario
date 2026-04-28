@@ -56,7 +56,7 @@ export default function DealershipHome() {
 
             <p className="mt-7 max-w-2xl text-lg leading-8 text-white/68">
               Autos, motos y opciones de financiación con asesoría comercial real.
-              Revisamos tu perfil, tu inicial y si tenés vehículo para entregar.
+              Revisamos tu perfil, tu inicial y si tiene vehículo para entregar.
             </p>
 
             <div className="mt-9 flex flex-col gap-3 sm:flex-row">
@@ -78,7 +78,7 @@ export default function DealershipHome() {
                 href="#parte-pago"
                 className="rounded-full border border-white/10 px-7 py-4 text-center text-sm font-bold text-white/75 hover:text-white"
               >
-                Entregar mi usado
+                Entregar vehículo usado
               </a>
             </div>
 
@@ -104,7 +104,7 @@ export default function DealershipHome() {
                     Asesoría personalizada
                   </p>
                   <p className="mt-2 text-lg font-black">
-                    Elegí, consultá y avanzá con información clara.
+                    Elija, consultá y avanzá con información clara.
                   </p>
                   <p className="mt-1 text-sm text-white/55">
                     Financiación, stock y parte de pago desde un solo flujo.
@@ -143,11 +143,11 @@ export default function DealershipHome() {
                 Catálogo disponible
               </p>
               <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.04em] text-[#111] md:text-5xl">
-                Elegí según lo que necesitás.
+                Elija según lo que necesitás.
               </h2>
               <p className="mt-4 max-w-2xl text-base leading-7 text-black/55">
-                Filtrá por autos, motos o ciclomotores. Revisá detalles, solicitá
-                preaprobación o hablá con un asesor.
+                Filtrá por autos, motos o ciclomotores. Revisá detalles, solicite
+                preaprobación o hable con un asesor.
               </p>
             </div>
 
@@ -155,7 +155,7 @@ export default function DealershipHome() {
               href="/preaprobacion"
               className="rounded-full border border-black/15 bg-white px-6 py-3 text-center text-sm font-black text-black shadow-sm hover:bg-black hover:text-white"
             >
-              Quiero evaluar mi financiación
+              Solicitar evaluación de financiación
             </a>
           </div>
 
@@ -170,7 +170,7 @@ export default function DealershipHome() {
               Parte de pago
             </p>
             <h2 className="mt-3 text-4xl font-black tracking-[-0.04em] md:text-5xl">
-              Tu usado puede acercarte al vehículo que querés.
+              Su vehículo usado puede acercarte al vehículo que querés.
             </h2>
           </div>
 
@@ -194,7 +194,7 @@ export default function DealershipHome() {
             </h2>
 
             <div className="mt-10 grid gap-5 md:grid-cols-3">
-              <Step number="1" title="Elegís vehículo" text="Ves stock, detalles y opciones según categoría." />
+              <Step number="1" title="Elijas vehículo" text="Ves stock, detalles y opciones según categoría." />
               <Step number="2" title="Solicitás evaluación" text="Dejás datos básicos sin cargar documentos sensibles." />
               <Step number="3" title="Te contacta un asesor" text="El equipo comercial toma el lead, lo trabaja y mide el avance." />
             </div>

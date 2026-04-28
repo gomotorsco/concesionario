@@ -138,7 +138,7 @@ export default function PreaprobacionPage() {
           <section className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-4">
             <h2 className="mb-2 text-lg font-semibold">Vehículo en parte de pago</h2>
             <p className="mb-4 text-sm text-zinc-400">
-              Si tenés un vehículo para entregar, puede ayudar como parte de pago.
+              Si tiene un vehículo para entregar, puede ayudar como parte de pago.
             </p>
 
             <label className="flex items-center gap-2 text-sm text-zinc-300">
