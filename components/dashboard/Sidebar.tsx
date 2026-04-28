@@ -15,8 +15,9 @@ const items: Item[] = [
   { label: "Vendedores", href: "/admin/vendedores", pro: true },
   { label: "Funnel", href: "/admin/funnel", pro: true },
   { label: "Acciones", href: "/admin/acciones", pro: true },
+  { label: "Alertas", href: "/admin/alertas", pro: true },
+  { label: "Automatización", href: "/admin/automatizacion", pro: true },
   { label: "Contenido", href: "/admin/contenido" },
-  { label: "Campañas", href: "/admin/campañas", pro: true },
   { label: "Configuración", href: "/admin/configuracion" },
 ];
 

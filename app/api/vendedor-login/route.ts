@@ -43,6 +43,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    await supabaseAdmin
+      .from("vendedores")
+      .update({
+        last_login: new Date().toISOString(),
+        last_activity: new Date().toISOString(),
+      })
+      .eq("id", data.id);
+
     const res = NextResponse.json({
       ok: true,
       vendedor: {
