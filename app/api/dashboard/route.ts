@@ -7,12 +7,17 @@ export async function GET() {
     .select("*", { count: "exact" })
     .neq("estado", "eliminado")
     .order("created_at", { ascending: false })
-    .limit(200);
+    .limit(300);
 
   if (error) {
-    console.error("GET /api/dashboard error", error);
     return NextResponse.json(
-      { visits: 0, leads: 0, conversion: 0, recent: [] },
+      {
+        visits: 0,
+        leads: 0,
+        conversion: 0,
+        recent: [],
+        message: error.message,
+      },
       { status: 500 }
     );
   }
@@ -28,107 +33,129 @@ export async function GET() {
     vehicle_name: l.vehicle_name ?? null,
   }));
 
-  const visits = 0;
-  const leadsCount = count ?? leads.length;
-  const conversion = visits > 0 ? Number(((leadsCount / visits) * 100).toFixed(1)) : 0;
-
   return NextResponse.json({
-    visits,
-    leads: leadsCount,
-    conversion,
+    visits: 0,
+    leads: count ?? leads.length,
+    conversion: 0,
     recent: leads,
   });
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
+  try {
+    const body = await req.json();
 
-  if (body.type === "update_lead") {
-    const {
-      id,
-      nombre,
-      email,
-      telefono,
-      seguimiento,
-      visto,
-      estado,
-      vendedor_id,
-      vehicle_id,
-      vehicle_name,
-    } = body;
+    if (body.type === "update_lead") {
+      const id = body.id;
 
-    if (!id) {
-      return NextResponse.json(
-        { message: "id de lead requerido." },
-        { status: 400 }
-      );
-    }
+      if (!id) {
+        return NextResponse.json(
+          { message: "id de lead requerido." },
+          { status: 400 }
+        );
+      }
 
-    const update: Record<string, any> = {
-      updated_at: new Date().toISOString(),
-    };
-
-    if (nombre !== undefined) update.nombre = nombre;
-    if (email !== undefined) update.email = email;
-    if (telefono !== undefined) update.telefono = telefono;
-    if (seguimiento !== undefined) update.seguimiento = seguimiento;
-    if (visto !== undefined) update.visto = visto;
-    if (estado !== undefined) update.estado = estado;
-    if (vendedor_id !== undefined) update.vendedor_id = vendedor_id || null;
-    if (vehicle_id !== undefined) update.vehicle_id = vehicle_id || null;
-    if (vehicle_name !== undefined) update.vehicle_name = vehicle_name || null;
-
-    const { data, error } = await supabaseAdmin
-      .from("landing_leads")
-      .update(update)
-      .eq("id", id)
-      .select("*")
-      .single();
-
-    if (error) {
-      console.error("POST /api/dashboard update_lead error", error);
-      return NextResponse.json(
-        { message: "No se pudo actualizar el lead." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({
-      lead: {
-        ...data,
-        telefono_numero: data.telefono_numero ?? data.telefono ?? "",
-      },
-    });
-  }
-
-  if (body.type === "delete_lead") {
-    const { id } = body;
-
-    if (!id) {
-      return NextResponse.json(
-        { message: "id de lead requerido." },
-        { status: 400 }
-      );
-    }
-
-    const { error } = await supabaseAdmin
-      .from("landing_leads")
-      .update({
-        estado: "eliminado",
+      const update: Record<string, any> = {
         updated_at: new Date().toISOString(),
-      })
-      .eq("id", id);
+      };
 
-    if (error) {
-      console.error("POST /api/dashboard delete_lead error", error);
-      return NextResponse.json(
-        { message: "No se pudo eliminar el lead." },
-        { status: 500 }
-      );
+      if (body.nombre !== undefined) update.nombre = body.nombre;
+      if (body.email !== undefined) update.email = body.email;
+
+      if (body.telefono !== undefined) {
+        update.telefono = body.telefono;
+      }
+
+      if (body.seguimiento !== undefined) {
+        update.seguimiento = body.seguimiento;
+        update.funnel_stage = "en_seguimiento";
+      }
+
+      if (body.visto !== undefined) update.visto = Boolean(body.visto);
+
+      if (body.estado !== undefined) {
+        update.estado = body.estado;
+        update.funnel_stage = body.estado;
+      }
+
+      if (body.vendedor_id !== undefined) {
+        update.vendedor_id = body.vendedor_id || null;
+      }
+
+      if (body.vehicle_id !== undefined) {
+        update.vehicle_id = body.vehicle_id || null;
+      }
+
+      if (body.vehicle_name !== undefined) {
+        update.vehicle_name = body.vehicle_name || null;
+      }
+
+      const { data, error } = await supabaseAdmin
+        .from("landing_leads")
+        .update(update)
+        .eq("id", Number(id))
+        .select("*")
+        .single();
+
+      if (error) {
+        console.error("POST /api/dashboard update_lead error", error);
+        return NextResponse.json(
+          {
+            message: error.message,
+            details: error.details,
+            code: error.code,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({
+        lead: {
+          ...data,
+          telefono_numero: data.telefono_numero ?? data.telefono ?? "",
+        },
+      });
     }
 
-    return NextResponse.json({ ok: true });
-  }
+    if (body.type === "delete_lead") {
+      const id = body.id;
 
-  return NextResponse.json({ message: "Tipo no soportado." }, { status: 400 });
+      if (!id) {
+        return NextResponse.json(
+          { message: "id de lead requerido." },
+          { status: 400 }
+        );
+      }
+
+      const { error } = await supabaseAdmin
+        .from("landing_leads")
+        .update({
+          estado: "eliminado",
+          funnel_stage: "eliminado",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", Number(id));
+
+      if (error) {
+        return NextResponse.json(
+          {
+            message: error.message,
+            details: error.details,
+            code: error.code,
+          },
+          { status: 500 }
+        );
+      }
+
+      return NextResponse.json({ ok: true });
+    }
+
+    return NextResponse.json({ message: "Tipo no soportado." }, { status: 400 });
+  } catch (err: any) {
+    console.error("POST /api/dashboard fatal", err);
+    return NextResponse.json(
+      { message: err?.message || "Error interno." },
+      { status: 500 }
+    );
+  }
 }
