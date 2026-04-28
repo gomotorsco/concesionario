@@ -20,6 +20,7 @@ const items: Item[] = [
   { label: "Alertas", href: "/admin/alertas", pro: true },
   { label: "Automatización", href: "/admin/automatizacion", pro: true },
   { label: "IA Créditos", href: "/admin/ia", pro: true },
+  { label: "Branding", href: "/admin/branding", pro: true },
   { label: "Contenido", href: "/admin/contenido" },
   { label: "Configuración", href: "/admin/configuracion" },
 ];
@@ -68,7 +69,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 text-[11px] text-gray-500">
-        Control comercial · CRM · IA · vehículos
+        Control comercial · CRM · branding · vehículos
       </div>
     </aside>
   );
