@@ -12,11 +12,14 @@ type Item = {
 const items: Item[] = [
   { label: "Dashboard", href: "/admin" },
   { label: "Leads", href: "/admin/leads" },
+  { label: "Vehículos", href: "/admin/vehiculos", pro: true },
+  { label: "Equipo", href: "/admin/equipo", pro: true },
   { label: "Vendedores", href: "/admin/vendedores", pro: true },
   { label: "Funnel", href: "/admin/funnel", pro: true },
   { label: "Acciones", href: "/admin/acciones", pro: true },
   { label: "Alertas", href: "/admin/alertas", pro: true },
   { label: "Automatización", href: "/admin/automatizacion", pro: true },
+  { label: "IA Créditos", href: "/admin/ia", pro: true },
   { label: "Contenido", href: "/admin/contenido" },
   { label: "Configuración", href: "/admin/configuracion" },
 ];
@@ -65,7 +68,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 text-[11px] text-gray-500">
-        Control comercial · CRM · vendedores · funnel
+        Control comercial · CRM · IA · vehículos
       </div>
     </aside>
   );
