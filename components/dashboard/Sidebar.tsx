@@ -33,7 +33,7 @@ export function Sidebar() {
       <div className="h-16 flex items-center px-6 border-b border-white/10">
         <div>
           <p className="text-[11px] uppercase tracking-[0.3em] text-gray-500">
-            PLAN 0KM
+            GoMotorsCo
           </p>
           <p className="text-xs text-gray-400">
             Sistema comercial
@@ -69,7 +69,7 @@ export function Sidebar() {
       </nav>
 
       <div className="px-5 py-4 border-t border-white/10 text-[11px] text-gray-500">
-        Control comercial · CRM · branding · vehículos
+        Control comercial · CRM · vehículos · financiación
       </div>
     </aside>
   );

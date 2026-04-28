@@ -18,7 +18,7 @@ export default function DealershipHome() {
               Grupo automotriz
             </p>
             <p className="mt-1 text-xl font-black tracking-tight text-[#101010]">
-              AutoMarket Premium
+              GoMotorsCo
             </p>
           </a>
 

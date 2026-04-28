@@ -1,34 +1,23 @@
-import { NextResponse } from "next/server";
-
 export async function GET() {
-  const baseUrl = "https://www.plannacionaltu0km.online";
+  const baseUrl = "https://gomotorsco.com.co";
 
-  const urls = [
-    "",
-    "/#marcas",
-    "/#form",
-  ];
-
-  const xml = `
-<?xml version="1.0" encoding="UTF-8"?>
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  ${urls
-    .map(
-      (path) => `
-    <url>
-      <loc>${baseUrl}${path}</loc>
-      <changefreq>daily</changefreq>
-      <priority>${path === "" ? "1.0" : "0.7"}</priority>
-    </url>`
-    )
-    .join("\n")}
-</urlset>
-  `.trim();
+  <url>
+    <loc>${baseUrl}</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+  <url>
+    <loc>${baseUrl}/preaprobacion</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+</urlset>`;
 
-  return new NextResponse(xml, {
-    status: 200,
+  return new Response(xml, {
     headers: {
-      "Content-Type": "application/xml",
+      "content-type": "application/xml",
     },
   });
 }
