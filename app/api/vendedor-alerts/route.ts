@@ -5,49 +5,26 @@ export async function GET(req: NextRequest) {
   const vendedorId = req.cookies.get("seller_session")?.value;
 
   if (!vendedorId) {
-    return NextResponse.json({ ok: false, alerts: [] }, { status: 401 });
+    return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("seller_alerts")
+  const { data } = await supabaseAdmin
+    .from("system_alerts")
     .select("*")
     .eq("vendedor_id", vendedorId)
     .order("created_at", { ascending: false })
-    .limit(50);
-
-  if (error) {
-    return NextResponse.json({ ok: false, alerts: [] }, { status: 500 });
-  }
+    .limit(20);
 
   return NextResponse.json({ ok: true, alerts: data ?? [] });
 }
 
 export async function POST(req: NextRequest) {
-  const vendedorId = req.cookies.get("seller_session")?.value;
-
-  if (!vendedorId) {
-    return NextResponse.json({ ok: false }, { status: 401 });
-  }
-
   const body = await req.json();
-  const id = body.id;
 
-  if (!id) {
-    return NextResponse.json({ ok: false, message: "id requerido" }, { status: 400 });
-  }
-
-  const { error } = await supabaseAdmin
-    .from("seller_alerts")
-    .update({
-      read: true,
-      read_at: new Date().toISOString(),
-    })
-    .eq("id", id)
-    .eq("vendedor_id", vendedorId);
-
-  if (error) {
-    return NextResponse.json({ ok: false }, { status: 500 });
-  }
+  await supabaseAdmin
+    .from("system_alerts")
+    .update({ read: true })
+    .eq("id", body.id);
 
   return NextResponse.json({ ok: true });
 }
