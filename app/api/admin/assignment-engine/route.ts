@@ -30,8 +30,10 @@ export async function POST() {
 
   let assigned = 0;
 
-  for (let i = 0; i < (leads ?? []).length; i++) {
-    const lead = leads[i];
+  const unassignedLeads = leads ?? [];
+
+  for (let i = 0; i < unassignedLeads.length; i++) {
+    const lead = unassignedLeads[i];
     const vendedor = vendedores[i % vendedores.length];
 
     await supabaseAdmin
