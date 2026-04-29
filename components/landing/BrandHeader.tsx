@@ -35,35 +35,35 @@ export default function BrandHeader() {
   return (
     <header className="sticky top-4 z-50">
       <div className="gm-premium-container">
-        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-black/10 bg-white/78 px-5 py-3 shadow-[0_18px_55px_rgba(17,24,39,0.12)] backdrop-blur-2xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-[var(--gm-border)] bg-[rgba(255,253,248,.84)] px-5 py-3 shadow-[0_18px_55px_rgba(21,21,21,.14)] backdrop-blur-2xl">
           <a href="/" className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[#111827] text-sm font-black text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--gm-text)] text-sm font-black text-[#fffdf8]">
               G
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-gray-500">
+              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[var(--gm-muted)]">
                 Grupo automotor
               </p>
-              <p className="text-xl font-black tracking-[-0.04em] text-gray-950">
+              <p className="text-xl font-black tracking-[-0.04em] text-[var(--gm-text)]">
                 GoMotorsCo
               </p>
             </div>
           </a>
 
-          <nav className="hidden items-center gap-1 rounded-full bg-gray-100/80 p-1 md:flex">
-            <a href="#stock" className="rounded-full px-4 py-2 text-sm font-bold text-gray-600 hover:bg-white hover:text-gray-950">
+          <nav className="hidden items-center gap-1 rounded-full bg-[var(--gm-soft)] p-1 md:flex">
+            <a href="#stock" className="rounded-full px-4 py-2 text-sm font-bold text-[var(--gm-muted)] hover:bg-[#fffdf8] hover:text-[var(--gm-text)]">
               Stock
             </a>
-            <a href="#stock" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-gray-600 hover:bg-white hover:text-gray-950">
+            <a href="#stock" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-[var(--gm-muted)] hover:bg-[#fffdf8] hover:text-[var(--gm-text)]">
               <CarIcon /> Autos
             </a>
-            <a href="#stock" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-gray-600 hover:bg-white hover:text-gray-950">
+            <a href="#stock" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-[var(--gm-muted)] hover:bg-[#fffdf8] hover:text-[var(--gm-text)]">
               <MotoIcon /> Motos
             </a>
-            <a href="#stock" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-gray-600 hover:bg-white hover:text-gray-950">
+            <a href="#stock" className="flex items-center gap-2 rounded-full px-4 py-2 text-sm font-bold text-[var(--gm-muted)] hover:bg-[#fffdf8] hover:text-[var(--gm-text)]">
               <CycleIcon /> Ciclomotores
             </a>
-            <a href="/preaprobacion" className="rounded-full px-4 py-2 text-sm font-bold text-gray-600 hover:bg-white hover:text-gray-950">
+            <a href="/preaprobacion" className="rounded-full px-4 py-2 text-sm font-bold text-[var(--gm-muted)] hover:bg-[#fffdf8] hover:text-[var(--gm-text)]">
               Financiación
             </a>
           </nav>

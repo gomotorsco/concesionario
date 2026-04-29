@@ -158,3 +158,91 @@ html[data-gm-theme="dark"],
 .gm-premium-ghost:hover {
   background: rgba(255,255,255,.9);
 }
+
+/* =========================
+   GoMotorsCo Final Premium System
+========================= */
+
+:root {
+  --gm-bg: #f6f1e8;
+  --gm-surface: #fffdf8;
+  --gm-soft: #eee6da;
+  --gm-border: rgba(21,21,21,.12);
+  --gm-text: #151515;
+  --gm-muted: #6f675e;
+  --gm-accent: #151515;
+}
+
+body {
+  background: var(--gm-bg);
+  color: var(--gm-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+}
+
+.gm-premium-shell {
+  background:
+    radial-gradient(circle at top left, rgba(255,255,255,.75), transparent 30%),
+    linear-gradient(180deg, #f6f1e8 0%, #fffdf8 42%, #f6f1e8 100%);
+  color: var(--gm-text);
+}
+
+.gm-premium-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.gm-title {
+  font-weight: 950;
+  letter-spacing: -0.065em;
+  line-height: .93;
+}
+
+.gm-sub {
+  color: var(--gm-muted);
+  font-weight: 450;
+}
+
+.gm-premium-card {
+  background: rgba(255,253,248,.82);
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 70px rgba(21,21,21,.12);
+  backdrop-filter: blur(18px);
+}
+
+.gm-premium-button {
+  background: var(--gm-accent);
+  color: #fffdf8;
+  border-radius: 999px;
+  font-weight: 850;
+  letter-spacing: -.02em;
+  transition: all .18s ease;
+}
+
+.gm-premium-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 45px rgba(21,21,21,.22);
+}
+
+.gm-premium-ghost {
+  background: rgba(255,253,248,.62);
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  border-radius: 999px;
+  font-weight: 800;
+  backdrop-filter: blur(12px);
+}
+
+.gm-premium-ghost:hover {
+  background: rgba(255,253,248,.92);
+}
+
+@keyframes gmSlow {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.gm-brand-slider {
+  animation: gmSlow 65s linear infinite;
+}

@@ -8,53 +8,43 @@ export default function DealershipHome() {
     <main className="gm-premium-shell min-h-screen">
       <BrandHeader />
 
-      <section className="relative -mt-12 overflow-hidden pt-20">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.90),transparent_30%),radial-gradient(circle_at_82%_20%,rgba(17,24,39,.08),transparent_28%)]" />
+      <section className="relative -mt-14 overflow-hidden pt-24">
+        <div className="relative gm-premium-container py-10 md:py-20">
+          <div className="relative overflow-hidden rounded-[34px] border border-[var(--gm-border)] shadow-[0_30px_90px_rgba(21,21,21,.16)]">
+            <img
+              src="/hero-0km.png"
+              alt="Vehículo GoMotorsCo"
+              className="h-[620px] w-full object-cover md:h-[650px]"
+            />
 
-        <div className="relative gm-premium-container grid gap-12 py-20 md:grid-cols-[0.95fr_1.05fr] md:py-24">
-          <div className="flex flex-col justify-center">
-            <div className="mb-6 flex w-fit items-center gap-3 rounded-full border border-[var(--gm-border)] bg-[var(--gm-soft)] px-4 py-2">
-              <span className="h-2 w-2 rounded-full bg-[var(--gm-accent)]" />
-              <span className="text-xs font-bold uppercase tracking-[0.22em] text-gray-600">
-                Stock verificado · financiación · parte de pago
-              </span>
-            </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/38 to-black/10" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent md:hidden" />
 
-            <h1 className="max-w-3xl text-5xl font-black leading-[0.92] tracking-[-0.06em] text-gray-950 md:text-7xl">
-              Su próximo vehículo empieza con una buena decisión.
-            </h1>
+            <div className="absolute inset-0 flex items-center">
+              <div className="max-w-3xl px-6 md:px-12">
+                <div className="mb-6 flex w-fit items-center gap-3 rounded-full border border-white/20 bg-white/10 px-4 py-2 backdrop-blur">
+                  <span className="h-2 w-2 rounded-full bg-[#fffdf8]" />
+                  <span className="text-xs font-bold uppercase tracking-[0.22em] text-white/80">
+                    Stock verificado · financiación · parte de pago
+                  </span>
+                </div>
 
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-gray-600">
-              Autos, motos y opciones de financiación con asesoría comercial personalizada.
-              Revisamos su perfil, su cuota inicial y si cuenta con vehículo para entregar.
-            </p>
+                <h1 className="gm-title max-w-3xl text-5xl text-white md:text-7xl">
+                  Encuentre su próximo vehículo hoy.
+                </h1>
 
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-              <a href="#stock" className="gm-premium-button px-7 py-4 text-center text-sm">
-                Ver stock disponible
-              </a>
-              <a href="/preaprobacion" className="gm-premium-ghost px-7 py-4 text-center text-sm">
-                Evaluar financiación
-              </a>
-            </div>
-          </div>
+                <p className="mt-6 max-w-2xl text-base leading-7 text-white/74 md:text-lg md:leading-8">
+                  Autos, motos y opciones de financiación con asesoría comercial personalizada.
+                  Revisamos su perfil, su cuota inicial y si cuenta con vehículo para entregar.
+                </p>
 
-          <div className="relative min-h-[500px]">
-            <div className="absolute inset-0 rounded-[34px] p-3 gm-premium-card">
-              <div className="relative h-full overflow-hidden rounded-[26px] bg-[var(--gm-soft)]">
-                <img src="/hero-0km.png" alt="Vehículo GoMotorsCo" className="h-full w-full object-cover opacity-95" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
-
-                <div className="absolute bottom-5 left-5 right-5 rounded-[24px] border border-white/10 bg-white/82 p-5 backdrop-blur-xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.30em] text-gray-500">
-                    Asesoría personalizada
-                  </p>
-                  <p className="mt-2 text-lg font-black text-gray-950">
-                    Elija, consulte y avance con información clara.
-                  </p>
-                  <p className="mt-1 text-sm text-gray-600">
-                    Inventario, financiación y seguimiento comercial desde un solo flujo.
-                  </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <a href="#stock" className="rounded-full bg-[#fffdf8] px-7 py-4 text-center text-sm font-black text-[#151515]">
+                    Ver stock disponible
+                  </a>
+                  <a href="/preaprobacion" className="rounded-full border border-white/25 bg-white/10 px-7 py-4 text-center text-sm font-black text-white backdrop-blur hover:bg-white/15">
+                    Evaluar financiación
+                  </a>
                 </div>
               </div>
             </div>
@@ -65,17 +55,17 @@ export default function DealershipHome() {
       <FinanceBrandSlider />
       <CategoryBanners />
 
-      <section id="stock" className="border-t border-[var(--gm-border)] bg-[var(--gm-surface)]/70">
+      <section id="stock" className="border-t border-[var(--gm-border)] bg-[rgba(255,253,248,.58)]">
         <div className="gm-premium-container py-16">
           <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-gray-600">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--gm-muted)]">
                 Inventario GoMotorsCo
               </p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.05em] text-gray-950 md:text-5xl">
+              <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.05em] text-[var(--gm-text)] md:text-5xl">
                 Elija según lo que necesita.
               </h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
+              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--gm-muted)]">
                 Filtre por autos, motos o ciclomotores. Revise detalles, solicite preaprobación
                 o hable con un asesor comercial.
               </p>

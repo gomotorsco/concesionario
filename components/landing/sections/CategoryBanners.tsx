@@ -24,7 +24,7 @@ export default function CategoryBanners() {
           <a
             key={item.title}
             href={item.href}
-            className="group overflow-hidden rounded-[28px] border border-[var(--gm-border)] bg-[var(--gm-surface)] p-6 shadow-[0_18px_55px_rgba(0,0,0,.16)] transition hover:-translate-y-1"
+            className="group overflow-hidden rounded-[28px] border border-[var(--gm-border)] bg-[rgba(255,253,248,.82)] p-6 shadow-[0_18px_55px_rgba(21,21,21,.10)] transition hover:-translate-y-1"
           >
             <div className="mb-10 h-24 rounded-[22px] bg-gradient-to-br from-[var(--gm-soft)] to-transparent" />
 
