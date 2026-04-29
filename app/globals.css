@@ -28,3 +28,71 @@ body {
 .input {
   @apply w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-[14px] shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-400;
 }
+
+/* GoMotorsCo Premium Themes */
+:root {
+  --gm-bg: #090909;
+  --gm-surface: #121212;
+  --gm-soft: #1c1c1c;
+  --gm-text: #f4f0e8;
+  --gm-muted: #a7a29a;
+  --gm-border: rgba(244,240,232,.14);
+  --gm-accent: #f4f0e8;
+}
+
+html[data-gm-theme="ivory"] {
+  --gm-bg: #f3efe7;
+  --gm-surface: #fbf8f1;
+  --gm-soft: #e8e1d5;
+  --gm-text: #121212;
+  --gm-muted: #6f6a62;
+  --gm-border: rgba(18,18,18,.12);
+  --gm-accent: #121212;
+}
+
+.gm-premium-shell {
+  background: var(--gm-bg);
+  color: var(--gm-text);
+}
+
+.gm-premium-container {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+.gm-premium-card {
+  background: color-mix(in srgb, var(--gm-surface) 92%, transparent);
+  border: 1px solid var(--gm-border);
+  box-shadow: 0 24px 70px rgba(0,0,0,.22);
+}
+
+.gm-premium-button {
+  background: var(--gm-accent);
+  color: var(--gm-bg);
+  border-radius: 999px;
+  font-weight: 800;
+  transition: all .18s ease;
+}
+
+.gm-premium-button:hover {
+  transform: translateY(-1px);
+  opacity: .9;
+}
+
+.gm-premium-ghost {
+  border: 1px solid var(--gm-border);
+  color: var(--gm-text);
+  border-radius: 999px;
+  font-weight: 750;
+}
+
+.gm-brand-slider {
+  animation: gmMarquee 24s linear infinite;
+}
+
+@keyframes gmMarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
