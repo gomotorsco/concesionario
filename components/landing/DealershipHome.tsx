@@ -1,8 +1,10 @@
+import BrandHeader from "@/components/landing/BrandHeader";
 import PremiumVehiclesCatalog from "@/components/landing/PremiumVehiclesCatalog";
 
 export default function DealershipHome() {
   return (
     <main className="min-h-screen bg-[#f4f1ea] text-[#151515]">
+      <BrandHeader />
       <div className="hidden border-b border-black/10 bg-[#111] text-white md:block">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/60">
           <span>Financiación disponible</span>
