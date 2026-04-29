@@ -1,5 +1,4 @@
 import BrandHeader from "@/components/landing/BrandHeader";
-import Hero from "@/components/landing/Hero";
 import PremiumVehiclesCatalog from "@/components/landing/PremiumVehiclesCatalog";
 import FinanceBrandSlider from "@/components/landing/sections/FinanceBrandSlider";
 import CategoryBanners from "@/components/landing/sections/CategoryBanners";
