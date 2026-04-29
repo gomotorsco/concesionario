@@ -8,7 +8,6 @@ export default function DealershipHome() {
     <main>
 
       <BrandHeader />
-      <Hero />
 
       <FinanceBrandSlider />
       <CategoryBanners />
