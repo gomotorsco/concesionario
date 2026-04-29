@@ -1,18 +1,43 @@
+"use client";
+
+import { useState } from "react";
+
 const brands = [
-  "FORD",
-  "HYUNDAI",
-  "AUDI",
-  "VOLVO",
-  "SEAT",
-  "KIA",
-  "RENAULT",
-  "CHEVROLET",
-  "YAMAHA",
-  "HONDA",
+  { name: "Ford", logo: "https://logo.clearbit.com/ford.com" },
+  { name: "Hyundai", logo: "https://logo.clearbit.com/hyundai.com" },
+  { name: "Audi", logo: "https://logo.clearbit.com/audi.com" },
+  { name: "Volvo", logo: "https://logo.clearbit.com/volvocars.com" },
+  { name: "SEAT", logo: "https://logo.clearbit.com/seat.com" },
+  { name: "Kia", logo: "https://logo.clearbit.com/kia.com" },
+  { name: "Renault", logo: "https://logo.clearbit.com/renault.com" },
+  { name: "Chevrolet", logo: "https://logo.clearbit.com/chevrolet.com" },
+  { name: "Yamaha", logo: "https://logo.clearbit.com/yamaha-motor.com" },
+  { name: "Honda", logo: "https://logo.clearbit.com/honda.com" },
 ];
 
+function BrandLogo({ name, logo }: { name: string; logo: string }) {
+  const [failed, setFailed] = useState(false);
+
+  return (
+    <div className="flex h-12 min-w-[150px] items-center justify-center rounded-2xl border border-[var(--gm-border)] bg-[var(--gm-soft)] px-5">
+      {failed ? (
+        <span className="text-sm font-black uppercase tracking-[0.18em] text-[var(--gm-muted)]">
+          {name}
+        </span>
+      ) : (
+        <img
+          src={logo}
+          alt={name}
+          onError={() => setFailed(true)}
+          className="max-h-7 max-w-[110px] object-contain grayscale opacity-70 transition hover:grayscale-0 hover:opacity-100"
+        />
+      )}
+    </div>
+  );
+}
+
 export default function FinanceBrandSlider() {
-  const list = [...brands, ...brands];
+  const loop = [...brands, ...brands];
 
   return (
     <section className="gm-premium-container py-10">
@@ -27,15 +52,10 @@ export default function FinanceBrandSlider() {
           </a>
         </div>
 
-        <div className="border-t border-[var(--gm-border)] py-6">
-          <div className="flex w-max gap-14 gm-brand-slider">
-            {list.map((brand, idx) => (
-              <span
-                key={`${brand}-${idx}`}
-                className="text-2xl font-black tracking-[-0.04em] text-[var(--gm-muted)] opacity-75"
-              >
-                {brand}
-              </span>
+        <div className="overflow-hidden border-t border-[var(--gm-border)] py-6">
+          <div className="flex w-max gap-5 animate-[gmSlow_55s_linear_infinite]">
+            {loop.map((brand, idx) => (
+              <BrandLogo key={`${brand.name}-${idx}`} {...brand} />
             ))}
           </div>
         </div>
