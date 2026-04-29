@@ -8,23 +8,23 @@ export default function DealershipHome() {
     <main className="gm-premium-shell min-h-screen">
       <BrandHeader />
 
-      <section className="relative -mt-24 overflow-hidden pt-32">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(255,255,255,.10),transparent_34%),radial-gradient(circle_at_85%_20%,rgba(255,255,255,.08),transparent_30%)]" />
+      <section className="relative -mt-12 overflow-hidden pt-20">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(255,255,255,.90),transparent_30%),radial-gradient(circle_at_82%_20%,rgba(17,24,39,.08),transparent_28%)]" />
 
         <div className="relative gm-premium-container grid gap-12 py-20 md:grid-cols-[0.95fr_1.05fr] md:py-24">
           <div className="flex flex-col justify-center">
             <div className="mb-6 flex w-fit items-center gap-3 rounded-full border border-[var(--gm-border)] bg-[var(--gm-soft)] px-4 py-2">
               <span className="h-2 w-2 rounded-full bg-[var(--gm-accent)]" />
-              <span className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--gm-muted)]">
+              <span className="text-xs font-bold uppercase tracking-[0.22em] text-gray-600">
                 Stock verificado · financiación · parte de pago
               </span>
             </div>
 
-            <h1 className="max-w-3xl text-5xl font-black leading-[0.92] tracking-[-0.06em] text-[var(--gm-text)] md:text-7xl">
+            <h1 className="max-w-3xl text-5xl font-black leading-[0.92] tracking-[-0.06em] text-gray-950 md:text-7xl">
               Su próximo vehículo empieza con una buena decisión.
             </h1>
 
-            <p className="mt-7 max-w-2xl text-lg leading-8 text-[var(--gm-muted)]">
+            <p className="mt-7 max-w-2xl text-lg leading-8 text-gray-600">
               Autos, motos y opciones de financiación con asesoría comercial personalizada.
               Revisamos su perfil, su cuota inicial y si cuenta con vehículo para entregar.
             </p>
@@ -45,14 +45,14 @@ export default function DealershipHome() {
                 <img src="/hero-0km.png" alt="Vehículo GoMotorsCo" className="h-full w-full object-cover opacity-95" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
 
-                <div className="absolute bottom-5 left-5 right-5 rounded-[24px] border border-white/10 bg-black/70 p-5 backdrop-blur-xl">
-                  <p className="text-[10px] font-black uppercase tracking-[0.30em] text-white/50">
+                <div className="absolute bottom-5 left-5 right-5 rounded-[24px] border border-white/10 bg-white/82 p-5 backdrop-blur-xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.30em] text-gray-500">
                     Asesoría personalizada
                   </p>
-                  <p className="mt-2 text-lg font-black text-white">
+                  <p className="mt-2 text-lg font-black text-gray-950">
                     Elija, consulte y avance con información clara.
                   </p>
-                  <p className="mt-1 text-sm text-white/55">
+                  <p className="mt-1 text-sm text-gray-600">
                     Inventario, financiación y seguimiento comercial desde un solo flujo.
                   </p>
                 </div>
@@ -69,13 +69,13 @@ export default function DealershipHome() {
         <div className="gm-premium-container py-16">
           <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-[var(--gm-muted)]">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-gray-600">
                 Inventario GoMotorsCo
               </p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.05em] text-[var(--gm-text)] md:text-5xl">
+              <h2 className="mt-3 max-w-3xl text-4xl font-black tracking-[-0.05em] text-gray-950 md:text-5xl">
                 Elija según lo que necesita.
               </h2>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--gm-muted)]">
+              <p className="mt-4 max-w-2xl text-base leading-7 text-gray-600">
                 Filtre por autos, motos o ciclomotores. Revise detalles, solicite preaprobación
                 o hable con un asesor comercial.
               </p>
