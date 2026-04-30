@@ -6,6 +6,11 @@ type Props = {
   params: Promise<{ slug: string }>;
 };
 
+function money(value: any) {
+  if (!value) return "Consultar";
+  return `$ ${Number(value).toLocaleString("es-CO")}`;
+}
+
 export default async function VehiclePage({ params }: Props) {
   const { slug } = await params;
 
@@ -19,105 +24,85 @@ export default async function VehiclePage({ params }: Props) {
 
   const name = vehicle.title;
   const price = vehicle.precio || vehicle.cuota_desde;
-
   const wa = encodeURIComponent(`Hola, me interesa este vehículo: ${name}`);
 
   return (
-    <main className="min-h-screen bg-[#050505] text-white">
-      <section className="mx-auto max-w-7xl px-4 py-10">
-        <a href="/" className="text-sm text-zinc-400 hover:text-white">
+    <main className="min-h-screen bg-[#f6f1e8] text-[#151515]">
+      <section className="mx-auto max-w-7xl px-5 py-8">
+        <a href="/" className="text-sm font-semibold text-[#6f675e] hover:text-black">
           ← Volver
         </a>
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-          
-          {/* GALERÍA */}
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-3xl border border-white/10">
-              {vehicle.imagen_url ? (
-                <img src={vehicle.imagen_url} className="h-[420px] w-full object-cover" />
-              ) : (
-                <div className="h-[420px] flex items-center justify-center text-zinc-500">
-                  Sin imagen
-                </div>
-              )}
-            </div>
+        <div className="mt-6 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="overflow-hidden rounded-[30px] border border-black/10 bg-[#fffdf8] p-3 shadow-[0_24px_70px_rgba(21,21,21,.12)]">
+            {vehicle.imagen_url ? (
+              <img src={vehicle.imagen_url} alt={name} className="h-[520px] w-full rounded-[22px] object-cover" />
+            ) : (
+              <div className="flex h-[520px] items-center justify-center rounded-[22px] bg-[#eee6da] text-[#6f675e]">
+                Sin imagen
+              </div>
+            )}
           </div>
 
-          {/* PANEL DERECHO */}
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-3xl font-black">{name}</h1>
-
-              <p className="mt-2 text-zinc-400">
-                {vehicle.marca} · {vehicle.modelo} · {vehicle.anio}
+          <aside className="space-y-5">
+            <div className="rounded-[28px] border border-black/10 bg-[#fffdf8]/90 p-6 shadow-[0_20px_60px_rgba(21,21,21,.10)]">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-[#6f675e]">
+                GoMotorsCo
               </p>
-            </div>
+              <h1 className="mt-3 text-4xl font-black tracking-[-0.05em]">{name}</h1>
 
-            {/* PRECIO */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-              <p className="text-xs text-zinc-500">Precio</p>
-              <p className="text-3xl font-bold text-emerald-400">
-                {price
-                  ? `${vehicle.moneda ?? "COP"} ${Number(price).toLocaleString()}`
-                  : "Consultar"}
+              <p className="mt-3 text-sm text-[#6f675e]">
+                {[vehicle.marca, vehicle.modelo, vehicle.anio].filter(Boolean).join(" · ") || "Vehículo disponible"}
               </p>
+
+              <div className="mt-6 rounded-2xl border border-black/10 bg-[#f6f1e8] p-5">
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6f675e]">Precio</p>
+                <p className="mt-1 text-3xl font-black">{money(price)}</p>
+              </div>
+
+              <div className="mt-5 grid gap-2 text-sm font-medium text-[#3a332d]">
+                <p>✔ Financiación disponible</p>
+                <p>✔ Recibimos vehículo en parte de pago</p>
+                <p>✔ Evaluación inicial sin compromiso</p>
+              </div>
+
+              <div className="mt-6 grid gap-3">
+                <a href={`/preaprobacion?vehiculo=${encodeURIComponent(name)}`} className="rounded-full bg-[#151515] px-5 py-3 text-center text-sm font-black text-white">
+                  Solicitar preaprobación
+                </a>
+                <a href={`https://wa.me/?text=${wa}`} target="_blank" className="rounded-full border border-black/15 bg-white px-5 py-3 text-center text-sm font-black text-[#151515]">
+                  WhatsApp
+                </a>
+              </div>
             </div>
 
-            {/* BENEFICIOS */}
-            <div className="space-y-2 text-sm text-zinc-300">
-              <p>✔ Financiación disponible</p>
-              <p>✔ Recibimos vehículo en parte de pago</p>
-              <p>✔ Evaluación inicial sin costo</p>
-            </div>
-
-            {/* BOTONES */}
-            <div className="space-y-3">
-              <a
-                href={`/preaprobacion?vehiculo=${encodeURIComponent(name)}`}
-                className="block text-center bg-blue-600 py-3 rounded-xl font-bold"
-              >
-                Solicitar preaprobación
-              </a>
-
-              <a
-                href={`https://wa.me/?text=${wa}`}
-                target="_blank"
-                className="block text-center border border-green-500 text-green-400 py-3 rounded-xl"
-              >
-                WhatsApp
-              </a>
-            </div>
-
-            {/* FORMULARIO */}
             <VehicleLeadForm vehicleId={vehicle.id} vehicleName={name} />
-          </div>
+          </aside>
         </div>
 
-        {/* DETALLES */}
-        <section className="mt-12 grid gap-6 md:grid-cols-4">
+        <section className="mt-8 grid gap-4 md:grid-cols-4">
           <Spec label="Marca" value={vehicle.marca} />
           <Spec label="Modelo" value={vehicle.modelo} />
           <Spec label="Año" value={vehicle.anio} />
-          <Spec label="Km" value={vehicle.km} />
+          <Spec label="Km" value={vehicle.km ? `${Number(vehicle.km).toLocaleString("es-CO")} km` : null} />
         </section>
 
-        {vehicle.descripcion && (
-          <section className="mt-10">
-            <h2 className="text-xl font-bold">Descripción</h2>
-            <p className="mt-3 text-zinc-300">{vehicle.descripcion}</p>
+        {vehicle.descripcion ? (
+          <section className="mt-8 rounded-[28px] border border-black/10 bg-[#fffdf8] p-6">
+            <h2 className="text-xl font-black">Descripción</h2>
+            <p className="mt-3 whitespace-pre-line leading-7 text-[#6f675e]">{vehicle.descripcion}</p>
           </section>
-        )}
+        ) : null}
       </section>
     </main>
   );
 }
 
-function Spec({ label, value }: any) {
+function Spec({ label, value }: { label: string; value: any }) {
   return (
-    <div className="bg-white/5 border border-white/10 p-4 rounded-xl">
-      <p className="text-xs text-zinc-500">{label}</p>
-      <p className="font-semibold">{value || "—"}</p>
+    <div className="rounded-2xl border border-black/10 bg-[#fffdf8] p-4 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#6f675e]">{label}</p>
+      <p className="mt-1 font-black">{value || "—"}</p>
     </div>
   );
 }

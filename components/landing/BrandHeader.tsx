@@ -33,7 +33,7 @@ function CycleIcon() {
 
 export default function BrandHeader() {
   return (
-    <header className="sticky top-0 z-50">
+    <header className="sticky top-0 z-40">
       <div className="gm-premium-container">
         <div className="mx-auto flex max-w-6xl items-center justify-between rounded-full border border-[var(--gm-border)] bg-[rgba(255,253,248,.84)] px-5 py-2 shadow-[0_18px_55px_rgba(21,21,21,.14)] backdrop-blur-2xl">
           <a href="/" className="flex items-center gap-3">
