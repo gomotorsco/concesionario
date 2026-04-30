@@ -3,7 +3,7 @@ import PremiumVehiclesCatalog from "@/components/landing/PremiumVehiclesCatalog"
 import FinanceBrandSlider from "@/components/landing/sections/FinanceBrandSlider";
 import CategoryBanners from "@/components/landing/sections/CategoryBanners";
 
-export default function DealershipHome() {
+export default function DealershipHome(){
   return (
     <main className="gm-premium-shell min-h-screen">
       <section className="relative overflow-hidden">
