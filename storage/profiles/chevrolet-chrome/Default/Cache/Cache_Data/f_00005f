@@ -1,0 +1,2060 @@
+/**
+ * Detecta dispositivos Apple táctiles (iOS / iPadOS).
+ * Incluye iPads modernos que se identifican como "MacIntel" con touch points.
+ * Pensado para ser reutilizado en otros proyectos que embeban forms en iframe.
+ */
+function isAppleTouchDevice() {
+    return (
+      /iPad|iPhone|iPod/i.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+    );
+}
+
+/**
+ * Hace scroll animado hasta el primer campo inválido de un formulario validado
+ * con jQuery Validate. En iOS/iPadOS se omite el scroll a propósito: dentro de
+ * un iframe responsive, el scroll manual provoca que la vista "suba" al error
+ * y oculte los campos superiores (bug reportado en Safari iOS).
+ *
+ * @param {jQuery} $element  Campo inválido (ej: validator.errorList[0].element envuelto en $()).
+ * @param {Object} [options]
+ * @param {number} [options.offset=50]   Offset en px respecto al top del form-group.
+ * @param {number} [options.duration=300] Duración de la animación.
+ */
+function scrollToInvalidField($element, options) {
+    if (isAppleTouchDevice()) return;
+    if (!$element || !$element.length) return;
+
+    options = options || {};
+    var offset = typeof options.offset === "number" ? options.offset : 50;
+    var duration = typeof options.duration === "number" ? options.duration : 300;
+
+    var $group = $element.closest(".form-group");
+    if (!$group.length) return;
+
+    $("html, body").animate(
+      { scrollTop: $group.offset().top - offset },
+      duration,
+    );
+}
+
+const forms = {
+    fields: false,
+    $form: $("#formulario"),
+    objects: {
+        firstname: {
+            $selector: $('[name="firstname"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    onlyletters: true,
+                },
+                messages: {
+                    required: "Ingresa tu nombre.",
+                    onlyletters: "Ingresa solo letras.",
+                },
+            },
+            events: function () {
+                // Set Mask
+                this.$selector.mask("Z", {
+                    translation: {
+                        Z: {
+                            pattern: /[a-zA-Z áÁéÉíÍóÓúÚâêîôûñÑç ]/,
+                            recursive: true,
+                        },
+                    },
+                });
+            },
+        },
+        lastname: {
+            $selector: $('[name="lastname"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    onlyletters: true,
+                },
+                messages: {
+                    required: "Ingresa tu apellido.",
+                    onlyletters: "Ingresa solo letras.",
+                },
+            },
+            events: function () {
+                // Set Mask
+                this.$selector.mask("Z", {
+                    translation: {
+                        Z: {
+                            pattern: /[a-zA-Z áÁéÉíÍóÓúÚâêîôûñÑç ]/,
+                            recursive: true,
+                        },
+                    },
+                });
+            },
+        },
+        ci: {
+            $selector: $('[name="ci"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    minlength: 7,
+                    maxlength: 10,
+                    noRepeats: true,
+                },
+                messages: {
+                    required: "Ingresa tu cédula de identidad.",
+                    minlength: "Ingresa al menos 7 dígitos.",
+                    noRepeats: "La cédula de identidad ingresada no parece válida.",
+                },
+            },
+            events: function () {
+                // Set Mask
+                this.$selector.mask("0000000000");
+            },
+        },
+        telephone: {
+            $selector: $('[name="telephone"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    digits: true,
+                    number: true,
+                    startWith: "3",
+                    exactlength: 10,
+                },
+                messages: {
+                    required: "Completa los 10 dígitos de tu celular que empieza con 3.",
+                    number: "Ingresa sólo números.",
+                    digits: "Ingresa sólo números.",
+                    startWith: "El número de celular debe comenzar con 3",
+                    exactlength: "Completa los 10 dígitos de tu celular.",
+                },
+            },
+            events: function () {
+                // Set Mask
+                this.$selector.mask("0000000000");
+            },
+        },
+        email: {
+            $selector: $('[name="email"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    email: false,
+                    email_validation: true,
+                },
+                messages: {
+                    required: "Ingresa tu email.",
+                    email_validation: "El email ingresado no parece válido.",
+                },
+            },
+        },
+        models: {
+            $selector: $('[name="models"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona un modelo.",
+                },
+            },
+            events: function () {
+                var _this = this;
+
+                var setModelDTM = function (model_id) {
+                    var modelObj = models.filter(function (m) {
+                        return m.id == model_id;
+                    });
+
+                    if (modelObj.length) {
+                        digitalData.vehicleInfo.modelName = modelObj[0].dtm_modelname;
+                        digitalData.vehicleInfo.modelYear = modelObj[0].dtm_modelyear;
+                        digitalData.vehicleInfo.bodyStyle = modelObj[0].dtm_bodystyle;
+                        digitalData.vehicleInfo.vehicleType = modelObj[0].dtm_vehicletype;
+                    }
+                };
+
+                if (_this.$selector.find("option:selected").length) {
+                    setModelDTM(_this.$selector.find("option:selected").val());
+                }
+
+                _this.$selector.change(function () {
+                    var image = $(this).find("option:selected").data("image");
+                    var image_back = $(this).find("option:selected").data("image-back");
+                    var name = $(this).find("option:selected").html();
+
+                    setModelDTM($(this).find("option:selected").val());
+
+                    if (image !== "" && typeof image !== "undefined") {
+                        _this.$selector.prop("disabled", true);
+
+                        $(".jelly-wrapper .content").fadeOut(300, function () {
+                            $(".jelly-wrapper .content").html(
+                                '<img src="' + image + '" alt="' + name + '">'
+                            );
+                            $(".jelly-wrapper .content").fadeIn(300, function () {
+                                if (image_back !== "" && image_back !== "undefined") {
+                                    setTimeout(function () {
+                                        $(".jelly-wrapper .content img").fadeOut(300, function () {
+                                            $(".jelly-wrapper .content img").attr("src", image_back);
+                                            setTimeout(function () {
+                                                $(".jelly-wrapper .content img").fadeIn(300);
+                                            }, 300);
+                                        });
+
+                                        setTimeout(function () {
+                                            $(".jelly-wrapper .content img").fadeOut(
+                                                300,
+                                                function () {
+                                                    $(".jelly-wrapper .content img").attr("src", image);
+                                                    setTimeout(function () {
+                                                        $(".jelly-wrapper .content img").fadeIn(
+                                                            300,
+                                                            function () {
+                                                                _this.$selector.prop("disabled", false);
+                                                            }
+                                                        );
+                                                    }, 300);
+                                                }
+                                            );
+                                        }, 2000);
+                                    }, 2000);
+                                } else {
+                                    _this.$selector.prop("disabled", false);
+                                }
+                            });
+                        });
+                    } else {
+                        $(".jelly-wrapper .content").fadeOut(300, function () {
+                            $(this).html("");
+                            _this.$selector.prop("disabled", false);
+                        });
+                    }
+                    if (forms.objects.city.$selector.length && forms.objects.dealer.$selector.length) {
+                        forms.objects.city.$selector.val("");
+                        forms.objects.dealer.$selector.attr("disabled", true);
+                        forms.objects.dealer.$selector.html('<option value="" selected>Seleccione</option>');
+
+                        let modelElement = forms.objects.models?.$selector,
+                            modelValue = modelElement ? modelElement.val() : null;
+
+                        $.ajax({
+                            type: "POST",
+                            url: BASE_URL + "front/getCities",
+                            data: { form: FORM_URL, model: modelValue },
+                            dataType: 'JSON',
+                            headers: {
+                                'X-Auth-Token': TOKEN
+                            },
+                            success: function (response) {
+
+                                var options = '<option value="" selected>' + 'Seleccione' + '</option>';
+                                if (response.action && response.data.length) {
+                                    $.each(response.data, function (index, city) {
+                                        options +=
+                                            '<option value="' +
+                                            city.id +
+                                            '" data-city="' +
+                                            city.name +
+                                            '">' +
+                                            city.name +
+                                            "</option>";
+                                    });
+                                    forms.objects.city.$selector.attr("disabled", false);
+                                } else {
+                                    forms.objects.city.$selector.attr("disabled", true);
+                                }
+
+                                forms.objects.city.$selector.html(options);
+                                forms.updateTabIndex();
+                            }
+                        });
+                    }
+                });
+            },
+        },
+        "geo-dealer": {
+            $selector: $('[name="geo-dealer"]'),
+            required: false,
+            validation: {
+                rules: {
+                    required_geolocation: true,
+                },
+                messages: {
+                    required_geolocation: $(".dealers-geolocation p"),
+                },
+            },
+            events: function () { },
+        },
+        city: {
+            $selector: $('[name="city"]'),
+            validation: {
+                rules: {
+                    required_manual: true,
+                    notEqualToValue: "0",
+                },
+                messages: {
+                    required_manual: "Selecciona una ciudad.",
+                    notEqualToValue: "Selecciona una ciudad",
+                },
+            },
+            events: function () {
+                var _this = this;
+
+                this.$selector.change(function () {
+                    var id_city = parseInt($(this).val());
+
+                    forms.objects.dealer.$selector.prop("disabled", true);
+
+                    // Hide geolocation
+                    if ($(".dealers-geolocation").length) {
+                        $('.dealers-geolocation [name="geo-dealer"]').prop(
+                            "checked",
+                            false
+                        );
+                        $(".dealers-geolocation").removeClass("with-results");
+                        $(".dealers-geolocation .results").slideUp(400, function () {
+                            $(this).html("");
+                        });
+                    }
+                    let modelElement = forms.objects.models?.$selector,
+                        modelValue = modelElement ? modelElement.val() : null;
+
+                    $.ajax({
+                        type: "POST",
+                        url: BASE_URL + "front/getDealers",
+                        //data: { city: id_city, form: FORM_URL },
+                        data: { city: id_city, form: FORM_URL, model: modelValue },
+                        dataType: "JSON",
+                        headers: {
+                            "X-Auth-Token": TOKEN,
+                        },
+                        success: function (response) {
+                            let placeholder = $('#dealer').data('placeholder');
+                            var options = '<option value="" selected>' + placeholder + '</option>';
+                            if (response.action && response.data.length) {
+                                $.each(response.data, function (index, dealer) {
+                                    options += `<option value="${dealer.bac}" 
+                                                                data-city="${dealer.cities_id}" 
+                                                                data-lat="${dealer.lat}" 
+                                                                data-lng="${dealer.lng}"
+                                                                data-bac="${dealer.bac}" 
+                                                                data-whatsapp="${dealer.whatsapp}">
+                                                                ${dealer.name}
+                                                        </option>`;
+                                });
+                                forms.objects.dealer.$selector.attr("disabled", false);
+                            } else {
+                                forms.objects.dealer.$selector.attr("disabled", true);
+                            }
+
+                            forms.objects.dealer.$selector.html(options);
+                            forms.updateTabIndex();
+                        },
+                    });
+                });
+            },
+        },
+        dealer: {
+            $selector: $('[name="dealer"]'),
+            required: true,
+            validation: {
+                rules: {
+                    required_manual: true,
+                    notEqualToValue: "0",
+                },
+                messages: {
+                    required_manual: "Selecciona un concesionario.",
+                    notEqualToValue: "Selecciona un concesionario",
+                },
+            },
+            events: function () {
+                var geolocation;
+                var _this = this;
+
+                _this.$selector.change(function () {
+                    // Hide geolocation
+                    if ($(".dealers-geolocation").length) {
+                        $('.dealers-geolocation [name="geo-dealer"]').prop(
+                            "checked",
+                            false
+                        );
+                        $(".dealers-geolocation").removeClass("with-results");
+                        $(".dealers-geolocation .results").slideUp(400, function () {
+                            $(this).html("");
+                            forms.updateTabIndex();
+                        });
+                    } else {
+                        forms.updateTabIndex();
+                    }
+                });
+
+                $(forms.$form.find(".dealers-geolocation")).on(
+                    "change",
+                    forms.$form.find('[name="geo-dealer"]'),
+                    function () {
+                        var step_fields = $(this)
+                            .closest(".step")
+                            .find("input, select, textarea");
+                        $.each(step_fields, function (i, input) {
+                            $(input).valid();
+                        });
+
+                        forms.objects.city.$selector.val("");
+                        if (!$(".dealers-manual").hasClass("only-geolocation")) {
+                            forms.objects.city.$selector.change();
+                        }
+                        forms.objects.dealer.$selector.val("").prop("disabled", true);
+                        setTimeout(function () {
+                            //forms.checkStepCompleted();
+                            if ($(this).closest(".step").find("input, select, textarea")) {
+                                forms.$form.find(".step button.next").addClass("pulsate");
+                            } else {
+                                forms.$form.find(".step button.next").removeClass("pulsate");
+                            }
+                        }, 500);
+                    }
+                );
+
+                const getLocation = function (cb) {
+                    var get = function () {
+                        if (navigator.geolocation) {
+                            return new Promise(function (resolve, reject) {
+                                return navigator.geolocation.getCurrentPosition(
+                                    resolve,
+                                    reject
+                                );
+                            });
+                        } else {
+                            return new Promise(function (resolve) {
+                                return resolve({});
+                            });
+                        }
+                    };
+
+                    get()
+                        .then(function (position) {
+                            cb({
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude,
+                            });
+                        })
+                        .catch(function (error) {
+                            cb(false);
+                        });
+                };
+
+                var getDistanceRadio = function (dealers, cb) {
+                    var sortByDistance = function (a, b) {
+                        if (!a.distance) {
+                            return 0;
+                        }
+                        if (a.distance < b.distance) {
+                            return -1;
+                        }
+                        if (a.distance > b.distance) {
+                            return 1;
+                        }
+                        return 0;
+                    };
+                    var round = function (number) {
+                        return Math.round((number + Number.EPSILON) * 100) / 100;
+                    };
+                    var deg2rad = function (deg) {
+                        return deg * (Math.PI / 180);
+                    };
+                    var calculate = function (from, to) {
+                        var R = 6371; // Radius of the earth in km
+                        var dLat = deg2rad(to.lat - from.lat); // deg2rad below
+                        var dLon = deg2rad(to.lng - from.lng);
+                        var a =
+                            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                            Math.cos(deg2rad(from.lat)) *
+                            Math.cos(deg2rad(to.lat)) *
+                            Math.sin(dLon / 2) *
+                            Math.sin(dLon / 2);
+                        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                        var d = R * c; // Distance in km
+                        return d;
+                    };
+
+                    $.each(dealers, function (i, concesionario) {
+                        if (
+                            concesionario.lat !== "" &&
+                            concesionario.lat !== 0 &&
+                            concesionario.lng !== "" &&
+                            concesionario.lng !== 0
+                        ) {
+                            dealers[i].geolocation = {
+                                lat: dealers[i].lat,
+                                lng: dealers[i].lng,
+                            };
+
+                            if (geolocation) {
+                                let distance = calculate(geolocation, dealers[i].geolocation);
+                                dealers[i].distance = Math.round(distance * 100) / 100;
+                            }
+                        } else {
+                            dealers[i].geolocation = false;
+                        }
+                    });
+
+                    dealers.sort(sortByDistance);
+
+                    $.each(dealers, function (i, d) {
+                        dealers[i].cercano = i < 10;
+                    });
+
+                    return dealers;
+                };
+
+                const findLocation = function () {
+                    getLocation(function (myPosition) {
+                        let modelElement = forms.objects.models?.$selector,
+                            modelValue = modelElement ? modelElement.val() : null;
+                        geolocation = myPosition;
+                        let data = myPosition;
+                        data.form = FORM_URL;
+                        data.model = modelValue;
+
+                        if (data) {
+                            $.ajax({
+                                url: BASE_URL + "front/getDealersByGeolocation",
+                                type: "GET",
+                                data: data,
+                                headers: {
+                                    "X-Auth-Token": TOKEN,
+                                },
+                                dataType: "json",
+                                success: function (resp) {
+                                    if (resp.action) {
+                                        resp.data = getDistanceRadio(resp.data);
+
+                                        var options = '<ul class="mt-4">';
+                                        $.each(resp.data, function (i, item) {
+                                            if (item.cercano && item.geolocation) {
+                                                options += "<li>";
+                                                options += '    <label for="bac-' + item.id + '">';
+                                                options +=
+                                                    '        <input type="radio" name="geo-dealer" id="bac-' +
+                                                    item.id +
+                                                    '" value="' +
+                                                    item.bac +
+                                                    '" data-geo-city="' +
+                                                    item.cities_id +
+                                                    '">';
+                                                options +=
+                                                    '        <div class="content stat-button-link" data-dtm="select dealer:search">';
+                                                if (item.location != null) {
+                                                    options +=
+                                                        '            <span class="name">' +
+                                                        item.name +
+                                                        " - " +
+                                                        item.location +
+                                                        "</span>";
+                                                } else {
+                                                    options +=
+                                                        '            <span class="name">' +
+                                                        item.name +
+                                                        "</span>";
+                                                }
+                                                options +=
+                                                    '            <span class="distance">' +
+                                                    item.distance +
+                                                    "km</span>";
+                                                options += "        </div>";
+                                                options += "    </label>";
+                                                options += "</li>";
+                                            }
+                                        });
+
+                                        options += "</ul>";
+
+                                        $(".dealers-geolocation").addClass("with-results");
+
+                                        if ($(".dealers-geolocation .results ul").is(":visible")) {
+                                            $(".dealers-geolocation .results").html(options);
+                                            $(".show-dealers-manual").fadeIn(300);
+                                            setTimeout(function () {
+                                                overlayScroll = OverlayScrollbars(
+                                                    document.querySelector(
+                                                        ".dealers-geolocation .results ul"
+                                                    ),
+                                                    {
+                                                        autoUpdate: true,
+                                                        updateOnLoad: "label",
+                                                    }
+                                                );
+                                            });
+                                        } else {
+                                            $(".dealers-manual").addClass("only-geolocation");
+                                            setTimeout(function () {
+                                                $(".dealers-geolocation .results").html(options);
+                                                $(".dealers-geolocation .results").slideDown(
+                                                    400,
+                                                    function () {
+                                                        $(".show-dealers-manual").fadeIn(300);
+                                                    }
+                                                );
+
+                                                setTimeout(function () {
+                                                    overlayScroll = OverlayScrollbars(
+                                                        document.querySelector(
+                                                            ".dealers-geolocation .results ul"
+                                                        ),
+                                                        {
+                                                            autoUpdate: true,
+                                                            updateOnLoad: "label",
+                                                        }
+                                                    );
+                                                });
+                                            }, 500);
+                                        }
+                                    } else {
+                                        $(".dealers-geolocation").removeClass("with-results");
+                                        $(".dealers-geolocation .results").html(
+                                            "No se encontraron resultados."
+                                        );
+                                    }
+
+                                    // Update tabIndexes
+                                    forms.updateTabIndex();
+
+                                    // Remove manual validation errors
+                                    $.each($(".dealers-manual select"), function (i, item) {
+                                        $(item).valid();
+                                    });
+                                },
+                            });
+                        }
+                    });
+                };
+
+                forms.$form.find(".geolocation").click(function () {
+                    findLocation();
+                });
+
+                forms.$form.find(".show-dealers-manual").click(function (ev) {
+                    ev.preventDefault();
+
+                    forms.$form.find(".show-dealers-manual").fadeOut(300);
+                    $(".dealers-geolocation .results").slideUp(400, function () {
+                        $(".dealers-geolocation").removeClass("with-results");
+                        forms.$form.find(".dealers-manual").removeClass("only-geolocation");
+                    });
+                });
+            },
+        },
+        "estimated-date-purchase": {
+            $selector: $('[name="estimated-date-purchase"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona la fecha estimada de compra.",
+                },
+            },
+        },
+        "degree-of-satisfaction": {
+            $selector: $('[name="degree-of-satisfaction"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona una opción.",
+                },
+            },
+        },
+        "buy-or-info": {
+            $selector: $('[name="buy-or-info"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona una opción.",
+                },
+            },
+        },
+        "committed-deadlines": {
+            $selector: $('[name="committed-deadlines"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona una opción.",
+                },
+            },
+        },
+        "estimated-mileage": {
+            $selector: $('[name="estimated-mileage"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona un kilometraje.",
+                },
+            },
+        },
+        occupation: {
+            $selector: $('[name="occupation"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona una ocupación.",
+                },
+            },
+            events: function () {
+                var _this = this;
+
+                this.$selector.change(function () {
+                    var value = $(this).val();
+
+                    if (value == "Otro") {
+                        _this.$selector
+                            .closest(".form-group")
+                            .find("#occupation_other")
+                            .fadeIn(300);
+                    } else {
+                        _this.$selector
+                            .closest(".form-group")
+                            .find("#occupation_other")
+                            .fadeOut(300);
+                    }
+                    forms.updateTabIndex();
+                });
+            },
+        },
+        occupation_other: {
+            $selector: $('[name="occupation_other"]'),
+            validation: {
+                rules: {
+                    required: {
+                        depends: function (element) {
+                            return $('[name="occupation"]').val() == "Otro";
+                        },
+                    },
+                },
+                messages: {
+                    required: "Ingresa una ocupación.",
+                },
+            },
+        },
+        patent: {
+            $selector: $('[name="patent"]'),
+            validation: {
+                rules: {
+                    minlength: 6,
+                    maxlength: 6,
+                    required: true,
+                    patent_validation: true,
+                },
+                messages: {
+                    minlength: "INGRESE UNA PLACA VÁLIDA ALFANUMERICA DE 6 CARACTERES.",
+                    maxlength: "INGRESE UNA PLACA VÁLIDA ALFANUMERICA DE 6 CARACTERES.",
+                    required: "INGRESE UNA PLACA VÁLIDA ALFANUMERICA DE 6 CARACTERES.",
+                    pattern: "INGRESE UNA PLACA VÁLIDA ALFANUMERICA DE 6 CARACTERES.",
+                    patent_validation:
+                        "INGRESE UNA PLACA VÁLIDA ALFANUMERICA DE 6 CARACTERES.",
+                },
+            },
+            events: function () {
+                // Set Mask
+                // this.$selector.mask('AAAAAA');
+            },
+        },
+        client: {
+            $selector: $('[name="client"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona una opción.",
+                },
+            },
+        },
+        comment: {
+            $selector: $('[name="comment"]'),
+            validation: {
+                rules: {
+                    maxlength: 1000,
+                },
+            },
+        },
+        birthday: {
+            $selector: $('[name="birthday"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    min_date_validation: true,
+                    max_date_validation: true,
+                    birthday_validation: true,
+                },
+                messages: {
+                    required: 'Ingresa tu fecha de nacimiento.',
+                    min_date_validation: 'La fecha ingresada es incorrecta',
+                    max_date_validation: 'La fecha ingresada no puede ser mayor a la actual',
+                    birthday_validation: 'Deben ser mayores de 18 años',
+                }
+            },
+            events: function () {
+                // Set Mask
+                this.$selector.mask('00/00/0000');
+
+                this.$selector.datepicker({
+                    yearRange: "1900:2050",
+                    changeMonth: true,
+                    changeYear: true,
+                    monthNames: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                    monthNamesShort: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+                        'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
+                    dayNames: ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'],
+                    dayNamesShort: ['Dom', 'Lun', 'Mar', 'Mié;', 'Juv', 'Vie', 'Sáb'],
+                    dayNamesMin: ['Do', 'Lu', 'Ma', 'Mi', 'Ju', 'Vi', 'Sá'],
+                    weekHeader: 'Sm',
+                    dateFormat: 'dd/mm/yy',
+                    minDate: "01/01/1900",
+                    maxDate: new Date(),
+                }).on('change', function () {
+                    $(this).valid();
+                    // triggers the validation
+                    // '$(this)' refers to '$("#datepicker")'
+                });
+
+                this.$selector.datepicker($.datepicker.regional["es"]);
+            }
+        },
+        social_network: {
+            $selector: $('[name="social_network"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    instagram_validation: true,
+                    maxlength: 30,
+                },
+                messages: {
+                    required: 'Ingresa tu usuario de Instagram.',
+                    instagram_validation: 'Tu usuario debe comenzar con @',
+                    maxlength: 'Máximo 30 caracteres.',
+                }
+            },
+            events: function () {
+                this.$selector.on('change', function () {
+                    $(this).valid();
+                });
+            }
+        },
+        brand: {
+            $selector: $('[name="brand"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Selecciona una marca.'
+                }
+            },
+            events: function () {
+                var _this = this;
+
+                _this.$selector.closest('.form-group').parent().hide();
+                _this.$selector.rules('remove', 'required');
+                _this.$selector.active = false;
+
+                this.$selector.change(function () {
+                    var id_brand = parseInt($(this).val());
+
+                    forms.objects.brand_model.$selector.prop('disabled', true);
+
+                    $.ajax({
+                        type: "POST",
+                        url: BASE_URL + "front/getBrandModels",
+                        data: { brand: id_brand, form: FORM_URL },
+                        dataType: 'JSON',
+                        headers: {
+                            'X-Auth-Token': TOKEN
+                        },
+                        success: function (response) {
+                            var options = '<option value="" selected>Seleccione</option>';
+                            if (response.action && response.data.length) {
+                                $.each(response.data, function (index, model) {
+                                    options += '<option value="' + model.id + '">' + model.name + '</option>';
+                                });
+                                forms.objects.brand_model.$selector.attr('disabled', false);
+                            } else {
+                                forms.objects.brand_model.$selector.attr('disabled', true);
+                            }
+
+                            forms.objects.brand_model.$selector.html(options);
+                            forms.updateTabIndex();
+                        }
+                    });
+                });
+            }
+        },
+        brand_model: {
+            $selector: $('[name="brand_model"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Selecciona un modelo.'
+                }
+            },
+            events: function () {
+                let _this = this;
+
+                _this.$selector.closest('.form-group').parent().hide();
+                _this.$selector.rules('remove', 'required');
+                _this.$selector.active = false;
+            }
+        },
+        car_type: {
+            $selector: $('[name="car_type"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Selecciona tu tipo de auto.'
+                }
+            },
+            events: function () {
+                let _this = this;
+
+                _this.$selector.closest('.form-group').parent().hide();
+                _this.$selector.rules('remove', 'required');
+                _this.$selector.active = false;
+            }
+        },
+        car_year: {
+            $selector: $('[name="car_year"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Selecciona el año de tu auto.'
+                }
+            },
+            events: function () {
+                let _this = this;
+
+                _this.$selector.closest('.form-group').parent().hide();
+                _this.$selector.rules('remove', 'required');
+                _this.$selector.active = false;
+            }
+        },
+        change_car: {
+            $selector: $('[name="change_car"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Selecciona una opción.'
+                }
+            },
+            events: function () {
+                let _this = this;
+
+                _this.$selector.closest('.form-group').parent().hide();
+                _this.$selector.rules('remove', 'required');
+                _this.$selector.active = false;
+            }
+        },
+        have_car: {
+            $selector: $('[name="have_car"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Selecciona una opción.'
+                }
+            },
+            events: function () {
+                let _this = this;
+
+                _this.$selector.change(function () {
+                    forms.changeDisplayFields();
+                });
+            }
+        },
+        adviser: {
+            $selector: $('[name="adviser"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    minlength: 3,
+                    maxlength: 3,
+                    adviser_validation: true,
+                },
+                messages: {
+                    required: "Completa con números entre el 001 y 100.",
+                    minlength: "Completa con números entre el 001 y 100.",
+                    maxlength: "Completa con números entre el 001 y 100.",
+                    adviser_validation: "Completa con números entre el 001 y 100.",
+                    pattern: "Completa con números entre el 001 y 100.",
+                },
+            },
+            events: function () {
+                // Set Mask
+            },
+        },
+        plan: {
+            $selector: $('[name="plan"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Selecciona un plan.",
+                },
+            },
+        },
+        'have-chevrolet': {
+            $selector: $('[name="have-chevrolet"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccioná una opción.'
+                }
+            }
+        },
+        'have-onstar': {
+            $selector: $('[name="have-onstar"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: 'Seleccioná una opción.',
+                }
+            },
+            events: function () {
+                var _this = this;
+
+                this.$selector.change(function () {
+                    var value = $(this).val();
+
+                    if (value === "No") {
+                        $("#have_onstar").siblings().hide();
+                        $("#terms_row").hide();
+                        $("#no_onstar").remove();
+                        $(".step").append('<div id="no_onstar">Si tu Chevrolet no tiene OnStar, puedes llamar al 018000110397 para revisar qué otras soluciones podemos ofrecerte.</div>');
+                    } else if (value === "Si") {
+                        $("#have_onstar").siblings().show();
+                        $("#terms_row").show();
+                        $("#no_onstar").remove();
+                    }
+                });
+
+                this.$selector.filter(':checked').trigger('change');
+            }
+        },
+        'have_interest': {
+            $selector: $('[name="have_interest"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: 'Seleccioná una opción.',
+                }
+            },
+        },
+        'how_get_here': {
+            $selector: $('[name="how_get_here"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccioná una opción.'
+                }
+            }
+        },
+        'event_name': {
+            $selector: $('[name="event_name"]'),
+            validation: {
+                rules: {
+                    required: true,
+                    minlength: 2,
+                    maxlength: 50,
+                },
+                messages: {
+                    required: "Ingresa tu comentario.",
+                    minlength: "Ingresa minimo 2 caracteres.",
+                    maxlength: "Ingresa maximo 50 caracteres",
+                },
+            },
+            events: function () {
+                // Set Mask
+                this.$selector.mask("Z", {
+                    translation: {
+                        Z: {
+                            pattern: /[a-zA-Z0-9áÁéÉíÍóÓúÚâêîôûñÑç!@#$%^&*()_+=\[\]{};:'",.<>/?\\|`~\s-]/,
+                            recursive: true,
+                        },
+                    },
+                });
+            },
+        },
+        'company_type': {
+            $selector: $('[name="company_type"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccione un tipo de empresa.'
+                }
+            }
+        },
+        'current_fleet_size': {
+            $selector: $('[name="current_fleet_size"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccione el tamaño de su flota.'
+                }
+            }
+        },
+        'purchase_date': {
+            $selector: $('[name="purchase_date"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccione una fecha de compra.'
+                }
+            }
+        },
+        'purchase_requirement': {
+            $selector: $('[name="purchase_requirement"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccione cuánta cantidad requiere comprar.'
+                }
+            }
+        },
+        'event': {
+            $selector: $('[name="event"]'),
+            validation: {
+                rules: {
+                    required: true
+                },
+                messages: {
+                    required: 'Seleccione el evento.'
+                }
+            }
+        },
+        contact_preference: {
+            $selector: $('input[name="contact_preference"]'),
+            validation: {
+                rules: {
+                    required: true,
+                },
+                messages: {
+                    required: "Seleccione al menos una opción.",
+                },
+            },
+        },
+    },
+
+    toStep: function (from, to, callback) {
+        var $from_nav = $('.steps .item[data-step="' + from + '"]');
+        var $from_div = forms.$form.find('.step[data-step="' + from + '"]');
+        var $to_nav = $('.steps .item[data-step="' + to + '"]');
+        var $to_div = forms.$form.find('.step[data-step="' + to + '"]');
+
+        // To Next
+        if (from < to) {
+            $from_nav.removeClass("active").addClass("done");
+            $to_nav.removeClass("pending").addClass("active");
+            if ($from_nav.prev(".item").length) {
+            }
+        }
+
+        // To Prev
+        else {
+            $.each($(".steps .item"), function (i, item) {
+                if ($(item).data("step") >= from - 1) {
+                    $(item).removeClass("done");
+                }
+            });
+            $from_nav.removeClass("active").addClass("pending");
+            $to_nav.removeClass("done pending").addClass("active");
+            if ($to_nav.prev(".item").length) {
+                $to_nav.prev(".item").addClass("done");
+            }
+        }
+
+        $from_div.fadeOut(600, function () {
+            $to_div.fadeIn(600, function () {
+                if (typeof callback == "function") {
+                    callback();
+                }
+            });
+        });
+    },
+
+    // Register custom validation methods.
+    validationMethods: function () {
+
+        // CI
+        jQuery.validator.addMethod("noRepeats", function (value, element) {
+            return this.optional(element) || /^(?!.*(\d)\1{5,})[1-9]\d{6,9}$/.test(value);
+        });
+
+        // Email Validation
+        jQuery.validator.addMethod("email_validation", function (value, element) {
+            return (this.optional(element) || /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/.test(value));
+        });
+
+        // Patent
+        jQuery.validator.addMethod("patent_validation", function (value, element) {
+            return this.optional(element) || /^([a-zA-Z]{3}[0-9]{3})$/i.test(value);
+        });
+
+        // Adviser
+        jQuery.validator.addMethod("adviser_validation", function (value, element) {
+            return this.optional(element) || /^(00[1-9]|0[1-9][0-9]|100)$/.test(value);
+        });
+
+        // Only letters
+        jQuery.validator.addMethod("onlyletters", function (value, element) {
+            return (this.optional(element) || /^([A-Za-z áéíóúâêîôûñÑç])+$/i.test(value));
+        });
+
+        // Dealer manual required
+        jQuery.validator.addMethod("required_manual", function (value, element) {
+            return (
+                $(element).val() !== "" ||
+                ($(".dealers-manual").hasClass("only-geolocation") &&
+                    $('[name="geo-dealer"]:checked').length == 1)
+            );
+        });
+
+        // Dealer geolocation required
+        jQuery.validator.addMethod(
+            "required_geolocation",
+            function (value, element) {
+                return (
+                    !$(".dealers-manual").hasClass("only-geolocation") ||
+                    ($(".dealers-manual").hasClass("only-geolocation") &&
+                        $('[name="geo-dealer"]:checked').length == 1)
+                );
+            }
+        );
+
+        // Not equal to 0
+        jQuery.validator.addMethod(
+            "notEqualToValue",
+            function (value, element, param) {
+                return this.optional(element) || value != param;
+            }
+        );
+
+        // Exaclty length
+        jQuery.validator.addMethod("exactlength", function (value, element, param) {
+            return this.optional(element) || value.length == param;
+        });
+
+        // Start with a determinate character
+        jQuery.validator.addMethod("startWith", function (value, element, param) {
+            return this.optional(element) || value.charAt(0) == param;
+        });
+
+        // Birthday Validation
+        jQuery.validator.addMethod("birthday_validation", function (value, element) {
+            let birthday = $(element).datepicker('getDate');
+            let now = Date.now();
+            let timeDiff = Math.abs(now - birthday);
+            let years = Math.floor((timeDiff / (1000 * 3600 * 24)) / 365);
+            return years >= 18 ? true : false;
+        });
+
+        // Max Date Validation
+        jQuery.validator.addMethod("max_date_validation", function (value, element) {
+            let birthday = $(element).datepicker('getDate');
+            let today = new Date();
+
+            return today.getTime() < birthday.getTime() ? false : true;
+        });
+
+        // Min Date Validation
+        jQuery.validator.addMethod("min_date_validation", function (value, element) {
+            let date = $(element).datepicker('getDate');
+            let subdate = date.getFullYear();
+
+            return subdate < 1900 ? false : true;
+        });
+
+        // Instagram Validation
+        jQuery.validator.addMethod("instagram_validation", function (value, element) {
+            let user = $(element).val();
+            return user.substring(0, 1) === '@' ? true : false;
+        });
+    },
+
+    // Set tabindex for fields
+    updateTabIndex: function () {
+        $.each(
+            $(
+                'input:not([type="hidden"]):not([disabled]):not([readonly]), select:not([disabled]):not([readonly]), textarea:not([disabled]):not([readonly]), button:not([disabled]):not([readonly])'
+            ),
+            function (i, item) {
+                item.setAttribute("tabindex", i + 1);
+            }
+        );
+        $.each(
+            $(
+                'input[type="hidden"], input[disabled], input[readonly], select[disabled], select[readonly], textarea[disabled], textarea[readonly], button[disabled], button[readonly]'
+            ),
+            function (i, item) {
+                item.setAttribute("tabindex", -1);
+            }
+        );
+    },
+
+    init: function () {
+        var _this = this;
+
+        if (!_this.fields) {
+            console.log("No se registraron campos.");
+            return false;
+        }
+
+        _this.validation();
+        _this.events();
+    },
+
+    checkFieldsCompleted: function () {
+        var valid = true;
+        let formLayout = $('#layout').val();
+
+        if (formLayout !== 'event') {
+            $.each($("#formulario input, #formulario select"), function (i, element) {
+                if (!$(element).is('#layout')) {
+                    if (!forms.validation.check(element) && !$(element).is('[name="terms"]') && !$(element).is('#layout')) {
+                        valid = false;
+                    }
+                }
+            });
+        }
+        return valid;
+    },
+
+    checkStepCompleted: function () {
+        var _this = this;
+        var valid = true;
+        var current_step = $(".step:visible").data("step");
+        var next_step = current_step + 1;
+
+        // No check in last step.
+        if (!$('.step[data-step="' + next_step + '"]').length) {
+            return;
+        }
+
+        var step_fields = $(".step:visible").find("input, select, textarea");
+        $.each(step_fields, function (i, input) {
+            if (!$(input).valid()) {
+                valid = false;
+            }
+        });
+
+        if (valid) {
+            if (
+                forms.$form.find('.step[data-step="' + next_step + '"] [name="models"]')
+                    .length &&
+                forms.$form
+                    .find('.step[data-step="' + next_step + '"] [name="models"]')
+                    .val() !== ""
+            ) {
+                // Preselected model with image
+                _this.toStep(current_step, next_step, function () {
+                    $("form .step:visible button.next")
+                        .parent()
+                        .addClass("button-visible");
+                });
+
+                if (
+                    forms.$form.find('.step[data-step="' + (next_step + 1) + '"]')
+                        .length !== 0
+                ) {
+                    if (
+                        $("select#models").length &&
+                        $("#models option:selected").data("image-back") !== ""
+                    ) {
+                        var image_back = $("#models option:selected").data("image-back");
+                        var image = $("#models option:selected").data("image");
+                        forms.objects.models.$selector.prop("disabled", true);
+
+                        setTimeout(function () {
+                            $(".jelly-wrapper .content img").fadeOut(300, function () {
+                                $(".jelly-wrapper .content img").attr("src", image_back);
+                                setTimeout(function () {
+                                    $(".jelly-wrapper .content img").fadeIn(300);
+                                }, 300);
+                            });
+
+                            setTimeout(function () {
+                                $(".jelly-wrapper .content img").fadeOut(300, function () {
+                                    $(".jelly-wrapper .content img").attr("src", image);
+                                    setTimeout(function () {
+                                        $(".jelly-wrapper .content img").fadeIn(300, function () {
+                                            forms.objects.models.$selector.prop("disabled", false);
+                                        });
+                                    }, 300);
+                                });
+                            }, 2000);
+                        }, 2000);
+                    }
+
+                    setTimeout(function () {
+                        // _this.toStep(next_step, next_step + 1);
+                    }, 4000);
+                }
+            } else if (
+                forms.$form.find(
+                    '.step[data-step="' + current_step + '"] [name="models"]'
+                ).length &&
+                forms.$form
+                    .find('.step[data-step="' + current_step + '"] [name="models"]')
+                    .val() !== "" &&
+                typeof forms.$form
+                    .find(
+                        '.step[data-step="' +
+                        current_step +
+                        '"] [name="models"] option:selected'
+                    )
+                    .data("image") !== "undefined" &&
+                forms.$form
+                    .find(
+                        '.step[data-step="' +
+                        current_step +
+                        '"] [name="models"] option:selected'
+                    )
+                    .data("image") !== ""
+            ) {
+                // Model with image
+                setTimeout(function () {
+                    // $('form .step:visible button.next').parent().addClass('button-visible');
+                    // _this.toStep(current_step, next_step);
+                }, 4000);
+            } else if (
+                forms.$form.find('.step[data-step="' + next_step + '"]').length !== 0
+            ) {
+                _this.toStep(current_step, next_step);
+            }
+        } else {
+            var errors = [];
+            $.each($("span.error.error"), function (i, err) {
+                if ($(err).html() !== "") {
+                    errors.push($(err).html());
+                }
+            });
+            digitalData.formInfo.errorMessage = errors.join(" | ");
+            _satellite.track("error-message");
+        }
+    },
+
+    events: function () {
+        var _this = this;
+
+        // Fix YouTube error from DTM
+        window.onYouTubeIframeAPIReady = function () { };
+
+        // Loop the events for each field
+        $.each(_this.fields, function (index, field) {
+            if (typeof _this.objects[field.name] == "object") {
+                if (typeof _this.objects[field.name].events == "function") {
+                    _this.objects[field.name].events();
+                }
+            }
+        });
+
+        // Check if step is completed
+        forms.$form
+            .find("input, select:not(.no-autochange), textarea")
+            .change(function () {
+                if (typeof $(this).data("validate-onchange") !== "undefined") {
+                    //_this.checkStepCompleted();
+                }
+            });
+
+        // Step previous navigation
+        forms.$form.find(".step button.previous").click(function () {
+            var current_step = $(this).closest(".step").data("step");
+            var prev_step = current_step - 1;
+
+            if (
+                $('.step[data-step="' + prev_step + '"] .button-no-visible')
+                    .closest(".buttons")
+                    .find(".form-group").length > 1
+            ) {
+                $('.step[data-step="' + prev_step + '"] .button-no-visible')
+                    .closest(".buttons")
+                    .addClass("two-buttons");
+            }
+            $('.step[data-step="' + prev_step + '"] .button-no-visible').addClass(
+                "button-visible"
+            );
+
+            _this.toStep(current_step, prev_step);
+        });
+
+        // Step next navigation
+        forms.$form.find(".step button.next").click(function () {
+            var valid = true;
+            var current_step = $(this).closest(".step").data("step");
+            var next_step = current_step + 1;
+
+            var step_fields = $(this)
+                .closest(".step")
+                .find("input, select, textarea");
+            $.each(step_fields, function (i, input) {
+                if (!$(input).valid()) {
+                    valid = false;
+                }
+            });
+
+            if (valid) {
+                // If last step
+                if (
+                    forms.$form.find('.step[data-step="' + next_step + '"]').length == 0
+                ) {
+                    forms.$form.submit();
+                } else {
+                    _this.toStep(current_step, next_step);
+                }
+            } else {
+                var errors = [];
+                $.each($("span.error.error"), function (i, err) {
+                    if ($(err).html() !== "") {
+                        errors.push($(err).html());
+                    }
+                });
+                digitalData.formInfo.errorMessage = errors.join(" | ");
+                _satellite.track("error-message");
+            }
+        });
+
+        // Step navigation from steps bar
+        $(".steps li").click(function () {
+            if (!$(this).hasClass("active") && !$(this).hasClass("pending")) {
+                var current_step = $(this)
+                    .closest(".steps")
+                    .find(".item.active")
+                    .data("step");
+                var new_step = $(this).data("step");
+
+                _this.toStep(current_step, new_step, function () {
+                    $('.step[data-step="' + new_step + '"] .button-no-visible')
+                        .closest(".buttons")
+                        .addClass("two-buttons");
+                    $('.step[data-step="' + new_step + '"] .button-no-visible').addClass(
+                        "button-visible"
+                    );
+                });
+            }
+        });
+
+        $("#dealer").change(function () {
+            if ($(this).val()) {
+                $('input[name="dealer"]').prop("disabled", false);
+                forms.$form.find(".step button.next").addClass("pulsate");
+            } else {
+                forms.$form.find(".step button.next").removeClass("pulsate");
+                $('input[name="dealer"]').prop("disabled", true);
+            }
+        });
+
+        $("input, select").change(function () {
+            if (_this.checkFieldsCompleted()) {
+                $('input[name="terms"]').prop("disabled", false);
+                forms.$form.find("#icon").addClass("pulse-gold");
+            } else {
+                forms.$form.find("#icon").removeClass("pulse-gold");
+                $('input[name="terms"]').prop("disabled", true);
+            }
+        });
+
+        $('input').focus(function () {
+            if (_this.checkFieldsCompleted()) {
+                $('input[name="terms"]').prop("disabled", false);
+                forms.$form.find('#icon').addClass("pulse-gold");
+            } else {
+                forms.$form.find('#icon').removeClass("pulse-gold");
+                $('input[name="terms"]').prop("disabled", true);
+            }
+        });
+
+        $("input[name=terms]").change(function () {
+            if ($(this).is(":checked")) {
+                forms.$form.find('.step button.submit-button').addClass("pulsate");
+                $(this).removeClass('is-invalid');
+                $('#terms-error').hide();
+            } else {
+                forms.$form.find('.step button.submit-button').removeClass("pulsate");
+                $(this).addClass('is-invalid');
+                $('#terms-error').show();
+            }
+        });
+
+        forms.$form.find('#birthday').click(function () {
+            addClassAttributeCalendar();
+        });
+        function addClassAttributeCalendar() {
+            $('.ui-datepicker-prev').addClass("stat-button-link").attr("data-dtm", "your info");
+            $('.ui-datepicker-next').addClass("stat-button-link").attr("data-dtm", "your info");
+            $('.ui-datepicker-month').addClass("stat-dropdown").attr("data-dtm", "your info");
+            $('.ui-datepicker-year').addClass("stat-dropdown").attr("data-dtm", "your info");
+            $("#ui-datepicker-div").find("td").each(function () { $(this).addClass("stat-button-link").attr("data-dtm", "your info"); });
+            $("#ui-datepicker-div a").click(function () { addClassAttributeCalendar() });
+            $("#ui-datepicker-div .ui-datepicker-month").change(function () { addClassAttributeCalendar() });
+            $("#ui-datepicker-div .ui-datepicker-year ").change(function () { addClassAttributeCalendar() });
+            $("#ui-datepicker-div td").click(function () { addClassAttributeCalendar() });
+        };
+
+        // Update tabIndexes
+        _this.updateTabIndex();
+
+        // Run event id function
+        setTimeout(function () {
+            console.log(localStorage.getItem("eventid"));
+            $("#form-id").val(localStorage.getItem("eventid"));
+        }, 3000);
+    },
+
+    buildReview: function () {
+        $(".review").hide();
+
+        var data = {
+            name:
+                forms.objects.firstname.$selector.val() +
+                " " +
+                forms.objects.lastname.$selector.val(),
+            rut:
+                forms.objects.rut.$selector.val() +
+                "-" +
+                forms.objects.rut_letter.$selector.val(),
+            email: forms.objects.email.$selector.val(),
+            dealer: $('input[name="geo-dealer"]:checked').length
+                ? $('input[name="geo-dealer"]:checked')
+                    .closest("label")
+                    .find(".name")
+                    .html()
+                : forms.objects.dealer.$selector.find("option:selected").text(),
+        };
+
+        var html = "";
+        html += '<div class="row">';
+        html += '   <div class="col-12">';
+        html += "       <h2>Revisá tus datos</h2>";
+        html += "   </div>";
+        html += '   <div class="col-md-6 item"><strong>Nombre y apellido</strong>' + data.name + '</div>';
+        html += '   <div class="col-md-6 item"><strong>RUT</strong>' + data.rut + '</div>';
+        html += '   <div class="col-md-6 item"><strong>Email</strong>' + data.email + '</div>';
+        html += '   <div class="col-md-6 item"><strong>Concesionario</strong>' + data.dealer + '</div>';
+        html += '</div>';
+
+        $(".review").html(html);
+        setTimeout(function () {
+            $(".review").fadeIn(300);
+        }, 300);
+    },
+
+    validation: function () {
+        var _this = this;
+        var filtered_rules = {
+            rules: {
+                terms: {
+                    required: true
+                },
+                "terms-contact": {
+                    required: true
+                },
+                "terms-platform": {
+                    required: true
+                }
+            },
+            messages: {
+                terms: {
+                    required: "Acepta términos y condiciones.",
+                },
+                "terms-contact": {
+                    required: "Acepta términos y condiciones."
+                },
+                "terms-platform": {
+                    required: "Acepta términos y condiciones."
+                }
+            },
+        };
+
+        // Run custom validation methods
+        _this.validationMethods();
+
+        if (GEOLOCATION) {
+            _this.fields.push({ name: "geo-dealer" });
+        }
+
+        // Filter rules
+        $.each(_this.fields, function (index, field) {
+            if (typeof _this.objects[field.name] == "object") {
+                if (typeof _this.objects[field.name].validation == "object") {
+                    filtered_rules.rules[field.name] =
+                        _this.objects[field.name].validation.rules;
+                    filtered_rules.messages[field.name] =
+                        _this.objects[field.name].validation.messages;
+                    if (typeof field.required !== "undefined") {
+                        if (field.name == "city" || field.name == "dealer") {
+                            filtered_rules.rules[field.name].required_manual = true;
+                        } else {
+                            filtered_rules.rules[field.name].required = field.required == 1;
+                        }
+                    }
+                }
+            }
+        });
+
+        forms.$form
+            .find('input[name="contact_preference"]')
+            .on("change", function () {
+                var isValid = $(this).valid();
+                if (isValid) {
+                    var $group = $(this).closest(".form-group");
+                    $group.removeClass("is-invalid");
+                    $group.find("span.error").remove();
+                }
+            });
+
+        // Run validation function
+        forms.validation = forms.$form.validate({
+            blur: function (element) {
+                // filter fields with onchange validation
+                var show = typeof $(element).data("validate-onchange") == "undefined";
+                if (!show) this.element(element);
+            },
+            onclick: function (element, ev) {
+                // filter fields with onchange validation
+                var show = typeof $(element).data("validate-onchange") == "undefined";
+                if (show) return false;
+            },
+            rules: filtered_rules.rules,
+            messages: filtered_rules.messages,
+            ignore: "",
+            errorElement: "span",
+            errorPlacement: function (error, element) {
+                error.addClass("invalid-feedback");
+                if (element.is('[name="geo-dealer"]')) {
+                    element.closest(".form-group").prepend(error);
+                } else {
+                    element.closest(".form-group").append(error);
+                }
+            },
+            highlight: function (element, errorClass, validClass) {
+                if ($(element).hasClass("summernote")) {
+                    $(element).closest(".form-group").addClass("is-invalid");
+                }
+                $(element).addClass("is-invalid");
+            },
+            unhighlight: function (element, errorClass, validClass) {
+                if ($(element).hasClass("summernote")) {
+                    $(element).closest(".form-group").removeClass("is-invalid");
+                }
+                $(element).removeClass("is-invalid");
+            },
+            invalidHandler: function (form, validator) {
+                if (!validator.numberOfInvalids()) return;
+
+                var errors = [];
+                $.each(validator.errorList, function (i, err) {
+                    if (err.message !== "") {
+                        errors.push(err.message);
+                    }
+                });
+                digitalData.formInfo.errorMessage = errors.join(" | ");
+                _satellite.track("error-message");
+
+                var $element = $(validator.errorList[0].element);
+                var step = $element.closest(".step").data("step");
+                var current_step = forms.$form.find(".step:visible").data("step");
+
+                if (step !== current_step) {
+                    _this.toStep(current_step, step, function () {
+                        scrollToInvalidField($element);
+                    });
+                } else {
+                    scrollToInvalidField($element);
+                }
+            },
+            submitHandler: function (form) {
+                var $btn = $(".submit-button");
+                const textButton = $btn.text();
+                $btn.attr("disabled", "disabled");
+                $btn.addClass("loading");
+                $btn.find(".text").html("Enviando");
+
+                var datos = forms.$form.serialize();
+                datos += "&form=" + FORM_URL;
+                if (forms.$form.find('[name="geo-dealer"]:checked').length) {
+                    datos +=
+                        "&geo-city=" +
+                        forms.$form.find('[name="geo-dealer"]:checked').data("geoCity");
+                }
+
+                $.ajax({
+                    type: "POST",
+                    dataType: "json",
+                    url: BASE_URL + "front/send",
+                    data: datos,
+                    success: function (msg) {
+                        $btn.removeAttr("disabled");
+                        $btn.removeClass("loading");
+                        $btn.find(".text").html(textButton);
+
+                        if (msg.action) {
+                            _satellite.track("thank-you");
+                            if (msg.thanks) {
+                                // Add thank you view
+                                $("#thank-you").html(msg.thanks);
+
+                                // Hide steps
+                                $(".steps").fadeOut(400);
+
+                                // Hide copy content
+                                if ($(".copy").length) $(".copy").fadeOut(400);
+
+                                // Hide form
+                                forms.$form.fadeOut(400, function () {
+                                    // Show thank you view
+                                    $("#thank-you").fadeIn(400);
+
+                                    // Remove steps and form from DOM
+                                    $(".steps").remove();
+                                    forms.$form.remove();
+                                });
+                                setTimeout(function () {
+                                    $(window).scrollTop(0);
+                                }, 1000);
+
+                                const options = {
+                                    method: "POST",
+                                    headers: {
+                                        Accept: "application/json",
+                                        "Content-Type": "application/json",
+                                        Authorization: "m1exbSTPUpoVih4DDAzihikwvibwdSpk",
+                                    },
+                                    body: JSON.stringify({
+                                        DealerNumberID: msg.contacto.bac,
+                                        DealerTargetCountry: "Colombia",
+                                        CountryNumberCode: "57",
+                                        LocalNumber: msg.contacto.telephone,
+                                        GivenName: msg.contacto.first_name,
+                                        FamilyName: msg.contacto.last_name,
+                                        PersonalDocument: msg.contacto.document,
+                                        Email: msg.contacto.email,
+                                        VehicleModel: msg.contacto.model,
+                                        CustomerComments: "Live Store",
+                                    }),
+                                };
+
+                                fetch(
+                                    "https://gm-leads.beta-cs.blip.ai/blip/thank-you-page/contacts",
+                                    options
+                                )
+                                    .then(function (response) {
+                                        if (response.status == 202) {
+                                            console.log("Lead was sent to Blip successfully");
+                                        }
+                                    })
+                                    .catch(function (response) {
+                                        console.log("There was a problem sending the lead to Blip");
+                                    });
+                            } else {
+                                new Noty({
+                                    text: "Su consulta ha sido enviada!",
+                                    theme: "bootstrap-v4",
+                                    type: "success",
+                                    progressBar: true,
+                                    layout: "bottomRight",
+                                    timeout: 3000,
+                                    closeWith: ["click", "button"],
+                                }).show();
+                            }
+                        } else {
+                            // Show notification
+                            var message =
+                                typeof msg.message !== "undefined" && msg.message.length > 0
+                                    ? msg.message
+                                    : "Lo siento, ocurrió un error al intentar procesar la información.";
+                            new Noty({
+                                text: message,
+                                theme: "bootstrap-v4",
+                                type: "error",
+                                progressBar: true,
+                                layout: "bottomRight",
+                                timeout: 3000,
+                                closeWith: ["click", "button"],
+                            }).show();
+                        }
+                    },
+                    error: function (msg) {
+                        $btn.removeAttr("disabled");
+                        $btn.removeClass("loading");
+                        $btn.find(".text").html(textButton);
+
+                        var message =
+                            typeof msg.message !== "undefined" && msg.message.length > 0
+                                ? msg.message
+                                : "Lo siento, ocurrió un error al intentar procesar la información.";
+                        new Noty({
+                            text: message,
+                            theme: "bootstrap-v4",
+                            type: "error",
+                            progressBar: true,
+                            layout: "bottomRight",
+                            timeout: 3000,
+                            closeWith: ["click", "button"],
+                        }).show();
+                    },
+                });
+            },
+        });
+    },
+
+    changeDisplayFields: function () {
+
+        let iChangeCar = document.getElementById("change_car");
+        let changeCarLabel = iChangeCar.labels[0];
+
+        let iModels = document.getElementById("models");
+        let modelsLabel = iModels.labels[0];
+
+        let formLayout = document.getElementById("layout");
+
+        if (formLayout.value === 'event')
+            // change label value
+            modelsLabel.textContent = 'SI HOY PUDIERAS COMPRAR UN CHEVROLET, ¿CUÁL SERÍA?';
+
+        if ($('[name="have_car"]').prop('checked')) {
+            forms.objects.car_type.$selector.closest('.form-group').parent().show();
+            forms.objects.car_type.$selector.rules('add', { required: true });
+            forms.objects.car_type.$selector.active = true;
+
+            forms.objects.brand.$selector.closest('.form-group').parent().show();
+            forms.objects.brand.$selector.rules('add', { required: true });
+            forms.objects.brand.$selector.active = true;
+
+            forms.objects.brand_model.$selector.closest('.form-group').parent().show();
+            forms.objects.brand_model.$selector.rules('add', { required: true });
+            forms.objects.brand_model.$selector.active = true;
+
+            forms.objects.car_year.$selector.closest('.form-group').parent().show();
+            forms.objects.car_year.$selector.rules('add', { required: true });
+            forms.objects.car_year.$selector.active = true;
+
+            forms.objects.change_car.$selector.closest('.form-group').parent().show();
+            forms.objects.change_car.$selector.rules('add', { required: true });
+            forms.objects.change_car.$selector.active = true;
+            $('#change_car-error').hide();
+            $('[name="change_car"]').val('');
+
+            forms.objects.change_car.$selector.closest('.form-group').parent().addClass('col-lg-3');
+            forms.objects.change_car.$selector.closest('.form-group').parent().addClass('col-md-5');
+            forms.objects.change_car.$selector.closest('.form-group').parent().removeClass('col-lg-6');
+            forms.objects.change_car.$selector.closest('.form-group').parent().removeClass('col-md-7');
+
+            if (formLayout.value === 'event') {
+                forms.objects.models.$selector.closest('.form-group').parent().show();
+                forms.objects.models.$selector.rules('add', { required: true });
+                forms.objects.models.$selector.active = true;
+                $('#models-error').hide();
+                $('[name="models"]').val('');
+
+                forms.objects.models.$selector.closest('.form-group').parent().removeClass('col-lg-6');
+                forms.objects.models.$selector.closest('.form-group').parent().removeClass('col-lg-4');
+                forms.objects.models.$selector.closest('.form-group').parent().removeClass('col-md-6');
+
+                forms.objects.models.$selector.closest('.form-group').parent().addClass('col-lg-5');
+                forms.objects.models.$selector.closest('.form-group').parent().addClass('col-md-7');
+            }
+
+            // change label value
+            changeCarLabel.textContent = '¿TIENES PENSADO CAMBIAR DE AUTO?';
+
+        } else {
+
+            forms.objects.car_type.$selector.rules('remove', 'required');
+            forms.objects.car_type.$selector.active = false;
+            forms.objects.car_type.$selector.closest('.form-group').parent().hide();
+            $('#car_type-error').hide();
+            $('[name="car_type"]').prop('checked', false);
+
+            forms.objects.brand.$selector.rules('remove', 'required');
+            forms.objects.brand.$selector.active = false;
+            forms.objects.brand.$selector.closest('.form-group').parent().hide();
+            $('#brand-error').hide();
+            $('[name="brand"]').val('');
+
+            forms.objects.brand_model.$selector.rules('remove', 'required');
+            forms.objects.brand_model.$selector.active = false;
+            forms.objects.brand_model.$selector.closest('.form-group').parent().hide();
+            $('#brand_model-error').hide();
+            $('[name="brand_model"]').val('');
+
+            forms.objects.car_year.$selector.rules('remove', 'required');
+            forms.objects.car_year.$selector.active = false;
+            forms.objects.car_year.$selector.closest('.form-group').parent().hide();
+            $('#car_year-error').hide();
+            $('[name="car_year"]').val('');
+
+            forms.objects.change_car.$selector.closest('.form-group').parent().show();
+            forms.objects.change_car.$selector.rules('add', { required: true });
+            forms.objects.change_car.$selector.active = true;
+            $('#change_car-error').hide();
+            $('[name="change_car"]').val('');
+
+            forms.objects.change_car.$selector.closest('.form-group').parent().removeClass('col-lg-3');
+            forms.objects.change_car.$selector.closest('.form-group').parent().removeClass('col-md-5');
+            forms.objects.change_car.$selector.closest('.form-group').parent().addClass('col-lg-6');
+            forms.objects.change_car.$selector.closest('.form-group').parent().addClass('col-md-7');
+
+            if (formLayout.value === 'event') {
+                forms.objects.models.$selector.closest('.form-group').parent().show();
+                forms.objects.models.$selector.rules('add', { required: true });
+                forms.objects.models.$selector.active = true;
+                $('#models-error').hide();
+                $('[name="models"]').val('');
+
+                forms.objects.models.$selector.closest('.form-group').parent().removeClass('col-lg-5');
+                forms.objects.models.$selector.closest('.form-group').parent().removeClass('col-md-7');
+                forms.objects.models.$selector.closest('.form-group').parent().addClass('col-lg-6');
+                forms.objects.models.$selector.closest('.form-group').parent().addClass('col-md-7');
+            }
+
+            // change label value
+            changeCarLabel.textContent = '¿ESTÁS INTERESADO EN COMPRAR UN AUTO?';
+        }
+    },
+
+};

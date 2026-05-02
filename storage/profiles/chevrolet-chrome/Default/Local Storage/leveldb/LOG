@@ -1,0 +1,6 @@
+2026/05/02-06:30:16.384 162c Reusing MANIFEST C:\Users\VIRGINIA\Desktop\concesionario-pro\storage\profiles\chevrolet-chrome\Default\Local Storage\leveldb/MANIFEST-000001
+2026/05/02-06:30:16.414 162c Recovering log #4
+2026/05/02-06:30:16.426 162c Reusing old log C:\Users\VIRGINIA\Desktop\concesionario-pro\storage\profiles\chevrolet-chrome\Default\Local Storage\leveldb/000004.log 
+2026/05/02-06:44:17.663 162c Level-0 table #8: started
+2026/05/02-06:44:17.822 162c Level-0 table #8: 19366 bytes OK
+2026/05/02-06:44:17.834 162c Delete type=0 #4

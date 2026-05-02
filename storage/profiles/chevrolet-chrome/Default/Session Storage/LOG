@@ -1,0 +1,36 @@
+2026/05/02-06:30:16.411 559c Reusing MANIFEST C:\Users\VIRGINIA\Desktop\concesionario-pro\storage\profiles\chevrolet-chrome\Default\Session Storage/MANIFEST-000001
+2026/05/02-06:30:16.419 559c Recovering log #16
+2026/05/02-06:30:16.432 559c Reusing old log C:\Users\VIRGINIA\Desktop\concesionario-pro\storage\profiles\chevrolet-chrome\Default\Session Storage/000016.log 
+2026/05/02-06:30:25.726 559c Level-0 table #21: started
+2026/05/02-06:30:25.793 559c Level-0 table #21: 40194 bytes OK
+2026/05/02-06:30:25.809 559c Delete type=0 #16
+2026/05/02-06:33:23.637 162c Level-0 table #23: started
+2026/05/02-06:33:23.672 162c Level-0 table #23: 38052 bytes OK
+2026/05/02-06:33:23.686 162c Delete type=0 #20
+2026/05/02-06:37:57.531 162c Level-0 table #25: started
+2026/05/02-06:37:57.561 162c Level-0 table #25: 36423 bytes OK
+2026/05/02-06:37:57.573 162c Delete type=0 #22
+2026/05/02-06:41:35.989 162c Level-0 table #27: started
+2026/05/02-06:41:36.001 162c Level-0 table #27: 52981 bytes OK
+2026/05/02-06:41:36.006 162c Delete type=0 #24
+2026/05/02-06:41:36.010 162c Compacting 4@0 + 1@1 files
+2026/05/02-06:41:36.036 162c Generated table #28@0: 770 keys, 144538 bytes
+2026/05/02-06:41:36.036 162c Compacted 4@0 + 1@1 files => 144538 bytes
+2026/05/02-06:41:36.038 162c compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/02-06:41:36.039 162c Delete type=2 #18
+2026/05/02-06:41:36.040 162c Delete type=2 #21
+2026/05/02-06:41:36.041 162c Delete type=2 #23
+2026/05/02-06:41:36.041 162c Delete type=2 #25
+2026/05/02-06:41:36.041 162c Delete type=2 #27
+2026/05/02-06:45:50.277 559c Level-0 table #30: started
+2026/05/02-06:45:50.293 559c Level-0 table #30: 53078 bytes OK
+2026/05/02-06:45:50.298 559c Delete type=0 #26
+2026/05/02-06:50:17.524 162c Level-0 table #32: started
+2026/05/02-06:50:17.537 162c Level-0 table #32: 36240 bytes OK
+2026/05/02-06:50:17.543 162c Delete type=0 #29
+2026/05/02-06:53:28.003 162c Level-0 table #34: started
+2026/05/02-06:53:28.027 162c Level-0 table #34: 52210 bytes OK
+2026/05/02-06:53:28.068 162c Delete type=0 #31
+2026/05/02-06:56:06.725 42d0 Level-0 table #36: started
+2026/05/02-06:56:06.758 42d0 Level-0 table #36: 36166 bytes OK
+2026/05/02-06:56:06.761 42d0 Delete type=0 #33

@@ -1,0 +1,24 @@
+2026/05/02-06:18:28.069 470 Reusing MANIFEST C:\Users\VIRGINIA\Desktop\concesionario-pro\storage\profiles\chevrolet-chrome\Default\Session Storage/MANIFEST-000001
+2026/05/02-06:18:28.071 470 Recovering log #7
+2026/05/02-06:18:28.076 470 Reusing old log C:\Users\VIRGINIA\Desktop\concesionario-pro\storage\profiles\chevrolet-chrome\Default\Session Storage/000007.log 
+2026/05/02-06:19:28.090 503c Level-0 table #11: started
+2026/05/02-06:19:28.099 503c Level-0 table #11: 36733 bytes OK
+2026/05/02-06:19:28.105 503c Delete type=0 #7
+2026/05/02-06:21:52.146 503c Level-0 table #13: started
+2026/05/02-06:21:52.157 503c Level-0 table #13: 37487 bytes OK
+2026/05/02-06:21:52.162 503c Delete type=0 #10
+2026/05/02-06:25:03.893 503c Level-0 table #15: started
+2026/05/02-06:25:03.905 503c Level-0 table #15: 36480 bytes OK
+2026/05/02-06:25:03.910 503c Delete type=0 #12
+2026/05/02-06:27:36.808 470 Level-0 table #17: started
+2026/05/02-06:27:36.857 470 Level-0 table #17: 52392 bytes OK
+2026/05/02-06:27:36.878 470 Delete type=0 #14
+2026/05/02-06:27:36.893 470 Compacting 4@0 + 1@1 files
+2026/05/02-06:27:37.556 470 Generated table #18@0: 401 keys, 171356 bytes
+2026/05/02-06:27:37.556 470 Compacted 4@0 + 1@1 files => 171356 bytes
+2026/05/02-06:27:37.559 470 compacted to: files[ 0 1 1 0 0 0 0 ]
+2026/05/02-06:27:37.561 470 Delete type=2 #8
+2026/05/02-06:27:37.561 470 Delete type=2 #11
+2026/05/02-06:27:37.561 470 Delete type=2 #13
+2026/05/02-06:27:37.562 470 Delete type=2 #15
+2026/05/02-06:27:37.562 470 Delete type=2 #17
