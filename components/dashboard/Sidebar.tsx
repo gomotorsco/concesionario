@@ -18,7 +18,7 @@ const items = [
   { label: "Configuración", href: "/admin/configuracion" },
 ];
 
-export default function Sidebar() {
+export function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 border-r border-white/10 bg-black/95 p-5 text-white lg:block">
       <div className="mb-8">
