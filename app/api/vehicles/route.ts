@@ -10,8 +10,22 @@ function slugify(input: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeType(value: any) {
+  const raw = String(value || "auto").toLowerCase();
+
+  if (["moto", "motos", "motorcycle"].includes(raw)) return "moto";
+  if (["ciclomotor", "ciclomotores", "cuatriciclo", "scooter", "light_vehicle"].includes(raw)) {
+    return "ciclomotor";
+  }
+
+  return "auto";
+}
+
 export async function GET(req: NextRequest) {
-  const admin = new URL(req.url).searchParams.get("admin") === "1";
+  const url = new URL(req.url);
+  const admin = url.searchParams.get("admin") === "1";
+  const requestedType = url.searchParams.get("type");
+  const typeFilter = requestedType ? normalizeType(requestedType) : null;
 
   const { data: sections, error: sectionError } = await supabaseAdmin
     .from("vehicle_sections")
@@ -19,63 +33,39 @@ export async function GET(req: NextRequest) {
     .order("orden", { ascending: true });
 
   if (sectionError) {
-    return NextResponse.json(
-      { sections: [], message: sectionError.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ sections: [], message: sectionError.message }, { status: 500 });
   }
 
-  const query = supabaseAdmin
+  let vehiclesQuery = supabaseAdmin
     .from("vehicles")
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (!admin) {
-    query.eq("visible", true);
-  }
+  if (!admin) vehiclesQuery = vehiclesQuery.eq("visible", true);
+  if (typeFilter) vehiclesQuery = vehiclesQuery.eq("tipo", typeFilter);
 
-  const { data: vehicles, error: vehiclesError } = await query;
+  const { data: vehicles, error: vehiclesError } = await vehiclesQuery;
 
   if (vehiclesError) {
-    return NextResponse.json(
-      { sections: [], message: vehiclesError.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ sections: [], message: vehiclesError.message }, { status: 500 });
   }
 
-  const allSections = sections?.length
-    ? sections
-    : [
-        { id: 1, title: "Autos", slug: "autos", type: "auto", visible: true, orden: 1 },
-        { id: 2, title: "Motos", slug: "motos", type: "moto", visible: true, orden: 2 },
-        { id: 3, title: "Ciclomotores", slug: "ciclomotores", type: "ciclomotor", visible: true, orden: 3 },
-      ];
-
-  const result = allSections
+  const normalizedSections = (sections ?? [])
     .filter((s: any) => admin || s.visible !== false)
+    .filter((s: any) => !typeFilter || normalizeType(s.type) === typeFilter)
     .map((section: any) => {
-      const sectionType = String(section.type || section.slug || "").toLowerCase();
-
       const sectionVehicles = (vehicles ?? []).filter((v: any) => {
-        const tipo = String(v.tipo || "").toLowerCase();
+        if (v.section_id && Number(v.section_id) === Number(section.id)) return true;
 
-        if (section.slug === "autos" || sectionType === "auto" || sectionType === "autos") {
-          return !tipo || tipo === "auto" || tipo === "autos" || tipo === "car";
-        }
+        const sectionBrand = String(section.title || section.name || "").toLowerCase();
+        const vehicleBrand = String(v.marca || "").toLowerCase();
 
-        if (section.slug === "motos" || sectionType === "moto" || sectionType === "motos") {
-          return tipo === "moto" || tipo === "motos" || tipo === "motorcycle";
-        }
-
-        if (section.slug === "ciclomotores" || sectionType === "ciclomotor") {
-          return tipo === "ciclomotor" || tipo === "scooter";
-        }
-
-        return v.section_id === section.id;
+        return sectionBrand && vehicleBrand && sectionBrand === vehicleBrand;
       });
 
       return {
         ...section,
+        name: section.name || section.title,
         vehicles: sectionVehicles.map((v: any) => ({
           ...v,
           imagen_url: v.imagen_url || v.imagen_hero,
@@ -88,7 +78,7 @@ export async function GET(req: NextRequest) {
     });
 
   return NextResponse.json({
-    sections: result,
+    sections: normalizedSections,
     total: vehicles?.length ?? 0,
   });
 }
@@ -98,24 +88,28 @@ export async function POST(req: NextRequest) {
 
   if (body.type === "section") {
     const title = String(body.title || "").trim();
+    const inventoryType = normalizeType(body.sectionType || body.type_value || body.inventoryType);
 
     if (!title) {
-      return NextResponse.json({ message: "Título requerido." }, { status: 400 });
+      return NextResponse.json({ message: "Nombre de marca requerido." }, { status: 400 });
     }
 
-    const slug = slugify(title);
+    const slug = `${inventoryType}-${slugify(title)}`;
 
     const { data, error } = await supabaseAdmin
       .from("vehicle_sections")
-      .insert([
-        {
-          title,
-          name: title,
-          slug,
-          type: body.sectionType || body.type_value || "auto",
-          visible: true,
-        },
-      ])
+      .upsert(
+        [
+          {
+            title,
+            name: title,
+            slug,
+            type: inventoryType,
+            visible: true,
+          },
+        ],
+        { onConflict: "slug" }
+      )
       .select("*")
       .single();
 
@@ -128,9 +122,23 @@ export async function POST(req: NextRequest) {
 
   if (body.type === "vehicle") {
     const title = String(body.title || "").trim();
+    const inventoryType = normalizeType(body.tipo || body.inventoryType);
+    const sectionId = body.sectionId ? Number(body.sectionId) : null;
 
     if (!title) {
-      return NextResponse.json({ message: "Título requerido." }, { status: 400 });
+      return NextResponse.json({ message: "Nombre del modelo requerido." }, { status: 400 });
+    }
+
+    let marca = body.marca || null;
+
+    if (sectionId && !marca) {
+      const { data: section } = await supabaseAdmin
+        .from("vehicle_sections")
+        .select("title,name")
+        .eq("id", sectionId)
+        .single();
+
+      marca = section?.title || section?.name || null;
     }
 
     const { data, error } = await supabaseAdmin
@@ -138,17 +146,19 @@ export async function POST(req: NextRequest) {
       .insert([
         {
           title,
-          slug: slugify(title),
-          marca: body.marca || null,
-          modelo: body.modelo || null,
-          tipo: body.tipo || "auto",
+          slug: slugify(`${marca || ""} ${title}`),
+          marca,
+          modelo: body.modelo || title,
+          version: body.version || null,
+          descripcion: body.descripcion || null,
+          tipo: inventoryType,
           categoria: body.categoria || null,
           precio: body.precio ? Number(body.precio) : null,
           cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
           moneda: "COP",
           imagen_url: body.imagen1 || body.imagenUrl || null,
           imagen_hero: body.imagen1 || body.imagenUrl || null,
-          section_id: body.sectionId ? Number(body.sectionId) : null,
+          section_id: sectionId,
           visible: true,
           review_status: "approved",
           estado: "disponible",
