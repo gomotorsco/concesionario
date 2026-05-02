@@ -201,7 +201,7 @@ async function scrapeVehicle(page: any, url: string) {
   const price = extractPrice(fullText);
   const categoria = detectCategoria(fullText);
 
-  const uniqueImages = Array.from(new Set((data.images || []).map((x: any) => x.src))).slice(0, 8);
+  const uniqueImages = Array.from(new Set((data.images || []).map((x: any) => String(x.src)))).slice(0, 8) as string[];
   const uploaded: string[] = [];
 
   for (let i = 0; i < uniqueImages.length; i++) {
