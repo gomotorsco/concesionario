@@ -419,7 +419,7 @@ async function extractImagesFromBrowser(page: Page): Promise<ExtractedImage[]> {
     });
   }
 
-  console.log("[dom-debug] rawBrowserImages=", raw.length);
+  console.log("[dom-debug] rawBrowserImages=", (raw as Array<{ src?: string; alt?: string; source?: string }>).length);
 
   return Array.from(images.values());
 }
