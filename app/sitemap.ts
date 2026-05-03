@@ -1,12 +1,10 @@
-export default function sitemap() {
+import type { MetadataRoute } from "next";
+
+export default function sitemap(): MetadataRoute.Sitemap {
+  const base = "https://www.gomotorsco.com.co";
+
   return [
-    {
-      url: "https://gomotorsco.com.co",
-      lastModified: new Date(),
-    },
-    {
-      url: "https://gomotorsco.com.co/vehiculos",
-      lastModified: new Date(),
-    },
+    { url: base, lastModified: new Date(), changeFrequency: "weekly", priority: 1 },
+    { url: `${base}/preaprobacion`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
   ];
 }
