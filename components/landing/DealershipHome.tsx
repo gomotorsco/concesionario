@@ -2,6 +2,8 @@ import BrandHeader from "@/components/landing/BrandHeader";
 import PremiumVehiclesCatalog from "@/components/landing/PremiumVehiclesCatalog";
 import FinanceBrandSlider from "@/components/landing/sections/FinanceBrandSlider";
 import CategoryBanners from "@/components/landing/sections/CategoryBanners";
+import LocationMap from "@/components/landing/LocationMap";
+import Footer from "@/components/landing/Footer";
 
 export default function DealershipHome() {
   return (
@@ -59,6 +61,8 @@ export default function DealershipHome() {
           <PremiumVehiclesCatalog />
         </div>
       </section>
+          <LocationMap />
+      <Footer />
     </main>
   );
 }
