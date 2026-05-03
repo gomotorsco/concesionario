@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://gomotorsco.com.co/sitemap.xml
