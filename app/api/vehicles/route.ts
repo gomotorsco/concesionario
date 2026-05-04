@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   const body = await req.json();
-  const id = Number(body.id);
+  const id = body.id;
 
   if (!id) {
     return NextResponse.json({ message: "ID requerido." }, { status: 400 });
@@ -181,20 +181,18 @@ export async function PATCH(req: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("vehicles")
     .update(payload)
-    .eq("id", id)
-    .select("*")
-    .single();
+    .eq("id", id);
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, vehicle: data });
+  return NextResponse.json({ ok: true });
 }
 
 export async function DELETE(req: NextRequest) {
-  const id = Number(new URL(req.url).searchParams.get("id"));
+  const id = new URL(req.url).searchParams.get("id");
 
   if (!id) {
     return NextResponse.json({ message: "ID requerido." }, { status: 400 });
