@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -72,7 +72,7 @@ export default function InventoryManager({ type, title, description, examples }:
   }
 
   async function createBrand() {
-    if (!brandName.trim()) return alert("Ingresá el nombre de la marca.");
+    if (!brandName.trim()) return alert("IngresÃ¡ el nombre de la marca.");
 
     const res = await fetch("/api/vehicles", {
       method: "POST",
@@ -91,10 +91,10 @@ export default function InventoryManager({ type, title, description, examples }:
   async function uploadImages(files: FileList | null) {
     if (!files?.length) return;
 
-    const selected = Array.from(files).slice(0, 8 - form.gallery.length);
+    const selected = Array.from(files).slice(0, 15 - form.gallery.length);
 
     if (!selected.length) {
-      alert("Máximo 8 imágenes por vehículo.");
+      alert("MÃ¡ximo 8 imÃ¡genes por vehÃ­culo.");
       return;
     }
 
@@ -121,7 +121,7 @@ export default function InventoryManager({ type, title, description, examples }:
     }
 
     setForm((prev) => {
-      const gallery = [...prev.gallery, ...uploaded].slice(0, 8);
+      const gallery = [...prev.gallery, ...uploaded].slice(0, 15);
       return {
         ...prev,
         gallery,
@@ -168,14 +168,14 @@ export default function InventoryManager({ type, title, description, examples }:
       cuotaDesde: v.cuota_desde ? String(v.cuota_desde) : "",
       descripcion: v.descripcion || "",
       imagenHero: v.imagen_hero || v.imagen_url || uniqueGallery[0] || "",
-      gallery: uniqueGallery.slice(0, 8),
+      gallery: uniqueGallery.slice(0, 15),
     });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function saveVehicle() {
-    if (!form.title.trim()) return alert("Ingresá el nombre público.");
+    if (!form.title.trim()) return alert("IngresÃ¡ el nombre pÃºblico.");
 
     const res = await fetch("/api/vehicles", {
       method: editing ? "PATCH" : "POST",
@@ -217,7 +217,7 @@ export default function InventoryManager({ type, title, description, examples }:
   }
 
   async function deleteVehicle(id: number) {
-    if (!confirm("¿Eliminar este vehículo? Esta acción no se puede deshacer.")) return;
+    if (!confirm("Â¿Eliminar este vehÃ­culo? Esta acciÃ³n no se puede deshacer.")) return;
 
     await fetch(`/api/vehicles?id=${id}`, { method: "DELETE" });
     await load();
@@ -268,7 +268,7 @@ export default function InventoryManager({ type, title, description, examples }:
 
           <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
             <h2 className="text-xl font-black">
-              {editing ? "Editar modelo / versión" : "Cargar modelo / versión"}
+              {editing ? "Editar modelo / versiÃ³n" : "Cargar modelo / versiÃ³n"}
             </h2>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -282,7 +282,7 @@ export default function InventoryManager({ type, title, description, examples }:
               <input
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                placeholder="Nombre público"
+                placeholder="Nombre pÃºblico"
                 className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
               />
 
@@ -296,7 +296,7 @@ export default function InventoryManager({ type, title, description, examples }:
               <input
                 value={form.version}
                 onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
-                placeholder="Versión"
+                placeholder="VersiÃ³n"
                 className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
               />
 
@@ -317,7 +317,7 @@ export default function InventoryManager({ type, title, description, examples }:
               <textarea
                 value={form.descripcion}
                 onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-                placeholder="Descripción"
+                placeholder="DescripciÃ³n"
                 rows={4}
                 className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none md:col-span-2"
               />
@@ -325,18 +325,18 @@ export default function InventoryManager({ type, title, description, examples }:
               <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#101827] p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
-                    <p className="font-black">Imágenes del vehículo</p>
-                    <p className="text-sm text-slate-400">Máximo 8. La primera será hero si no elegís otra.</p>
+                    <p className="font-black">ImÃ¡genes del vehÃ­culo</p>
+                    <p className="text-sm text-slate-400">MÃ¡ximo 8. La primera serÃ¡ hero si no elegÃ­s otra.</p>
                   </div>
 
                   <label className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black hover:bg-blue-500">
-                    {uploading ? "Subiendo..." : "Subir imágenes"}
+                    {uploading ? "Subiendo..." : "Subir imÃ¡genes"}
                     <input
                       type="file"
                       multiple
                       accept="image/*"
                       className="hidden"
-                      disabled={uploading || form.gallery.length >= 8}
+                      disabled={uploading || form.gallery.length >= 15}
                       onChange={(e) => uploadImages(e.target.files)}
                     />
                   </label>
@@ -405,7 +405,7 @@ export default function InventoryManager({ type, title, description, examples }:
                     <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Marca</p>
                     <h3 className="text-xl font-black">{section.title}</h3>
                   </div>
-                  <span>{open.includes(section.id) ? "▲" : "▼"}</span>
+                  <span>{open.includes(section.id) ? "â–²" : "â–¼"}</span>
                 </button>
 
                 {open.includes(section.id) ? (

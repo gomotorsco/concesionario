@@ -28,6 +28,16 @@ function normalizeVehicle(v: any) {
   };
 }
 
+function parseGallery(value: any) {
+  if (Array.isArray(value)) return value.filter(Boolean).slice(0, 15);
+
+  return String(value || "")
+    .split("\n")
+    .map((x) => x.trim())
+    .filter(Boolean)
+    .slice(0, 15);
+}
+
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const admin = url.searchParams.get("admin") === "1";
@@ -83,11 +93,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: "Nombre de marca requerido." }, { status: 400 });
     }
 
-    const slug = `${inventoryType}-${slugify(title)}`;
+    const sectionSlug = inventoryType + "-" + slugify(title);
 
     const { data, error } = await supabaseAdmin
       .from("vehicle_sections")
-      .upsert([{ title, name: title, slug, type: inventoryType, visible: true }], { onConflict: "slug" })
+      .upsert([{ title, name: title, slug: sectionSlug, type: inventoryType, visible: true }], { onConflict: "slug" })
       .select("*")
       .single();
 
@@ -116,20 +126,14 @@ export async function POST(req: NextRequest) {
       marca = section?.title || section?.name || null;
     }
 
-    const gallery = Array.isArray(body.gallery)
-      ? body.gallery
-      : String(body.gallery || "")
-          .split("\n")
-          .map((x) => x.trim())
-          .filter(Boolean);
-
-    const hero = body.imagen1 || body.imagenUrl || gallery[0] || null;
+    const gallery = parseGallery(body.gallery);
+    const hero = body.imagenHero || body.imagenUrl || gallery[0] || null;
 
     const { data, error } = await supabaseAdmin
       .from("vehicles")
       .insert([{
         title,
-        slug: slugify(`${marca || ""} ${title}`),
+        slug: slugify((marca || "") + " " + title),
         marca,
         modelo: body.modelo || title,
         version: body.version || null,
@@ -161,53 +165,72 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const id = Number(body.id);
 
-  if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
+  if (!id) {
+    return NextResponse.json({ message: "ID requerido." }, { status: 400 });
+  }
 
   if (body.action === "toggle_visibility") {
-    const { data: current } = await supabaseAdmin
+    const { data: current, error: readError } = await supabaseAdmin
       .from("vehicles")
       .select("visible")
       .eq("id", id)
       .single();
 
+    if (readError) {
+      return NextResponse.json({ message: readError.message }, { status: 500 });
+    }
+
     const { error } = await supabaseAdmin
       .from("vehicles")
-      .update({ visible: !current?.visible, updated_at: new Date().toISOString() })
+      .update({
+        visible: !current?.visible,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id);
 
-    if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+    if (error) {
+      return NextResponse.json({ message: error.message }, { status: 500 });
+    }
+
     return NextResponse.json({ ok: true });
   }
 
-  const gallery = Array.isArray(body.gallery)
-    ? body.gallery
-    : String(body.gallery || "")
-        .split("\n")
-        .map((x) => x.trim())
-        .filter(Boolean);
+  const gallery = parseGallery(body.gallery);
 
-  const hero = body.imagenHero || body.imagenUrl || gallery[0] || null;
+  const hero =
+    body.imagenHero ||
+    body.imagen_hero ||
+    body.imagenUrl ||
+    body.imagen_url ||
+    gallery[0] ||
+    null;
+
+  const update: Record<string, any> = {
+    updated_at: new Date().toISOString(),
+    galeria: gallery,
+    imagen_hero: hero,
+    imagen_url: hero,
+  };
+
+  if (body.title !== undefined) update.title = body.title;
+  if (body.title !== undefined) update.slug = slugify((body.marca || "") + " " + (body.title || ""));
+  if (body.marca !== undefined) update.marca = body.marca || null;
+  if (body.modelo !== undefined) update.modelo = body.modelo || null;
+  if (body.version !== undefined) update.version = body.version || null;
+  if (body.descripcion !== undefined) update.descripcion = body.descripcion || null;
+  if (body.precio !== undefined) update.precio = body.precio ? Number(body.precio) : null;
+  if (body.cuotaDesde !== undefined) update.cuota_desde = body.cuotaDesde ? Number(body.cuotaDesde) : null;
 
   const { error } = await supabaseAdmin
     .from("vehicles")
-    .update({
-      title: body.title,
-      slug: slugify(`${body.marca || ""} ${body.title || ""}`),
-      marca: body.marca || null,
-      modelo: body.modelo || null,
-      version: body.version || null,
-      descripcion: body.descripcion || null,
-      precio: body.precio ? Number(body.precio) : null,
-      cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
-      imagen_hero: hero,
-      imagen_url: hero,
-      galeria: gallery,
-      updated_at: new Date().toISOString(),
-    })
+    .update(update)
     .eq("id", id);
 
-  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
-  return NextResponse.json({ ok: true });
+  if (error) {
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, gallery, hero });
 }
 
 export async function DELETE(req: NextRequest) {
