@@ -1,332 +1,143 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
-type InventoryType = "auto" | "moto" | "ciclomotor";
-
-type Props = {
-  type: InventoryType;
-  title: string;
-  description: string;
-  examples: string;
-};
-
-type Section = {
-  id: number;
-  title: string;
-  slug: string;
-  type: string;
-  visible: boolean;
-  orden?: number;
-  vehicles?: Vehicle[];
-};
-
-type Vehicle = {
-  id: number;
-  title: string;
-  marca?: string | null;
-  modelo?: string | null;
-  version?: string | null;
-  precio?: number | null;
-  cuota_desde?: number | null;
-  descripcion?: string | null;
-  imagen_url?: string | null;
-  imagen_hero?: string | null;
-  visible?: boolean;
-};
-
-export default function InventoryManager({ type, title, description, examples }: Props) {
-  const [sections, setSections] = useState<Section[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [brandName, setBrandName] = useState("");
-  const [form, setForm] = useState({
-    sectionId: "",
-    title: "",
-    marca: "",
-    modelo: "",
-    version: "",
-    precio: "",
-    cuotaDesde: "",
-    descripcion: "",
-    imagenUrl: "",
-  });
-
-  const currentSections = useMemo(() => {
-    return sections.filter((s) => String(s.type).toLowerCase() === type);
-  }, [sections, type]);
+export default function InventoryManager({ type, title }) {
+  const [sections, setSections] = useState([]);
+  const [open, setOpen] = useState([]);
+  const [form, setForm] = useState({});
+  const [editing, setEditing] = useState(null);
 
   async function load() {
-    setLoading(true);
-    const res = await fetch(`/api/vehicles?admin=1&type=${type}`, { cache: "no-store" });
+    const res = await fetch(`/api/vehicles?admin=1&type=${type}`);
     const json = await res.json();
-    setSections(json.sections ?? []);
-    setLoading(false);
+    setSections(json.sections || []);
   }
 
   useEffect(() => {
     load();
-  }, []);
+  }, [type]);
 
-  async function createBrand() {
-    if (!brandName.trim()) return alert("Escribí el nombre de la marca.");
-
-    const res = await fetch("/api/vehicles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "section",
-        title: brandName.trim(),
-        sectionType: type,
-      }),
-    });
-
-    const json = await res.json();
-
-    if (!res.ok) {
-      alert(json.message || "No se pudo crear la marca.");
-      return;
-    }
-
-    setBrandName("");
-    await load();
+  function toggleSection(id) {
+    setOpen((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
   }
 
-  async function createVehicle() {
-    if (!form.sectionId) return alert("Elegí una marca/marca.");
-    if (!form.title.trim()) return alert("Escribí el nombre del modelo.");
+  async function toggleVehicle(id) {
+    await fetch("/api/vehicles", {
+      method: "PATCH",
+      body: JSON.stringify({ id, action: "toggle_visibility" }),
+    });
+    load();
+  }
 
-    const res = await fetch("/api/vehicles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+  async function deleteVehicle(id) {
+    await fetch(`/api/vehicles?id=${id}`, { method: "DELETE" });
+    load();
+  }
+
+  function editVehicle(v) {
+    setEditing(v.id);
+    setForm(v);
+  }
+
+  async function saveVehicle() {
+    const method = editing ? "PATCH" : "POST";
+
+    await fetch("/api/vehicles", {
+      method,
       body: JSON.stringify({
+        ...form,
+        id: editing,
         type: "vehicle",
-        sectionId: Number(form.sectionId),
-        title: form.title.trim(),
-        marca: form.marca.trim() || undefined,
-        modelo: form.modelo.trim() || form.title.trim(),
-        version: form.version.trim() || undefined,
-        tipo: type,
-        precio: form.precio ? Number(form.precio) : undefined,
-        cuotaDesde: form.cuotaDesde ? Number(form.cuotaDesde) : undefined,
-        descripcion: form.descripcion.trim() || undefined,
-        imagenUrl: form.imagenUrl.trim() || undefined,
+        inventoryType: type,
       }),
     });
 
-    const json = await res.json();
-
-    if (!res.ok) {
-      alert(json.message || "No se pudo crear.");
-      return;
-    }
-
-    setForm({
-      sectionId: "",
-      title: "",
-      marca: "",
-      modelo: "",
-      version: "",
-      precio: "",
-      cuotaDesde: "",
-      descripcion: "",
-      imagenUrl: "",
-    });
-
-    await load();
+    setForm({});
+    setEditing(null);
+    load();
   }
 
   return (
-    <main className="min-h-screen bg-[#05070d] p-6 text-white">
-      <section className="mx-auto max-w-7xl">
-        <div className="mb-8 rounded-[28px] border border-white/10 bg-white/[0.04] p-7 shadow-2xl">
-          <p className="text-xs font-black uppercase tracking-[0.32em] text-blue-300">
-            Inventario GoMotorsCo
-          </p>
-          <h1 className="mt-3 text-4xl font-black tracking-[-0.04em]">{title}</h1>
-          <p className="mt-3 max-w-4xl text-lg leading-8 text-slate-300">{description}</p>
-        </div>
+    <div className="p-6">
 
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-            <h2 className="text-xl font-black">Marcas / secciones</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              Cargá marcas como {examples}. Dentro de cada marca cargás modelos, versiones, imagen hero, galería y descripción.
-            </p>
+      <h1 className="mb-6 text-2xl font-bold">{title}</h1>
 
-            <div className="mt-5 flex gap-3">
-              <input
-                value={brandName}
-                onChange={(e) => setBrandName(e.target.value)}
-                placeholder={examples}
-                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-              />
-              <button
-                onClick={createBrand}
-                className="rounded-2xl bg-blue-600 px-5 py-3 font-black hover:bg-blue-500"
-              >
-                Crear marca
-              </button>
-            </div>
+      {/* FORM */}
+      <div className="mb-8 rounded-xl bg-[#0b0f14] p-4">
+        <input
+          placeholder="Nombre"
+          className="mb-2 w-full p-2"
+          value={form.title || ""}
+          onChange={(e) => setForm({ ...form, title: e.target.value })}
+        />
 
-            <div className="mt-6 flex flex-wrap gap-2">
-              {loading ? (
-                <span className="text-slate-400">Cargando...</span>
-              ) : currentSections.length === 0 ? (
-                <span className="text-slate-400">Todavía no hay marcas creadas.</span>
-              ) : (
-                currentSections.map((s) => (
-                  <span
-                    key={s.id}
-                    className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-200"
-                  >
-                    {s.title} {s.visible ? "· Visible" : "· Oculta"}
-                  </span>
-                ))
-              )}
-            </div>
-          </section>
+        <input
+          placeholder="Marca"
+          className="mb-2 w-full p-2"
+          value={form.marca || ""}
+          onChange={(e) => setForm({ ...form, marca: e.target.value })}
+        />
 
-          <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-            <h2 className="text-xl font-black">Cargar modelo / versión</h2>
+        <textarea
+          placeholder="Galería (1 URL por línea)"
+          className="mb-2 w-full p-2"
+          value={(form.gallery || []).join("\n")}
+          onChange={(e) =>
+            setForm({
+              ...form,
+              gallery: e.target.value.split("\n"),
+              imagenHero: e.target.value.split("\n")[0],
+            })
+          }
+        />
 
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-bold text-slate-300">Marca</span>
-                <select
-                  value={form.sectionId}
-                  onChange={(e) => {
-                    const selected = currentSections.find((s) => String(s.id) === e.target.value);
-                    setForm((f) => ({
-                      ...f,
-                      sectionId: e.target.value,
-                      marca: selected?.title ?? f.marca,
-                    }));
-                  }}
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none"
-                >
-                  <option value="">Elegí una marca</option>
-                  {currentSections.map((s) => (
-                    <option key={s.id} value={s.id}>{s.title}</option>
-                  ))}
-                </select>
-              </label>
+        <button onClick={saveVehicle} className="bg-green-600 px-4 py-2">
+          {editing ? "Guardar cambios" : "Crear vehículo"}
+        </button>
+      </div>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-bold text-slate-300">Nombre público</span>
-                <input
-                  value={form.title}
-                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                  placeholder="Ej: Renault Duster Intens CVT"
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
+      {/* INVENTARIO */}
+      {sections.map((section) => (
+        <div key={section.id} className="mb-6 rounded-xl border border-white/10">
 
-              <label className="grid gap-2">
-                <span className="text-sm font-bold text-slate-300">Modelo</span>
-                <input
-                  value={form.modelo}
-                  onChange={(e) => setForm((f) => ({ ...f, modelo: e.target.value }))}
-                  placeholder="Ej: Duster"
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
+          <button
+            onClick={() => toggleSection(section.id)}
+            className="w-full p-4 text-left"
+          >
+            <h3 className="text-lg font-bold">{section.title}</h3>
+          </button>
 
-              <label className="grid gap-2">
-                <span className="text-sm font-bold text-slate-300">Versión</span>
-                <input
-                  value={form.version}
-                  onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
-                  placeholder="Ej: Intens CVT"
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
+          {open.includes(section.id) && (
+            <div className="grid grid-cols-3 gap-4 p-4">
 
-              <label className="grid gap-2">
-                <span className="text-sm font-bold text-slate-300">Precio</span>
-                <input
-                  value={form.precio}
-                  onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
-                  placeholder="Ej: 89900000"
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
+              {section.vehicles.map((v) => (
+                <div key={v.id} className="rounded-lg bg-[#0b0f14] p-3">
 
-              <label className="grid gap-2">
-                <span className="text-sm font-bold text-slate-300">Cuota desde</span>
-                <input
-                  value={form.cuotaDesde}
-                  onChange={(e) => setForm((f) => ({ ...f, cuotaDesde: e.target.value }))}
-                  placeholder="Ej: 1200000"
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
+                  <img src={v.imagen_hero} className="h-40 w-full object-cover rounded" />
 
-              <label className="grid gap-2 md:col-span-2">
-                <span className="text-sm font-bold text-slate-300">Imagen hero / principal</span>
-                <input
-                  value={form.imagenUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, imagenUrl: e.target.value }))}
-                  placeholder="URL de imagen o luego lo conectamos a Storage"
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
+                  <p className="mt-2 font-bold">{v.title}</p>
 
-              <label className="grid gap-2 md:col-span-2">
-                <span className="text-sm font-bold text-slate-300">Descripción</span>
-                <textarea
-                  value={form.descripcion}
-                  onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-                  rows={4}
-                  placeholder="Descripción comercial, ficha técnica resumida, beneficios..."
-                  className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white outline-none placeholder:text-slate-500"
-                />
-              </label>
-            </div>
-
-            <button
-              onClick={createVehicle}
-              className="mt-5 rounded-2xl bg-emerald-600 px-6 py-3 font-black hover:bg-emerald-500"
-            >
-              Agregar al inventario
-            </button>
-          </section>
-        </div>
-
-        <section className="mt-6 rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-          <h2 className="text-xl font-black">Inventario cargado</h2>
-
-          <div className="mt-5 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {currentSections.flatMap((s) =>
-              (s.vehicles ?? []).map((v) => (
-                <article key={v.id} className="overflow-hidden rounded-[24px] border border-white/10 bg-white/[0.04]">
-                  <div className="h-44 bg-slate-900">
-                    {v.imagen_hero || v.imagen_url ? (
-                      <img src={v.imagen_hero || v.imagen_url || ""} alt={v.title} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                        Sin imagen hero
-                      </div>
-                    )}
+                  <div className="mt-3 flex gap-2 text-sm">
+                    <button onClick={() => editVehicle(v)}>Editar</button>
+                    <button onClick={() => toggleVehicle(v.id)}>
+                      {v.visible ? "Pausar" : "Activar"}
+                    </button>
+                    <button onClick={() => deleteVehicle(v.id)}>
+                      Eliminar
+                    </button>
                   </div>
 
-                  <div className="p-5">
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">
-                      {s.title}
-                    </p>
-                    <h3 className="mt-2 text-xl font-black">{v.title}</h3>
-                    <p className="mt-1 text-sm text-slate-400">
-                      {[v.modelo, v.version].filter(Boolean).join(" · ") || "Modelo sin versión"}
-                    </p>
-                    <p className="mt-3 text-sm text-slate-300">
-                      {v.visible === false ? "Oculto" : "Visible"}
-                    </p>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-        </section>
-      </section>
-    </main>
+                </div>
+              ))}
+
+            </div>
+          )}
+
+        </div>
+      ))}
+    </div>
   );
 }
