@@ -12,29 +12,26 @@ function slugify(input: string) {
 
 function normalizeType(value: any) {
   const raw = String(value || "auto").toLowerCase();
-
   if (["moto", "motos", "motorcycle"].includes(raw)) return "moto";
-  if (["ciclomotor", "ciclomotores", "cuatriciclo", "scooter", "light_vehicle"].includes(raw)) {
-    return "ciclomotor";
-  }
-
+  if (["ciclomotor", "ciclomotores", "cuatriciclo", "cuatriciclos", "scooter", "light_vehicle"].includes(raw)) return "ciclomotor";
   return "auto";
+}
+
+function normalizeVehicle(v: any) {
+  return {
+    ...v,
+    imagen_url: v.imagen_url || v.imagen_hero,
+    imagen_hero: v.imagen_hero || v.imagen_url,
+    slug: v.slug || slugify(v.title),
+    precio: v.precio || v.precio_desde,
+    moneda: v.moneda || "COP",
+  };
 }
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const admin = url.searchParams.get("admin") === "1";
-  const requestedType = url.searchParams.get("type");
-  const typeFilter = requestedType ? normalizeType(requestedType) : null;
-
-  const { data: sections, error: sectionError } = await supabaseAdmin
-    .from("vehicle_sections")
-    .select("*")
-    .order("orden", { ascending: true });
-
-  if (sectionError) {
-    return NextResponse.json({ sections: [], message: sectionError.message }, { status: 500 });
-  }
+  const typeFilter = url.searchParams.get("type") ? normalizeType(url.searchParams.get("type")) : null;
 
   let vehiclesQuery = supabaseAdmin
     .from("vehicles")
@@ -44,43 +41,35 @@ export async function GET(req: NextRequest) {
   if (!admin) vehiclesQuery = vehiclesQuery.eq("visible", true);
   if (typeFilter) vehiclesQuery = vehiclesQuery.eq("tipo", typeFilter);
 
-  const { data: vehicles, error: vehiclesError } = await vehiclesQuery;
+  const { data: vehicles, error } = await vehiclesQuery;
 
-  if (vehiclesError) {
-    return NextResponse.json({ sections: [], message: vehiclesError.message }, { status: 500 });
+  if (error) {
+    return NextResponse.json({ sections: [], total: 0, message: error.message }, { status: 500 });
   }
 
-  const normalizedSections = (sections ?? [])
-    .filter((s: any) => admin || s.visible !== false)
-    .filter((s: any) => !typeFilter || normalizeType(s.type) === typeFilter)
-    .map((section: any) => {
-      const sectionVehicles = (vehicles ?? []).filter((v: any) => {
-        if (v.section_id && Number(v.section_id) === Number(section.id)) return true;
+  const rows = vehicles ?? [];
+  const brandMap = new Map<string, any[]>();
 
-        const sectionBrand = String(section.title || section.name || "").toLowerCase();
-        const vehicleBrand = String(v.marca || "").toLowerCase();
+  for (const vehicle of rows) {
+    const brand = vehicle.marca || "Sin marca";
+    if (!brandMap.has(brand)) brandMap.set(brand, []);
+    brandMap.get(brand)!.push(normalizeVehicle(vehicle));
+  }
 
-        return sectionBrand && vehicleBrand && sectionBrand === vehicleBrand;
-      });
+  const sections = Array.from(brandMap.entries())
+    .filter(([brand]) => !["autos", "motos", "ciclomotores"].includes(brand.toLowerCase()))
+    .map(([brand, brandVehicles], index) => ({
+      id: index + 1,
+      title: brand,
+      name: brand,
+      slug: slugify(brand),
+      type: typeFilter || normalizeType(brandVehicles[0]?.tipo),
+      visible: true,
+      orden: index + 1,
+      vehicles: brandVehicles,
+    }));
 
-      return {
-        ...section,
-        name: section.name || section.title,
-        vehicles: sectionVehicles.map((v: any) => ({
-          ...v,
-          imagen_url: v.imagen_url || v.imagen_hero,
-          imagen_hero: v.imagen_hero || v.imagen_url,
-          slug: v.slug || slugify(v.title),
-          precio: v.precio || v.precio_desde,
-          moneda: v.moneda || "COP",
-        })),
-      };
-    });
-
-  return NextResponse.json({
-    sections: normalizedSections,
-    total: vehicles?.length ?? 0,
-  });
+  return NextResponse.json({ sections, total: rows.length });
 }
 
 export async function POST(req: NextRequest) {
@@ -98,25 +87,11 @@ export async function POST(req: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from("vehicle_sections")
-      .upsert(
-        [
-          {
-            title,
-            name: title,
-            slug,
-            type: inventoryType,
-            visible: true,
-          },
-        ],
-        { onConflict: "slug" }
-      )
+      .upsert([{ title, name: title, slug, type: inventoryType, visible: true }], { onConflict: "slug" })
       .select("*")
       .single();
 
-    if (error) {
-      return NextResponse.json({ message: error.message }, { status: 500 });
-    }
-
+    if (error) return NextResponse.json({ message: error.message }, { status: 500 });
     return NextResponse.json({ section: data });
   }
 
@@ -141,38 +116,107 @@ export async function POST(req: NextRequest) {
       marca = section?.title || section?.name || null;
     }
 
+    const gallery = Array.isArray(body.gallery)
+      ? body.gallery
+      : String(body.gallery || "")
+          .split("\n")
+          .map((x) => x.trim())
+          .filter(Boolean);
+
+    const hero = body.imagen1 || body.imagenUrl || gallery[0] || null;
+
     const { data, error } = await supabaseAdmin
       .from("vehicles")
-      .insert([
-        {
-          title,
-          slug: slugify(`${marca || ""} ${title}`),
-          marca,
-          modelo: body.modelo || title,
-          version: body.version || null,
-          descripcion: body.descripcion || null,
-          tipo: inventoryType,
-          categoria: body.categoria || null,
-          precio: body.precio ? Number(body.precio) : null,
-          cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
-          moneda: "COP",
-          imagen_url: body.imagen1 || body.imagenUrl || null,
-          imagen_hero: body.imagen1 || body.imagenUrl || null,
-          section_id: sectionId,
-          visible: true,
-          review_status: "approved",
-          estado: "disponible",
-        },
-      ])
+      .insert([{
+        title,
+        slug: slugify(`${marca || ""} ${title}`),
+        marca,
+        modelo: body.modelo || title,
+        version: body.version || null,
+        descripcion: body.descripcion || null,
+        tipo: inventoryType,
+        categoria: body.categoria || null,
+        precio: body.precio ? Number(body.precio) : null,
+        cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
+        moneda: "COP",
+        imagen_url: hero,
+        imagen_hero: hero,
+        galeria: gallery,
+        section_id: sectionId,
+        visible: true,
+        review_status: "approved",
+        estado: "disponible",
+      }])
       .select("*")
       .single();
 
-    if (error) {
-      return NextResponse.json({ message: error.message }, { status: 500 });
-    }
-
+    if (error) return NextResponse.json({ message: error.message }, { status: 500 });
     return NextResponse.json({ vehicle: data });
   }
 
   return NextResponse.json({ message: "Tipo no soportado." }, { status: 400 });
+}
+
+export async function PATCH(req: NextRequest) {
+  const body = await req.json();
+  const id = Number(body.id);
+
+  if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
+
+  if (body.action === "toggle_visibility") {
+    const { data: current } = await supabaseAdmin
+      .from("vehicles")
+      .select("visible")
+      .eq("id", id)
+      .single();
+
+    const { error } = await supabaseAdmin
+      .from("vehicles")
+      .update({ visible: !current?.visible, updated_at: new Date().toISOString() })
+      .eq("id", id);
+
+    if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true });
+  }
+
+  const gallery = Array.isArray(body.gallery)
+    ? body.gallery
+    : String(body.gallery || "")
+        .split("\n")
+        .map((x) => x.trim())
+        .filter(Boolean);
+
+  const hero = body.imagenHero || body.imagenUrl || gallery[0] || null;
+
+  const { error } = await supabaseAdmin
+    .from("vehicles")
+    .update({
+      title: body.title,
+      slug: slugify(`${body.marca || ""} ${body.title || ""}`),
+      marca: body.marca || null,
+      modelo: body.modelo || null,
+      version: body.version || null,
+      descripcion: body.descripcion || null,
+      precio: body.precio ? Number(body.precio) : null,
+      cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
+      imagen_hero: hero,
+      imagen_url: hero,
+      galeria: gallery,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(req: NextRequest) {
+  const id = Number(new URL(req.url).searchParams.get("id"));
+
+  if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
+
+  const { error } = await supabaseAdmin.from("vehicles").delete().eq("id", id);
+
+  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }

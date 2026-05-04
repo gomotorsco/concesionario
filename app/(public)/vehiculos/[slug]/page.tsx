@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { VehicleLeadForm } from "./VehicleLeadForm";
+import VehicleGallery from "./VehicleGallery";
 
 type Props = {
   params: Promise<{ slug: string }>;
