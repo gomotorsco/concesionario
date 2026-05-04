@@ -33,11 +33,11 @@ function parseGallery(vehicle: any) {
   );
 }
 
-export default async function VehicleDetailPage({ params }: { params: { slug: string } }) {
+export default async function VehicleDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { data: vehicle, error } = await supabaseAdmin
     .from("vehicles")
     .select("*")
-    .eq("slug", params.slug)
+    .eq("slug", (await params).slug)
     .maybeSingle();
 
   if (error || !vehicle) notFound();
