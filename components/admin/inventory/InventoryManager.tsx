@@ -200,7 +200,8 @@ export default function InventoryManager({ type, title, description, examples }:
 
     const json = await res.json();
 
-    if (!res.ok) return alert(json.message || "No se pudo guardar.");
+    if (!res.ok) { alert(json.message || "No se pudo guardar."); return; }
+    alert(editing ? "Cambios guardados." : "Vehículo creado.");
 
     setForm(emptyForm);
     setEditing(null);
