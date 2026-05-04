@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 
-export default function VehicleGallery({ vehicle }) {
+type Vehicle = {
+  imagen_hero?: string;
+  imagen_url?: string;
+  galeria?: string[];
+};
+
+export default function VehicleGallery({ vehicle }: { vehicle: Vehicle }) {
   const images = [
     vehicle.imagen_hero,
     ...(vehicle.galeria || []),
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
-  const [active, setActive] = useState(images[0]);
+  const [active, setActive] = useState(images[0] || "");
 
   return (
     <div>

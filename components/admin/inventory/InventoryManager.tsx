@@ -1,15 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-export default function InventoryManager({ type, title }) {
-  const [sections, setSections] = useState([]);
-  const [open, setOpen] = useState([]);
-  const [form, setForm] = useState({});
-  const [editing, setEditing] = useState(null);
+type Props = {
+  type: "auto" | "moto" | "ciclomotor";
+  title: string;
+  description?: string;
+  examples?: string;
+};
+
+type Vehicle = {
+  id: number;
+  title: string;
+  marca?: string;
+  modelo?: string;
+  version?: string;
+  precio?: number;
+  cuota_desde?: number;
+  descripcion?: string;
+  imagen_hero?: string;
+  imagen_url?: string;
+  galeria?: string[];
+  visible?: boolean;
+};
+
+type Section = {
+  id: number;
+  title: string;
+  vehicles: Vehicle[];
+};
+
+const emptyForm = {
+  id: "",
+  sectionId: "",
+  title: "",
+  marca: "",
+  modelo: "",
+  version: "",
+  precio: "",
+  cuotaDesde: "",
+  descripcion: "",
+  imagenHero: "",
+  gallery: [] as string[],
+};
+
+export default function InventoryManager({ type, title, description, examples }: Props) {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [open, setOpen] = useState<number[]>([]);
+  const [brandName, setBrandName] = useState("");
+  const [form, setForm] = useState(emptyForm);
+  const [editing, setEditing] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   async function load() {
-    const res = await fetch(`/api/vehicles?admin=1&type=${type}`);
+    const res = await fetch(`/api/vehicles?admin=1&type=${type}`, { cache: "no-store" });
     const json = await res.json();
     setSections(json.sections || []);
   }
@@ -18,126 +62,391 @@ export default function InventoryManager({ type, title }) {
     load();
   }, [type]);
 
-  function toggleSection(id) {
-    setOpen((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+  const currentVehicles = useMemo(
+    () => sections.flatMap((s) => s.vehicles || []),
+    [sections]
+  );
+
+  function toggleSection(id: number) {
+    setOpen((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
 
-  async function toggleVehicle(id) {
-    await fetch("/api/vehicles", {
-      method: "PATCH",
-      body: JSON.stringify({ id, action: "toggle_visibility" }),
+  async function createBrand() {
+    if (!brandName.trim()) return alert("Ingresá el nombre de la marca.");
+
+    const res = await fetch("/api/vehicles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: "section", title: brandName.trim(), sectionType: type }),
     });
-    load();
+
+    const json = await res.json();
+
+    if (!res.ok) return alert(json.message || "No se pudo crear la marca.");
+
+    setBrandName("");
+    await load();
   }
 
-  async function deleteVehicle(id) {
-    await fetch(`/api/vehicles?id=${id}`, { method: "DELETE" });
-    load();
+  async function uploadImages(files: FileList | null) {
+    if (!files?.length) return;
+
+    const selected = Array.from(files).slice(0, 8 - form.gallery.length);
+
+    if (!selected.length) {
+      alert("Máximo 8 imágenes por vehículo.");
+      return;
+    }
+
+    setUploading(true);
+
+    const uploaded: string[] = [];
+
+    for (const file of selected) {
+      const data = new FormData();
+      data.append("file", file);
+
+      const res = await fetch("/api/admin/upload-vehicle-image", {
+        method: "POST",
+        body: data,
+      });
+
+      const json = await res.json();
+
+      if (res.ok && json.url) {
+        uploaded.push(json.url);
+      } else {
+        alert(json.message || "No se pudo subir una imagen.");
+      }
+    }
+
+    setForm((prev) => {
+      const gallery = [...prev.gallery, ...uploaded].slice(0, 8);
+      return {
+        ...prev,
+        gallery,
+        imagenHero: prev.imagenHero || gallery[0] || "",
+      };
+    });
+
+    setUploading(false);
   }
 
-  function editVehicle(v) {
+  function setHero(url: string) {
+    setForm((prev) => ({ ...prev, imagenHero: url }));
+  }
+
+  function removeImage(url: string) {
+    setForm((prev) => {
+      const gallery = prev.gallery.filter((img) => img !== url);
+      return {
+        ...prev,
+        gallery,
+        imagenHero: prev.imagenHero === url ? gallery[0] || "" : prev.imagenHero,
+      };
+    });
+  }
+
+  function editVehicle(v: Vehicle) {
+    const gallery = Array.isArray(v.galeria)
+      ? v.galeria
+      : [];
+
+    const uniqueGallery = Array.from(
+      new Set([v.imagen_hero || v.imagen_url, ...gallery].filter(Boolean))
+    ) as string[];
+
     setEditing(v.id);
-    setForm(v);
+    setForm({
+      id: String(v.id),
+      sectionId: "",
+      title: v.title || "",
+      marca: v.marca || "",
+      modelo: v.modelo || "",
+      version: v.version || "",
+      precio: v.precio ? String(v.precio) : "",
+      cuotaDesde: v.cuota_desde ? String(v.cuota_desde) : "",
+      descripcion: v.descripcion || "",
+      imagenHero: v.imagen_hero || v.imagen_url || uniqueGallery[0] || "",
+      gallery: uniqueGallery.slice(0, 8),
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function saveVehicle() {
-    const method = editing ? "PATCH" : "POST";
+    if (!form.title.trim()) return alert("Ingresá el nombre público.");
 
-    await fetch("/api/vehicles", {
-      method,
+    const res = await fetch("/api/vehicles", {
+      method: editing ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...form,
-        id: editing,
         type: "vehicle",
+        id: editing,
         inventoryType: type,
+        sectionId: form.sectionId ? Number(form.sectionId) : undefined,
+        title: form.title,
+        marca: form.marca,
+        modelo: form.modelo,
+        version: form.version,
+        precio: form.precio,
+        cuotaDesde: form.cuotaDesde,
+        descripcion: form.descripcion,
+        imagenHero: form.imagenHero,
+        imagenUrl: form.imagenHero,
+        gallery: form.gallery,
       }),
     });
 
-    setForm({});
+    const json = await res.json();
+
+    if (!res.ok) return alert(json.message || "No se pudo guardar.");
+
+    setForm(emptyForm);
     setEditing(null);
-    load();
+    await load();
+  }
+
+  async function toggleVehicle(id: number) {
+    await fetch("/api/vehicles", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, action: "toggle_visibility" }),
+    });
+    await load();
+  }
+
+  async function deleteVehicle(id: number) {
+    if (!confirm("¿Eliminar este vehículo? Esta acción no se puede deshacer.")) return;
+
+    await fetch(`/api/vehicles?id=${id}`, { method: "DELETE" });
+    await load();
   }
 
   return (
-    <div className="p-6">
+    <main className="min-h-screen bg-[#05070d] p-6 text-white">
+      <section className="mx-auto max-w-7xl">
+        <div className="mb-8 rounded-[28px] border border-white/10 bg-white/[0.04] p-7">
+          <p className="text-xs font-black uppercase tracking-[0.32em] text-blue-300">
+            Inventario GoMotorsCo
+          </p>
+          <h1 className="mt-3 text-4xl font-black tracking-[-0.04em]">{title}</h1>
+          {description ? <p className="mt-3 text-slate-300">{description}</p> : null}
+        </div>
 
-      <h1 className="mb-6 text-2xl font-bold">{title}</h1>
+        <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+          <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
+            <h2 className="text-xl font-black">Marcas</h2>
+            <p className="mt-2 text-sm text-slate-400">
+              Ejemplos: {examples || "Chevrolet, Renault, Yamaha, Honda"}.
+            </p>
 
-      {/* FORM */}
-      <div className="mb-8 rounded-xl bg-[#0b0f14] p-4">
-        <input
-          placeholder="Nombre"
-          className="mb-2 w-full p-2"
-          value={form.title || ""}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-        />
+            <div className="mt-5 flex gap-3">
+              <input
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                placeholder="Ingresar nueva marca"
+                className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
+              <button onClick={createBrand} className="rounded-2xl bg-blue-600 px-5 py-3 font-black">
+                Crear marca
+              </button>
+            </div>
 
-        <input
-          placeholder="Marca"
-          className="mb-2 w-full p-2"
-          value={form.marca || ""}
-          onChange={(e) => setForm({ ...form, marca: e.target.value })}
-        />
+            <div className="mt-6 flex flex-wrap gap-2">
+              {sections.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setForm((prev) => ({ ...prev, marca: s.title }))}
+                  className="rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-bold text-emerald-200"
+                >
+                  {s.title}
+                </button>
+              ))}
+            </div>
+          </section>
 
-        <textarea
-          placeholder="Galería (1 URL por línea)"
-          className="mb-2 w-full p-2"
-          value={(form.gallery || []).join("\n")}
-          onChange={(e) =>
-            setForm({
-              ...form,
-              gallery: e.target.value.split("\n"),
-              imagenHero: e.target.value.split("\n")[0],
-            })
-          }
-        />
+          <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
+            <h2 className="text-xl font-black">
+              {editing ? "Editar modelo / versión" : "Cargar modelo / versión"}
+            </h2>
 
-        <button onClick={saveVehicle} className="bg-green-600 px-4 py-2">
-          {editing ? "Guardar cambios" : "Crear vehículo"}
-        </button>
-      </div>
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <input
+                value={form.marca}
+                onChange={(e) => setForm((f) => ({ ...f, marca: e.target.value }))}
+                placeholder="Marca"
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
 
-      {/* INVENTARIO */}
-      {sections.map((section) => (
-        <div key={section.id} className="mb-6 rounded-xl border border-white/10">
+              <input
+                value={form.title}
+                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="Nombre público"
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
 
-          <button
-            onClick={() => toggleSection(section.id)}
-            className="w-full p-4 text-left"
-          >
-            <h3 className="text-lg font-bold">{section.title}</h3>
-          </button>
+              <input
+                value={form.modelo}
+                onChange={(e) => setForm((f) => ({ ...f, modelo: e.target.value }))}
+                placeholder="Modelo"
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
 
-          {open.includes(section.id) && (
-            <div className="grid grid-cols-3 gap-4 p-4">
+              <input
+                value={form.version}
+                onChange={(e) => setForm((f) => ({ ...f, version: e.target.value }))}
+                placeholder="Versión"
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
 
-              {section.vehicles.map((v) => (
-                <div key={v.id} className="rounded-lg bg-[#0b0f14] p-3">
+              <input
+                value={form.precio}
+                onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
+                placeholder="Precio"
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
 
-                  <img src={v.imagen_hero} className="h-40 w-full object-cover rounded" />
+              <input
+                value={form.cuotaDesde}
+                onChange={(e) => setForm((f) => ({ ...f, cuotaDesde: e.target.value }))}
+                placeholder="Cuota desde"
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none"
+              />
 
-                  <p className="mt-2 font-bold">{v.title}</p>
+              <textarea
+                value={form.descripcion}
+                onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+                placeholder="Descripción"
+                rows={4}
+                className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 outline-none md:col-span-2"
+              />
 
-                  <div className="mt-3 flex gap-2 text-sm">
-                    <button onClick={() => editVehicle(v)}>Editar</button>
-                    <button onClick={() => toggleVehicle(v.id)}>
-                      {v.visible ? "Pausar" : "Activar"}
-                    </button>
-                    <button onClick={() => deleteVehicle(v.id)}>
-                      Eliminar
-                    </button>
+              <div className="md:col-span-2 rounded-2xl border border-white/10 bg-[#101827] p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <p className="font-black">Imágenes del vehículo</p>
+                    <p className="text-sm text-slate-400">Máximo 8. La primera será hero si no elegís otra.</p>
                   </div>
 
+                  <label className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black hover:bg-blue-500">
+                    {uploading ? "Subiendo..." : "Subir imágenes"}
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      disabled={uploading || form.gallery.length >= 8}
+                      onChange={(e) => uploadImages(e.target.files)}
+                    />
+                  </label>
                 </div>
-              ))}
 
+                {form.gallery.length ? (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2 md:grid-cols-4">
+                    {form.gallery.map((img) => (
+                      <div key={img} className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+                        <img src={img} className="h-28 w-full object-cover" />
+
+                        <div className="flex gap-2 p-2">
+                          <button
+                            onClick={() => setHero(img)}
+                            className={`flex-1 rounded-xl px-3 py-2 text-xs font-black ${
+                              form.imagenHero === img ? "bg-emerald-600" : "bg-white/10"
+                            }`}
+                          >
+                            Hero
+                          </button>
+                          <button
+                            onClick={() => removeImage(img)}
+                            className="rounded-xl bg-red-600 px-3 py-2 text-xs font-black"
+                          >
+                            X
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             </div>
-          )}
 
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button onClick={saveVehicle} className="rounded-2xl bg-emerald-600 px-6 py-3 font-black">
+                {editing ? "Guardar cambios" : "Agregar al inventario"}
+              </button>
+
+              {editing ? (
+                <button
+                  onClick={() => {
+                    setEditing(null);
+                    setForm(emptyForm);
+                  }}
+                  className="rounded-2xl bg-white/10 px-6 py-3 font-black"
+                >
+                  Cancelar
+                </button>
+              ) : null}
+            </div>
+          </section>
         </div>
-      ))}
-    </div>
+
+        <section className="mt-6 rounded-[28px] border border-white/10 bg-[#080d18] p-6">
+          <h2 className="text-xl font-black">Inventario por marca</h2>
+
+          <div className="mt-5 space-y-4">
+            {sections.map((section) => (
+              <div key={section.id} className="overflow-hidden rounded-2xl border border-white/10">
+                <button
+                  onClick={() => toggleSection(section.id)}
+                  className="flex w-full items-center justify-between bg-white/[0.03] px-5 py-4 text-left"
+                >
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Marca</p>
+                    <h3 className="text-xl font-black">{section.title}</h3>
+                  </div>
+                  <span>{open.includes(section.id) ? "▲" : "▼"}</span>
+                </button>
+
+                {open.includes(section.id) ? (
+                  <div className="grid gap-5 p-5 md:grid-cols-2 xl:grid-cols-3">
+                    {(section.vehicles || []).map((v) => (
+                      <article key={v.id} className="overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.04]">
+                        <img
+                          src={v.imagen_hero || v.imagen_url || "/category-banners/automoviles.png"}
+                          className="h-44 w-full object-cover"
+                        />
+
+                        <div className="p-4">
+                          <p className="text-xs font-black uppercase tracking-[0.2em] text-blue-300">
+                            {v.marca || section.title}
+                          </p>
+                          <h4 className="mt-2 text-lg font-black">{v.title}</h4>
+                          <p className="mt-1 text-sm text-slate-400">
+                            {v.visible === false ? "Pausado" : "Visible"}
+                          </p>
+
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button onClick={() => editVehicle(v)} className="rounded-xl bg-blue-600 px-3 py-2 text-xs font-black">
+                              Editar
+                            </button>
+                            <button onClick={() => toggleVehicle(v.id)} className="rounded-xl bg-amber-600 px-3 py-2 text-xs font-black">
+                              {v.visible === false ? "Activar" : "Pausar"}
+                            </button>
+                            <button onClick={() => deleteVehicle(v.id)} className="rounded-xl bg-red-600 px-3 py-2 text-xs font-black">
+                              Eliminar
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+    </main>
   );
 }
