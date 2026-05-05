@@ -170,8 +170,7 @@ export async function PATCH(req: NextRequest) {
       .from("vehicles")
       .update({ visible: !current.visible, updated_at: new Date().toISOString() })
       .eq("id", id)
-      .select("id")
-      .maybeSingle();
+      ;
 
     if (error) return NextResponse.json({ message: error.message }, { status: 500 });
     if (!data) return NextResponse.json({ message: "No se encontró el vehículo para pausar/activar." }, { status: 404 });
@@ -201,8 +200,7 @@ export async function PATCH(req: NextRequest) {
     .from("vehicles")
     .update(payload)
     .eq("id", id)
-    .select("id")
-    .maybeSingle();
+    ;
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
   if (!data) return NextResponse.json({ message: "No se encontró el vehículo para editar." }, { status: 404 });
@@ -215,15 +213,12 @@ export async function DELETE(req: NextRequest) {
   const id = Number(body.id || req.nextUrl.searchParams.get("id"));
   if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
-  const { data, error } = await supabaseAdmin
+  const { error } = await supabaseAdmin
     .from("vehicles")
     .delete()
-    .eq("id", id)
-    .select("id")
-    .maybeSingle();
+    .eq("id", id);
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ message: "No se encontró el vehículo para eliminar." }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }
