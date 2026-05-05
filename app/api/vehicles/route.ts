@@ -30,15 +30,11 @@ function parseGallery(value: any) {
 }
 
 export async function GET(req: NextRequest) {
-  console.log("VERSION: FIX-VEHICLES-NEW");
   const url = new URL(req.url);
   const admin = url.searchParams.get("admin") === "1";
   const type = url.searchParams.get("type");
 
-  let vq = supabaseAdmin
-    .from("vehicles")
-    .select("*")
-    .order("created_at", { ascending: false });
+  let vq = supabaseAdmin.from("vehicles").select("*").order("created_at", { ascending: false });
   if (!admin) vq = vq.eq("visible", true);
   if (type) vq = vq.eq("tipo", normalizeType(type));
 
@@ -49,47 +45,20 @@ export async function GET(req: NextRequest) {
   if (type) sq = sq.eq("type", normalizeType(type));
 
   const { data: sectionsDb } = await sq;
-
   const map = new Map<string, any>();
 
   for (const s of sectionsDb || []) {
     const title = s.title || s.name;
     if (!title) continue;
     if (["autos", "motos", "ciclomotores"].includes(String(title).toLowerCase())) continue;
-
-    map.set(title, {
-      id: s.id,
-      title,
-      name: title,
-      slug: s.slug || slugify(title),
-      type: s.type || normalizeType(type),
-      visible: s.visible !== false,
-      vehicles: [],
-    });
+    map.set(String(s.id), { id: s.id, title, name: title, slug: s.slug || slugify(title), type: s.type || normalizeType(type), visible: s.visible !== false, vehicles: [] });
   }
 
   for (const v of vehicles || []) {
-      if (!v.section_id) continue;
-
-      for (const section of map.values()) {
-        if (String(section.id) === String(v.section_id)) {
-          section.vehicles.push({
-            ...v,
-            galeria: parseGallery(v.galeria),
-            imagen_hero: v.imagen_hero || v.imagen_url,
-            imagen_url: v.imagen_url || v.imagen_hero,
-          });
-          break;
-        }
-      }
-    }
-
-    map.get(brand).vehicles.push({
-      ...v,
-      galeria: parseGallery(v.galeria),
-      imagen_hero: v.imagen_hero || v.imagen_url,
-      imagen_url: v.imagen_url || v.imagen_hero,
-    });
+    if (!v.section_id) continue;
+    const section = map.get(String(v.section_id));
+    if (!section) continue;
+    section.vehicles.push({ ...v, galeria: parseGallery(v.galeria), imagen_hero: v.imagen_hero || v.imagen_url, imagen_url: v.imagen_url || v.imagen_hero });
   }
 
   return NextResponse.json({ sections: Array.from(map.values()), total: vehicles?.length ?? 0 });
@@ -214,6 +183,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 
+
+
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
 
@@ -225,12 +196,16 @@ export async function DELETE(req: NextRequest) {
     .from("vehicles")
     .delete()
     .eq("id", id)
-    .select("id,title,source,external_id");
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ ok: true, deleted: data || [] });
-}
+  if (!data) {
+    return NextResponse.json({ message: "No se encontró el vehículo para eliminar." }, { status: 404 });
+  }
 
+  return NextResponse.json({ ok: true, deletedId: data.id });
+}
