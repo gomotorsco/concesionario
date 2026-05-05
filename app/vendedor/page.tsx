@@ -18,7 +18,7 @@ const estados = [
 
 export default function VendedorPage() {
   const [vendedorId, setVendedorId] = useState("");
-  const [vendedores, setVendedores] = useState<any[]>([]);;
+  const [vendedores, setVendedores] = useState<any[]>([]);
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -41,7 +41,6 @@ export default function VendedorPage() {
     setAlerts(a.alerts ?? []);
   }
 
-  useEffect(() => {
 useEffect(() => {
   async function init() {
     const stored = localStorage.getItem("vendedor_id");
@@ -150,7 +149,6 @@ useEffect(() => {
               </p>
             </div>
 
-            <label className="grid gap-2 text-sm">
             <label className="grid gap-2 text-sm">
               Vendedor
               <select

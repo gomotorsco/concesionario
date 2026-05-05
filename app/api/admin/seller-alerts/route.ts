@@ -15,7 +15,7 @@ export async function GET() {
       title: a.title || a.titulo,
       message: a.message || a.mensaje,
       priority: a.priority || a.tipo || "info",
-      read: a.read ?? a.estado === "leida" ?? a.status === "leida",
+      read: Boolean(a.read ?? (a.estado === "leida" || a.status === "leida")),
     })),
   });
 }
