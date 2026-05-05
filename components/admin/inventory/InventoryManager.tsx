@@ -162,6 +162,13 @@ export default function InventoryManager({ type, title, description, examples }:
     if (!res.ok) return alert(json.message || "No se pudo eliminar.");
 
 
+    setSections((prev) =>
+      prev.map((section) => ({
+        ...section,
+        vehicles: (section.vehicles || []).filter((v: any) => Number(v.id) !== Number(id)),
+      }))
+    );
+
     alert("Vehículo eliminado.");
     await load();
   }
