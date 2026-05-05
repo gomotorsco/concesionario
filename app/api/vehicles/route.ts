@@ -35,7 +35,11 @@ export async function GET(req: NextRequest) {
   const admin = url.searchParams.get("admin") === "1";
   const type = url.searchParams.get("type");
 
-  let vq = supabaseAdmin.from("vehicles").select("*").order("created_at", { ascending: false });
+  let vq = supabaseAdmin
+    .from("vehicles")
+    .select("*")
+    .is("source", null)
+    .order("created_at", { ascending: false });
   if (!admin) vq = vq.eq("visible", true);
   if (type) vq = vq.eq("tipo", normalizeType(type));
 
