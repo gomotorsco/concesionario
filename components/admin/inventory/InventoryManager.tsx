@@ -161,6 +161,7 @@ export default function InventoryManager({ type, title, description, examples }:
 
     if (!res.ok) return alert(json.message || "No se pudo eliminar.");
 
+
     alert("Vehículo eliminado.");
     await load();
   }
