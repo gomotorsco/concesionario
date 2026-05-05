@@ -69,18 +69,19 @@ export async function GET(req: NextRequest) {
   }
 
   for (const v of vehicles || []) {
-    const brand = v.marca || "Sin marca";
+      if (!v.section_id) continue;
 
-    if (!map.has(brand)) {
-      map.set(brand, {
-        id: "brand-" + slugify(brand),
-        title: brand,
-        name: brand,
-        slug: slugify(brand),
-        type: v.tipo || normalizeType(type),
-        visible: true,
-        vehicles: [],
-      });
+      for (const section of map.values()) {
+        if (String(section.id) === String(v.section_id)) {
+          section.vehicles.push({
+            ...v,
+            galeria: parseGallery(v.galeria),
+            imagen_hero: v.imagen_hero || v.imagen_url,
+            imagen_url: v.imagen_url || v.imagen_hero,
+          });
+          break;
+        }
+      }
     }
 
     map.get(brand).vehicles.push({
