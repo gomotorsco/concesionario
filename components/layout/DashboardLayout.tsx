@@ -10,8 +10,10 @@ export function DashboardLayout({ children }: { children: ReactNode }) {
       <div className="min-h-screen lg:pl-72">
         <Topbar />
 
-        <main className="px-5 py-6 lg:px-8">
-          {children}
+        <main className="w-full overflow-x-hidden px-4 py-5 sm:px-5 lg:px-8">
+          <div className="mx-auto w-full max-w-[1600px]">
+            {children}
+          </div>
         </main>
       </div>
     </div>
