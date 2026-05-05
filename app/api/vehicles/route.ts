@@ -214,15 +214,39 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
-  const id = Number(body.id || req.nextUrl.searchParams.get("id"));
-  if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
+  const rawId = body.id || req.nextUrl.searchParams.get("id");
+  const id = Number(rawId);
 
-  const { error } = await supabaseAdmin
+  if (!id) {
+    return NextResponse.json({ message: "ID requerido." }, { status: 400 });
+  }
+
+  const { data: existing, error: readError } = await supabaseAdmin
+    .from("vehicles")
+    .select("id,title,source,external_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (readError) {
+    return NextResponse.json({ message: readError.message }, { status: 500 });
+  }
+
+  if (!existing) {
+    return NextResponse.json(
+      { message: "No se encontró el vehículo para eliminar.", id },
+      { status: 404 }
+    );
+  }
+
+  const { data: deleted, error: deleteError } = await supabaseAdmin
     .from("vehicles")
     .delete()
-    .eq("id", id);
+    .eq("id", id)
+    .select("id,title,source,external_id");
 
-  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+  if (deleteError) {
+    return NextResponse.json({ message: deleteError.message }, { status: 500 });
+  }
 
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, deleted: deleted || [] });
 }
