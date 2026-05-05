@@ -38,7 +38,6 @@ export async function GET(req: NextRequest) {
   let vq = supabaseAdmin
     .from("vehicles")
     .select("*")
-    .is("source", null)
     .order("created_at", { ascending: false });
   if (!admin) vq = vq.eq("visible", true);
   if (type) vq = vq.eq("tipo", normalizeType(type));
