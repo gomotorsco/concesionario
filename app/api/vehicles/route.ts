@@ -166,12 +166,15 @@ export async function PATCH(req: NextRequest) {
     if (readError) return NextResponse.json({ message: readError.message }, { status: 500 });
     if (!current) return NextResponse.json({ message: "Vehículo no encontrado." }, { status: 404 });
 
-    const { error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("vehicles")
       .update({ visible: !current.visible, updated_at: new Date().toISOString() })
-      .eq("id", id);
+      .eq("id", id)
+      .select("id")
+      .maybeSingle();
 
     if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+    if (!data) return NextResponse.json({ message: "No se encontró el vehículo para pausar/activar." }, { status: 404 });
     return NextResponse.json({ ok: true });
   }
 
@@ -194,8 +197,15 @@ export async function PATCH(req: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
-  const { error } = await supabaseAdmin.from("vehicles").update(payload).eq("id", id);
+  const { data, error } = await supabaseAdmin
+    .from("vehicles")
+    .update(payload)
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ message: "No se encontró el vehículo para editar." }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }
@@ -204,8 +214,15 @@ export async function DELETE(req: NextRequest) {
   const id = new URL(req.url).searchParams.get("id");
   if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
-  const { error } = await supabaseAdmin.from("vehicles").delete().eq("id", id);
+  const { data, error } = await supabaseAdmin
+    .from("vehicles")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .maybeSingle();
+
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+  if (!data) return NextResponse.json({ message: "No se encontró el vehículo para eliminar." }, { status: 404 });
 
   return NextResponse.json({ ok: true });
 }

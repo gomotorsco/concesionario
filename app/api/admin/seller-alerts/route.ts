@@ -8,16 +8,25 @@ export async function GET() {
     .order("created_at", { ascending: false });
 
   if (error) return NextResponse.json({ alerts: [], message: error.message }, { status: 500 });
-  return NextResponse.json({ alerts: data ?? [] });
+
+  return NextResponse.json({
+    alerts: (data ?? []).map((a: any) => ({
+      ...a,
+      title: a.title || a.titulo,
+      message: a.message || a.mensaje,
+      priority: a.priority || a.tipo || "info",
+      read: a.read ?? a.estado === "leida" ?? a.status === "leida",
+    })),
+  });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  const vendedorId = body.vendedor_id || body.vendedorId || body.seller_id;
+  const vendedorId = String(body.vendedor_id || body.vendedorId || body.seller_id || "").trim();
   const titulo = String(body.titulo || body.title || "Alerta comercial").trim();
   const mensaje = String(body.mensaje || body.message || "").trim();
-  const tipo = body.tipo || body.priority || "info";
+  const tipo = String(body.tipo || body.priority || "info").trim();
 
   if (!vendedorId || !mensaje) {
     return NextResponse.json({ message: "Vendedor y mensaje requeridos." }, { status: 400 });
@@ -26,7 +35,7 @@ export async function POST(req: NextRequest) {
   const { data, error } = await supabaseAdmin
     .from("seller_alerts")
     .insert({
-      vendedor_id: Number(vendedorId),
+      vendedor_id: vendedorId,
       titulo,
       mensaje,
       tipo,
@@ -38,5 +47,6 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
   return NextResponse.json({ ok: true, alert: data });
 }

@@ -17,7 +17,8 @@ const estados = [
 ];
 
 export default function VendedorPage() {
-  const [vendedorId, setVendedorId] = useState("1");
+  const [vendedorId, setVendedorId] = useState("");
+  const [vendedores, setVendedores] = useState<any[]>([]);;
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
@@ -41,11 +42,26 @@ export default function VendedorPage() {
   }
 
   useEffect(() => {
+useEffect(() => {
+  async function init() {
     const stored = localStorage.getItem("vendedor_id");
-    if (stored) setVendedorId(stored);
-  }, []);
+    const res = await fetch("/api/vendedores", { cache: "no-store" });
+    const json = await res.json();
+    const list = json.vendedores ?? [];
+    setVendedores(list);
+
+    if (stored) {
+      setVendedorId(stored);
+    } else if (list[0]?.id) {
+      setVendedorId(String(list[0].id));
+    }
+  }
+
+  init();
+}, []);
 
   useEffect(() => {
+    if (!vendedorId) return;
     localStorage.setItem("vendedor_id", vendedorId);
     load();
   }, [vendedorId]);
@@ -135,12 +151,20 @@ export default function VendedorPage() {
             </div>
 
             <label className="grid gap-2 text-sm">
-              ID vendedor
-              <input
+            <label className="grid gap-2 text-sm">
+              Vendedor
+              <select
                 value={vendedorId}
                 onChange={(e) => setVendedorId(e.target.value)}
                 className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white"
-              />
+              >
+                <option value="">Seleccionar vendedor</option>
+                {vendedores.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.nombre} — {v.email}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
         </div>
