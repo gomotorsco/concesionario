@@ -30,6 +30,7 @@ function parseGallery(value: any) {
 }
 
 export async function GET(req: NextRequest) {
+  console.log("VERSION: FIX-VEHICLES-NEW");
   const url = new URL(req.url);
   const admin = url.searchParams.get("admin") === "1";
   const type = url.searchParams.get("type");
