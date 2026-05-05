@@ -11,33 +11,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: "Nombre y teléfono son obligatorios." }, { status: 400 });
   }
 
-  const vehiculo =
-    body.vehiculo ||
-    body.vehicle ||
-    body.vehicleTitle ||
-    body.vehicle_name ||
-    body.vehiculo_interes ||
-    body.auto ||
-    null;
-
-  const cuotaMensual =
-    body.cuotaMensual ||
-    body.cuota_mensual ||
-    body.monthlyBudget ||
-    body.cuota ||
-    null;
-
-  const cuotaInicial =
-    body.cuotaInicial ||
-    body.cuota_inicial ||
-    body.downPayment ||
-    body.inicial ||
-    null;
-
-  const mensaje =
-    body.message ||
-    body.mensaje ||
-    (vehiculo ? `Consulta por ${vehiculo}` : null);
+  const vehiculo = body.vehiculo || body.vehicle || body.vehicleTitle || body.vehicle_name || body.vehiculo_interes || null;
+  const cuotaMensual = body.cuotaMensual || body.cuota_mensual || body.monthlyBudget || body.cuota || null;
+  const cuotaInicial = body.cuotaInicial || body.cuota_inicial || body.downPayment || body.inicial || null;
 
   const payload = {
     nombre,
@@ -50,7 +26,7 @@ export async function POST(req: NextRequest) {
     vehiculo_interes: vehiculo,
     cuota_mensual: cuotaMensual,
     cuota_inicial: cuotaInicial,
-    mensaje,
+    mensaje: body.message || body.mensaje || (vehiculo ? `Consulta por ${vehiculo}` : null),
     source: body.source || "web",
     origen: body.source || "web",
     estado: "nuevo",
@@ -63,9 +39,7 @@ export async function POST(req: NextRequest) {
     .select("*")
     .single();
 
-  if (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
   return NextResponse.json({ ok: true, lead: data });
 }

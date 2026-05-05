@@ -19,11 +19,17 @@ function normalizeType(value: any) {
 
 function parseGallery(value: any) {
   if (Array.isArray(value)) return value.filter(Boolean).slice(0, 15);
-  return String(value || "")
-    .split("\n")
-    .map((x) => x.trim())
-    .filter(Boolean)
-    .slice(0, 15);
+
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 15);
+    } catch {}
+
+    return value.split("\n").map((x) => x.trim()).filter(Boolean).slice(0, 15);
+  }
+
+  return [];
 }
 
 export async function GET(req: NextRequest) {
@@ -31,22 +37,24 @@ export async function GET(req: NextRequest) {
   const admin = url.searchParams.get("admin") === "1";
   const type = url.searchParams.get("type");
 
-  let query = supabaseAdmin.from("vehicles").select("*").order("created_at", { ascending: false });
+  let query = supabaseAdmin
+    .from("vehicles")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   if (!admin) query = query.eq("visible", true);
   if (type) query = query.eq("tipo", normalizeType(type));
 
   const { data, error } = await query;
 
-  if (error) {
-    return NextResponse.json({ sections: [], message: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ sections: [], message: error.message }, { status: 500 });
 
   const map = new Map<string, any[]>();
 
   for (const v of data || []) {
     const marca = v.marca || "Sin marca";
     if (!map.has(marca)) map.set(marca, []);
+
     map.get(marca)!.push({
       ...v,
       imagen_hero: v.imagen_hero || v.imagen_url,
@@ -77,9 +85,7 @@ export async function POST(req: NextRequest) {
     const title = String(body.title || "").trim();
     const inventoryType = normalizeType(body.sectionType || body.inventoryType || body.type_value);
 
-    if (!title) {
-      return NextResponse.json({ message: "Nombre de marca requerido." }, { status: 400 });
-    }
+    if (!title) return NextResponse.json({ message: "Nombre de marca requerido." }, { status: 400 });
 
     const { data, error } = await supabaseAdmin
       .from("vehicle_sections")
@@ -97,15 +103,15 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
     return NextResponse.json({ section: data });
   }
 
   const title = String(body.title || "").trim();
-  if (!title) {
-    return NextResponse.json({ message: "Nombre requerido." }, { status: 400 });
-  }
 
-  const gallery = parseGallery(body.gallery);
+  if (!title) return NextResponse.json({ message: "Nombre requerido." }, { status: 400 });
+
+  const gallery = parseGallery(body.gallery ?? body.galeria);
   const hero = body.imagenHero || body.imagen_hero || body.imagenUrl || body.imagen_url || gallery[0] || null;
 
   const payload = {
@@ -128,9 +134,14 @@ export async function POST(req: NextRequest) {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabaseAdmin.from("vehicles").insert(payload).select("*").single();
+  const { data, error } = await supabaseAdmin
+    .from("vehicles")
+    .insert(payload)
+    .select("*")
+    .single();
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
   return NextResponse.json({ vehicle: data });
 }
 
@@ -138,9 +149,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json();
   const id = body.id;
 
-  if (!id) {
-    return NextResponse.json({ message: "ID requerido." }, { status: 400 });
-  }
+  if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
   if (body.action === "toggle_visibility") {
     const { data: current, error: readError } = await supabaseAdmin
@@ -160,10 +169,11 @@ export async function PATCH(req: NextRequest) {
       .eq("id", id);
 
     if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
     return NextResponse.json({ ok: true });
   }
 
-  const gallery = parseGallery(body.gallery);
+  const gallery = parseGallery(body.gallery ?? body.galeria);
   const hero = body.imagenHero || body.imagen_hero || body.imagenUrl || body.imagen_url || gallery[0] || null;
 
   const payload = {
@@ -194,11 +204,12 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const id = new URL(req.url).searchParams.get("id");
 
-  if (!id) {
-    return NextResponse.json({ message: "ID requerido." }, { status: 400 });
-  }
+  if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
-  const { error } = await supabaseAdmin.from("vehicles").delete().eq("id", id);
+  const { error } = await supabaseAdmin
+    .from("vehicles")
+    .delete()
+    .eq("id", id);
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 

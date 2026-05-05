@@ -5,38 +5,34 @@ export async function GET() {
   const { data, error } = await supabaseAdmin
     .from("seller_alerts")
     .select("*")
-    .order("created_at", { ascending: false })
-    .limit(100);
+    .order("created_at", { ascending: false });
 
-  if (error) {
-    return NextResponse.json({ ok: false, alerts: [], message: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ alerts: [], message: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, alerts: data ?? [] });
+  return NextResponse.json({ alerts: data ?? [] });
 }
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
 
-  if (!body.vendedor_id || !body.title || !body.message) {
-    return NextResponse.json({ ok: false, message: "vendedor_id, title y message requeridos." }, { status: 400 });
+  const vendedorId = body.vendedor_id || body.vendedorId || body.seller_id;
+  const mensaje = String(body.mensaje || body.message || "").trim();
+  const titulo = String(body.titulo || body.title || "Alerta comercial").trim();
+
+  if (!vendedorId || !mensaje) {
+    return NextResponse.json({ message: "Vendedor y mensaje son obligatorios." }, { status: 400 });
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("seller_alerts")
-    .insert([{
-      vendedor_id: body.vendedor_id,
-      title: String(body.title),
-      message: String(body.message),
-      priority: body.priority || "info",
-      read: false,
-    }])
-    .select("*")
-    .single();
+  const { error } = await supabaseAdmin.from("seller_alerts").insert({
+    vendedor_id: Number(vendedorId),
+    titulo,
+    mensaje,
+    tipo: body.tipo || "info",
+    estado: "pendiente",
+    status: "pendiente",
+  });
 
-  if (error) {
-    return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
-  }
+  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
-  return NextResponse.json({ ok: true, alert: data });
+  return NextResponse.json({ ok: true });
 }

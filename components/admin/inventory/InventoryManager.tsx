@@ -94,7 +94,7 @@ export default function InventoryManager({ type, title, description, examples }:
     const selected = Array.from(files).slice(0, 15 - form.gallery.length);
 
     if (!selected.length) {
-      alert("MÃ¡ximo 8 imÃ¡genes por vehÃ­culo.");
+      alert("Máximo 15 imÃ¡genes por vehÃ­culo.");
       return;
     }
 
@@ -195,6 +195,7 @@ export default function InventoryManager({ type, title, description, examples }:
         imagenHero: form.imagenHero,
         imagenUrl: form.imagenHero,
         gallery: form.gallery,
+        galeria: form.gallery,
       }),
     });
 
@@ -327,7 +328,7 @@ export default function InventoryManager({ type, title, description, examples }:
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <p className="font-black">ImÃ¡genes del vehÃ­culo</p>
-                    <p className="text-sm text-slate-400">MÃ¡ximo 8. La primera serÃ¡ hero si no elegÃ­s otra.</p>
+                    <p className="text-sm text-slate-400">Máximo 15. La primera serÃ¡ hero si no elegÃ­s otra.</p>
                   </div>
 
                   <label className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-3 text-center text-sm font-black hover:bg-blue-500">
