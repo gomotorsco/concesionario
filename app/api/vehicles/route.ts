@@ -211,7 +211,8 @@ export async function PATCH(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const id = new URL(req.url).searchParams.get("id");
+  const body = await req.json().catch(() => ({}));
+  const id = Number(body.id || req.nextUrl.searchParams.get("id"));
   if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
