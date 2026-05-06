@@ -347,21 +347,83 @@ function Textarea({ label, value, onChange }: { label: string; value: string; on
   return <label className="grid gap-2 md:col-span-2"><span className="text-sm font-bold">{label}</span><textarea rows={4} value={value || ""} onChange={(e) => onChange(e.target.value)} className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3" /></label>;
 }
 
+
 function Editorial(props: any) {
+  async function uploadBlockImage(file?: File) {
+    if (!file) return;
+
+    const fd = new FormData();
+    fd.append("file", file);
+
+    const res = await fetch("/api/admin/upload-vehicle-image", {
+      method: "POST",
+      body: fd,
+    });
+
+    const json = await res.json();
+
+    if (!res.ok || !json.url) {
+      alert(json.message || "No se pudo subir la imagen.");
+      return;
+    }
+
+    props.onImage(json.url);
+  }
+
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4 md:col-span-2">
       <h3 className="text-lg font-black">{props.title}</h3>
+
       <div className="mt-4 grid gap-4">
-        <Input label="Título" value={props.titleValue} onChange={props.onTitle} />
-        <Textarea label="Texto" value={props.textValue} onChange={props.onText} />
-        <Input label={props.imageLabel} value={props.img} onChange={props.onImage} />
-        {props.img ? <img src={props.img} className="h-56 w-full rounded-2xl object-cover" /> : null}
+        <Input
+          label="Título"
+          value={props.titleValue}
+          onChange={props.onTitle}
+        />
+
+        <Textarea
+          label="Texto"
+          value={props.textValue}
+          onChange={props.onText}
+        />
+
+        <div className="grid gap-2">
+          <span className="text-sm font-bold">{props.imageLabel}</span>
+
+          <div className="flex flex-wrap gap-3">
+            <input
+              value={props.img || ""}
+              onChange={(e) => props.onImage(e.target.value)}
+              placeholder="URL de imagen"
+              className="min-w-0 flex-1 rounded-2xl border border-white/10 bg-[#101827] px-4 py-3"
+            />
+
+            <label className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black">
+              Subir imagen
+
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => uploadBlockImage(e.target.files?.[0])}
+              />
+            </label>
+          </div>
+        </div>
+
+        {props.img ? (
+          <img
+            src={props.img}
+            className="h-56 w-full rounded-2xl object-cover"
+          />
+        ) : null}
       </div>
     </div>
   );
 }
 
-function Preview({ form }: any) {
+function Preview
+({ form }: any) {
   return (
     <aside className="sticky top-5 h-fit rounded-[32px] border border-white/10 bg-black/30 p-5">
       <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">Preview landing</p>
