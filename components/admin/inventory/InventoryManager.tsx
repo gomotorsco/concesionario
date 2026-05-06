@@ -221,7 +221,7 @@ export default function InventoryManager({ type, title, description, examples }:
           <p className="mt-2 text-slate-400">{description}</p>
         </div>
 
-        <div className="grid gap-6 2xl:grid-cols-[0.9fr_1.1fr]">
+        <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
           <section className="space-y-6">
             <div className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
               <h2 className="text-xl font-black">Marcas</h2>
@@ -244,7 +244,7 @@ export default function InventoryManager({ type, title, description, examples }:
             <div className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
               <h2 className="text-xl font-black">{editing ? "Editar landing del vehículo" : "Crear landing del vehículo"}</h2>
 
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <div className="mt-5 grid gap-4 sm:grid-cols-2">
                 <Input label="Marca" value={form.marca} onChange={(v: string) => setForm({ ...form, marca: v })} />
                 <Input label="Nombre público" value={form.title} onChange={(v: string) => setForm({ ...form, title: v })} />
                 <Input label="Modelo" value={form.modelo} onChange={(v: string) => setForm({ ...form, modelo: v })} />
@@ -254,7 +254,7 @@ export default function InventoryManager({ type, title, description, examples }:
 
                 <Textarea label="Descripción base" value={form.descripcion} onChange={(v: string) => setForm({ ...form, descripcion: v })} />
 
-                <div className="rounded-2xl border border-white/10 bg-[#101827] p-4 md:col-span-2">
+                <div className="rounded-2xl border border-white/10 bg-[#101827] p-4 sm:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                       <p className="font-black">Imágenes generales</p>
@@ -344,7 +344,7 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
 }
 
 function Textarea({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return <label className="grid gap-2 md:col-span-2"><span className="text-sm font-bold">{label}</span><textarea rows={4} value={value || ""} onChange={(e) => onChange(e.target.value)} className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3" /></label>;
+  return <label className="grid gap-2 sm:col-span-2"><span className="text-sm font-bold">{label}</span><textarea rows={4} value={value || ""} onChange={(e) => onChange(e.target.value)} className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3" /></label>;
 }
 
 
@@ -371,7 +371,7 @@ function Editorial(props: any) {
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 md:col-span-2">
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4 sm:col-span-2">
       <h3 className="text-lg font-black">{props.title}</h3>
 
       <div className="mt-4 grid gap-4">
@@ -425,13 +425,13 @@ function Editorial(props: any) {
 function Preview
 ({ form }: any) {
   return (
-    <aside className="sticky top-5 h-fit rounded-[32px] border border-white/10 bg-black/30 p-5">
+    <aside className="relative xl:sticky xl:top-5 h-fit rounded-[32px] border border-white/10 bg-black/30 p-5">
       <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">Preview landing</p>
       <div className="mt-5 overflow-hidden rounded-[28px] bg-[#05070d]">
-        <div className="grid items-center gap-8 p-8 lg:grid-cols-2">
+        <div className="grid items-center gap-4 sm:p-8 p-4 sm:p-8 lg:grid-cols-2">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">{form.marca || "Marca"}</p>
-            <h1 className="mt-4 text-5xl font-black leading-none">{form.heroTitle || form.title || "Nombre vehículo"}</h1>
+            <h1 className="mt-4 text-3xl sm:text-5xl font-black leading-none">{form.heroTitle || form.title || "Nombre vehículo"}</h1>
             <p className="mt-5 text-slate-300">{form.heroSubtitle || form.descripcion || "Subtítulo comercial"}</p>
             <button className="mt-7 rounded-2xl bg-blue-600 px-6 py-4 font-black">Pre-aprobación</button>
           </div>
@@ -448,13 +448,13 @@ function Preview
 
 function Block({ img, title, text, flip }: any) {
   return (
-    <div className={`grid gap-6 border-t border-white/10 p-8 lg:grid-cols-2 ${flip ? "lg:[&>div:first-child]:order-2" : ""}`}>
+    <div className={`grid gap-6 border-t border-white/10 p-4 sm:p-8 lg:grid-cols-2 ${flip ? "lg:[&>div:first-child]:order-2" : ""}`}>
       <div>
         <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">Detalle</p>
         <h2 className="mt-3 text-3xl font-black">{title}</h2>
         <p className="mt-4 text-slate-300">{text || "Texto comercial del vehículo."}</p>
       </div>
-      <img src={img || "/category-banners/automoviles.png"} className="h-72 w-full rounded-3xl object-cover" />
+      <img src={img || "/category-banners/automoviles.png"} className="h-48 sm:h-72 w-full rounded-3xl object-cover" />
     </div>
   );
 }
