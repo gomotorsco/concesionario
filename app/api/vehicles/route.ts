@@ -17,8 +17,14 @@ function normalizeType(value: any) {
   return "auto";
 }
 
-function gallery(value: any) {
+function parseGallery(value: any) {
   if (Array.isArray(value)) return value.filter(Boolean).slice(0, 15);
+  if (typeof value === "string") {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 15);
+    } catch {}
+  }
   return [];
 }
 
@@ -45,12 +51,12 @@ export async function GET(req: NextRequest) {
     const marca = v.marca || "Sin marca";
     if (!map.has(marca)) map.set(marca, []);
 
-    const imgs = gallery(v.galeria);
-    const hero = v.imagen_hero || v.imagen_url || imgs[0] || "";
+    const galeria = parseGallery(v.galeria);
+    const hero = v.imagen_hero || v.imagen_url || galeria[0] || "";
 
     map.get(marca)!.push({
       ...v,
-      galeria: imgs,
+      galeria,
       imagen_hero: hero,
       imagen_url: hero,
     });
@@ -80,12 +86,11 @@ export async function POST(req: NextRequest) {
   const title = String(body.title || "").trim();
   const marca = String(body.marca || "").trim();
   const tipo = normalizeType(body.inventoryType || body.tipo);
+  const galeria = parseGallery(body.gallery || body.galeria);
+  const hero = body.imagenHero || galeria[0] || null;
 
   if (!title) return NextResponse.json({ message: "Nombre requerido." }, { status: 400 });
   if (!marca) return NextResponse.json({ message: "Marca requerida." }, { status: 400 });
-
-  const imgs = gallery(body.gallery || body.galeria);
-  const hero = body.imagenHero || imgs[0] || null;
 
   const { data, error } = await supabaseAdmin
     .from("vehicles")
@@ -101,7 +106,18 @@ export async function POST(req: NextRequest) {
       cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
       imagen_hero: hero,
       imagen_url: hero,
-      galeria: imgs,
+      galeria,
+      hero_title: body.heroTitle || title,
+      hero_subtitle: body.heroSubtitle || body.descripcion || null,
+      block1_title: body.block1Title || null,
+      block1_text: body.block1Text || null,
+      block1_image: body.block1Image || galeria[1] || hero,
+      block2_title: body.block2Title || null,
+      block2_text: body.block2Text || null,
+      block2_image: body.block2Image || galeria[2] || hero,
+      block3_title: body.block3Title || null,
+      block3_text: body.block3Text || null,
+      block3_image: body.block3Image || galeria[3] || hero,
       visible: true,
       deleted_at: null,
       estado: "disponible",
@@ -111,6 +127,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
   return NextResponse.json({ vehicle: data });
 }
 
@@ -135,8 +152,8 @@ export async function PATCH(req: NextRequest) {
 
   const title = String(body.title || "").trim();
   const marca = String(body.marca || "").trim();
-  const imgs = gallery(body.gallery || body.galeria);
-  const hero = body.imagenHero || imgs[0] || null;
+  const galeria = parseGallery(body.gallery || body.galeria);
+  const hero = body.imagenHero || galeria[0] || null;
 
   const { data, error } = await supabaseAdmin
     .from("vehicles")
@@ -151,7 +168,18 @@ export async function PATCH(req: NextRequest) {
       cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
       imagen_hero: hero,
       imagen_url: hero,
-      galeria: imgs,
+      galeria,
+      hero_title: body.heroTitle || title,
+      hero_subtitle: body.heroSubtitle || body.descripcion || null,
+      block1_title: body.block1Title || null,
+      block1_text: body.block1Text || null,
+      block1_image: body.block1Image || galeria[1] || hero,
+      block2_title: body.block2Title || null,
+      block2_text: body.block2Text || null,
+      block2_image: body.block2Image || galeria[2] || hero,
+      block3_title: body.block3Title || null,
+      block3_text: body.block3Text || null,
+      block3_image: body.block3Image || galeria[3] || hero,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
@@ -166,6 +194,7 @@ export async function PATCH(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get("id");
+
   if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
   const { data, error } = await supabaseAdmin
