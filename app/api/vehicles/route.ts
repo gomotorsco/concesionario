@@ -17,63 +17,89 @@ function normalizeType(value: any) {
   return "auto";
 }
 
+function parsePrice(value: any) {
+  if (value === null || value === undefined || value === "") return null;
+  if (typeof value === "number") return value;
+
+  const clean = String(value).replace(/[^\d]/g, "");
+  if (!clean) return null;
+
+  return Number(clean);
+}
+
 function parseGallery(value: any) {
   if (Array.isArray(value)) return value.filter(Boolean).slice(0, 15);
+
   if (typeof value === "string") {
     try {
       const parsed = JSON.parse(value);
       if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 15);
     } catch {}
   }
+
   return [];
 }
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const admin = url.searchParams.get("admin") === "1";
-  const type = normalizeType(url.searchParams.get("type") || "auto");
+  const typeParam = url.searchParams.get("type");
 
   let q = supabaseAdmin
     .from("vehicles")
     .select("*")
-    .eq("tipo", type)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
+  if (typeParam) q = q.eq("tipo", normalizeType(typeParam));
   if (!admin) q = q.eq("visible", true);
 
   const { data, error } = await q;
-  if (error) return NextResponse.json({ sections: [], total: 0, message: error.message }, { status: 500 });
 
-  const map = new Map<string, any[]>();
+  if (error) {
+    return NextResponse.json({ sections: [], total: 0, message: error.message }, { status: 500 });
+  }
+
+  const map = new Map<string, any>();
 
   for (const v of data || []) {
     const marca = v.marca || "Sin marca";
-    if (!map.has(marca)) map.set(marca, []);
+    const tipo = normalizeType(v.tipo);
+
+    const key = tipo + "::" + marca;
+
+    if (!map.has(key)) {
+      map.set(key, {
+        id: key,
+        title: marca,
+        name: marca,
+        slug: slugify(marca),
+        type: tipo,
+        visible: true,
+        orden: map.size + 1,
+        vehicles: [],
+      });
+    }
 
     const galeria = parseGallery(v.galeria);
     const hero = v.imagen_hero || v.imagen_url || galeria[0] || "";
 
-    map.get(marca)!.push({
+    map.get(key).vehicles.push({
       ...v,
+      tipo,
       galeria,
       imagen_hero: hero,
       imagen_url: hero,
+      precio: parsePrice(v.precio),
+      precio_desde: parsePrice(v.precio || v.precio_desde),
+      moneda: v.moneda || "COP",
     });
   }
 
-  const sections = Array.from(map.entries()).map(([marca, vehicles], index) => ({
-    id: marca,
-    title: marca,
-    name: marca,
-    slug: slugify(marca),
-    type,
-    visible: true,
-    orden: index + 1,
-    vehicles,
-  }));
-
-  return NextResponse.json({ sections, total: data?.length ?? 0 });
+  return NextResponse.json({
+    sections: Array.from(map.values()),
+    total: data?.length ?? 0,
+  });
 }
 
 export async function POST(req: NextRequest) {
@@ -87,7 +113,9 @@ export async function POST(req: NextRequest) {
   const marca = String(body.marca || "").trim();
   const tipo = normalizeType(body.inventoryType || body.tipo);
   const galeria = parseGallery(body.gallery || body.galeria);
-  const hero = body.imagenHero || galeria[0] || null;
+  const hero = body.imagenHero || body.imagen_hero || body.imagenUrl || body.imagen_url || galeria[0] || null;
+  const precio = parsePrice(body.precio);
+  const cuotaDesde = parsePrice(body.cuotaDesde);
 
   if (!title) return NextResponse.json({ message: "Nombre requerido." }, { status: 400 });
   if (!marca) return NextResponse.json({ message: "Marca requerida." }, { status: 400 });
@@ -102,8 +130,8 @@ export async function POST(req: NextRequest) {
       version: body.version || null,
       descripcion: body.descripcion || null,
       tipo,
-      precio: body.precio ? Number(body.precio) : null,
-      cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
+      precio,
+      cuota_desde: cuotaDesde,
       imagen_hero: hero,
       imagen_url: hero,
       galeria,
@@ -138,22 +166,33 @@ export async function PATCH(req: NextRequest) {
   if (!id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
 
   if (body.action === "toggle_visibility") {
-    const { data: current } = await supabaseAdmin.from("vehicles").select("visible").eq("id", id).maybeSingle();
+    const { data: current } = await supabaseAdmin
+      .from("vehicles")
+      .select("visible")
+      .eq("id", id)
+      .maybeSingle();
+
     if (!current) return NextResponse.json({ message: "Vehículo no encontrado." }, { status: 404 });
 
     const { error } = await supabaseAdmin
       .from("vehicles")
-      .update({ visible: !current.visible, updated_at: new Date().toISOString() })
+      .update({
+        visible: !current.visible,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id);
 
     if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
     return NextResponse.json({ ok: true });
   }
 
   const title = String(body.title || "").trim();
   const marca = String(body.marca || "").trim();
   const galeria = parseGallery(body.gallery || body.galeria);
-  const hero = body.imagenHero || galeria[0] || null;
+  const hero = body.imagenHero || body.imagen_hero || body.imagenUrl || body.imagen_url || galeria[0] || null;
+  const precio = parsePrice(body.precio);
+  const cuotaDesde = parsePrice(body.cuotaDesde);
 
   const { data, error } = await supabaseAdmin
     .from("vehicles")
@@ -164,8 +203,8 @@ export async function PATCH(req: NextRequest) {
       modelo: body.modelo || title,
       version: body.version || null,
       descripcion: body.descripcion || null,
-      precio: body.precio ? Number(body.precio) : null,
-      cuota_desde: body.cuotaDesde ? Number(body.cuotaDesde) : null,
+      precio,
+      cuota_desde: cuotaDesde,
       imagen_hero: hero,
       imagen_url: hero,
       galeria,
@@ -199,7 +238,11 @@ export async function DELETE(req: NextRequest) {
 
   const { data, error } = await supabaseAdmin
     .from("vehicles")
-    .update({ deleted_at: new Date().toISOString(), visible: false })
+    .update({
+      deleted_at: new Date().toISOString(),
+      visible: false,
+      updated_at: new Date().toISOString(),
+    })
     .eq("id", id)
     .select("id")
     .maybeSingle();
