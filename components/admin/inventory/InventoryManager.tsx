@@ -72,32 +72,45 @@ export default function InventoryManager({ type, title, description, examples }:
     if (!selected.length) return alert("Máximo 15 imágenes.");
 
     setUploading(true);
-    const uploaded: string[] = [];
 
-    for (const file of selected) {
-      const fd = new FormData();
-      fd.append("file", file);
+    try {
+      const uploaded: string[] = [];
 
-      const res = await fetch("/api/admin/upload-vehicle-image", { method: "POST", body: fd });
-      const json = await res.json();
+      for (const file of selected) {
+        const fd = new FormData();
+        fd.append("file", file);
 
-      if (res.ok && json.url) uploaded.push(json.url);
-      else alert(json.message || "No se pudo subir una imagen.");
+        const res = await fetch("/api/admin/upload-vehicle-image", {
+          method: "POST",
+          body: fd,
+        });
+
+        const json = await res.json();
+
+        if (!res.ok || !json.url) {
+          alert(json.message || "No se pudo subir una imagen.");
+          continue;
+        }
+
+        uploaded.push(json.url);
+      }
+
+      if (!uploaded.length) return;
+
+      setForm((prev) => {
+        const gallery = [...prev.gallery, ...uploaded].slice(0, 15);
+        return {
+          ...prev,
+          gallery,
+          imagenHero: prev.imagenHero || gallery[0] || "",
+          block1Image: prev.block1Image || gallery[1] || gallery[0] || "",
+          block2Image: prev.block2Image || gallery[2] || gallery[0] || "",
+          block3Image: prev.block3Image || gallery[3] || gallery[0] || "",
+        };
+      });
+    } finally {
+      setUploading(false);
     }
-
-    setForm((prev) => {
-      const gallery = [...prev.gallery, ...uploaded].slice(0, 15);
-      return {
-        ...prev,
-        gallery,
-        imagenHero: prev.imagenHero || gallery[0] || "",
-        block1Image: prev.block1Image || gallery[1] || gallery[0] || "",
-        block2Image: prev.block2Image || gallery[2] || gallery[0] || "",
-        block3Image: prev.block3Image || gallery[3] || gallery[0] || "",
-      };
-    });
-
-    setUploading(false);
   }
 
   function editVehicle(v: any) {
