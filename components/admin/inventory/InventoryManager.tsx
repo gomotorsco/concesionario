@@ -141,9 +141,9 @@ export default function InventoryManager({ type, title, description, examples }:
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         type: "vehicle",
+        ...form,
         id: editing,
         inventoryType: type,
-        ...form,
         imagenHero: form.imagenHero,
         gallery: form.gallery,
         galeria: form.gallery,
@@ -232,14 +232,14 @@ export default function InventoryManager({ type, title, description, examples }:
               <h2 className="text-xl font-black">{editing ? "Editar landing del vehículo" : "Crear landing del vehículo"}</h2>
 
               <div className="mt-5 grid gap-4 md:grid-cols-2">
-                <Input label="Marca" value={form.marca} onChange={(v) => setForm({ ...form, marca: v })} />
-                <Input label="Nombre público" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
-                <Input label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} />
-                <Input label="Versión" value={form.version} onChange={(v) => setForm({ ...form, version: v })} />
-                <Input label="Precio" value={form.precio} onChange={(v) => setForm({ ...form, precio: v })} />
-                <Input label="Cuota desde" value={form.cuotaDesde} onChange={(v) => setForm({ ...form, cuotaDesde: v })} />
+                <Input label="Marca" value={form.marca} onChange={(v: string) => setForm({ ...form, marca: v })} />
+                <Input label="Nombre público" value={form.title} onChange={(v: string) => setForm({ ...form, title: v })} />
+                <Input label="Modelo" value={form.modelo} onChange={(v: string) => setForm({ ...form, modelo: v })} />
+                <Input label="Versión" value={form.version} onChange={(v: string) => setForm({ ...form, version: v })} />
+                <Input label="Precio" value={form.precio} onChange={(v: string) => setForm({ ...form, precio: v })} />
+                <Input label="Cuota desde" value={form.cuotaDesde} onChange={(v: string) => setForm({ ...form, cuotaDesde: v })} />
 
-                <Textarea label="Descripción base" value={form.descripcion} onChange={(v) => setForm({ ...form, descripcion: v })} />
+                <Textarea label="Descripción base" value={form.descripcion} onChange={(v: string) => setForm({ ...form, descripcion: v })} />
 
                 <div className="rounded-2xl border border-white/10 bg-[#101827] p-4 md:col-span-2">
                   <div className="flex flex-wrap items-center justify-between gap-3">
@@ -270,12 +270,12 @@ export default function InventoryManager({ type, title, description, examples }:
                   </div>
                 </div>
 
-                <Input label="Título hero" value={form.heroTitle} onChange={(v) => setForm({ ...form, heroTitle: v })} />
-                <Input label="Subtítulo hero" value={form.heroSubtitle} onChange={(v) => setForm({ ...form, heroSubtitle: v })} />
+                <Input label="Título hero" value={form.heroTitle} onChange={(v: string) => setForm({ ...form, heroTitle: v })} />
+                <Input label="Subtítulo hero" value={form.heroSubtitle} onChange={(v: string) => setForm({ ...form, heroSubtitle: v })} />
 
-                <Editorial title="Bloque editorial 1" img={form.block1Image} imageLabel="Imagen bloque 1" titleValue={form.block1Title} textValue={form.block1Text} onTitle={(v) => setForm({ ...form, block1Title: v })} onText={(v) => setForm({ ...form, block1Text: v })} onImage={(v) => setForm({ ...form, block1Image: v })} />
-                <Editorial title="Bloque editorial 2" img={form.block2Image} imageLabel="Imagen bloque 2" titleValue={form.block2Title} textValue={form.block2Text} onTitle={(v) => setForm({ ...form, block2Title: v })} onText={(v) => setForm({ ...form, block2Text: v })} onImage={(v) => setForm({ ...form, block2Image: v })} />
-                <Editorial title="Bloque editorial 3" img={form.block3Image} imageLabel="Imagen bloque 3" titleValue={form.block3Title} textValue={form.block3Text} onTitle={(v) => setForm({ ...form, block3Title: v })} onText={(v) => setForm({ ...form, block3Text: v })} onImage={(v) => setForm({ ...form, block3Image: v })} />
+                <Editorial title="Bloque editorial 1" img={form.block1Image} imageLabel="Imagen bloque 1" titleValue={form.block1Title} textValue={form.block1Text} onTitle={(v: string) => setForm({ ...form, block1Title: v })} onText={(v: string) => setForm({ ...form, block1Text: v })} onImage={(v: string) => setForm({ ...form, block1Image: v })} />
+                <Editorial title="Bloque editorial 2" img={form.block2Image} imageLabel="Imagen bloque 2" titleValue={form.block2Title} textValue={form.block2Text} onTitle={(v: string) => setForm({ ...form, block2Title: v })} onText={(v: string) => setForm({ ...form, block2Text: v })} onImage={(v: string) => setForm({ ...form, block2Image: v })} />
+                <Editorial title="Bloque editorial 3" img={form.block3Image} imageLabel="Imagen bloque 3" titleValue={form.block3Title} textValue={form.block3Text} onTitle={(v: string) => setForm({ ...form, block3Title: v })} onText={(v: string) => setForm({ ...form, block3Text: v })} onImage={(v: string) => setForm({ ...form, block3Image: v })} />
               </div>
 
               <div className="mt-5 flex flex-wrap gap-3">
@@ -383,3 +383,5 @@ function Block({ img, title, text, flip }: any) {
     </div>
   );
 }
+
+
