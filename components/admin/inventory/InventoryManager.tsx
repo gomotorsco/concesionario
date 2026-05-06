@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 
@@ -43,25 +43,35 @@ export default function InventoryManager({ type, title, description, examples }:
   async function createBrand() {
     if (!brandName.trim()) return alert("Ingrese la marca.");
 
-    const res = await fetch("/api/vehicles", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "section", title: brandName.trim(), sectionType: type }),
+    const name = brandName.trim();
+
+    setSections((prev) => {
+      if (prev.some((s) => String(s.title).toLowerCase() === name.toLowerCase())) return prev;
+
+      return [
+        ...prev,
+        {
+          id: "local-" + name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          title: name,
+          name,
+          slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+          type,
+          visible: true,
+          vehicles: [],
+        },
+      ];
     });
 
-    const json = await res.json();
-    if (!res.ok) return alert(json.message || "No se pudo crear marca.");
-
+    setForm((prev) => ({ ...prev, marca: name }));
     setBrandName("");
-    await load();
-    alert("Marca creada.");
+    alert("Marca creada. Ahora cargá un vehículo con esa marca.");
   }
 
   async function uploadImages(files: FileList | null) {
     if (!files?.length) return;
 
     const selected = Array.from(files).slice(0, 15 - form.gallery.length);
-    if (!selected.length) return alert("Máximo 15 imágenes.");
+    if (!selected.length) return alert("MÃ¡ximo 15 imÃ¡genes.");
 
     setUploading(true);
     const uploaded: string[] = [];
@@ -107,7 +117,7 @@ export default function InventoryManager({ type, title, description, examples }:
   }
 
   async function saveVehicle() {
-    if (!form.title.trim()) return alert("Ingrese nombre público.");
+    if (!form.title.trim()) return alert("Ingrese nombre pÃºblico.");
     if (!form.marca.trim()) return alert("Ingrese marca.");
 
     const res = await fetch("/api/vehicles", {
@@ -134,7 +144,7 @@ export default function InventoryManager({ type, title, description, examples }:
     const json = await res.json();
     if (!res.ok) return alert(json.message || "No se pudo guardar.");
 
-    alert(editing ? "Cambios guardados." : "Vehículo creado.");
+    alert(editing ? "Cambios guardados." : "VehÃ­culo creado.");
     setEditing(null);
     setForm(emptyForm);
     await load();
@@ -154,7 +164,7 @@ export default function InventoryManager({ type, title, description, examples }:
   }
 
   async function deleteVehicle(id: any) {
-    if (!confirm("¿Eliminar vehículo definitivamente?")) return;
+    if (!confirm("Â¿Eliminar vehÃ­culo definitivamente?")) return;
 
     const res = await fetch(`/api/vehicles?id=${id}`, { method: "DELETE" });
     const json = await res.json();
@@ -169,7 +179,7 @@ export default function InventoryManager({ type, title, description, examples }:
       }))
     );
 
-    alert("Vehículo eliminado.");
+    alert("VehÃ­culo eliminado.");
     await load();
   }
 
@@ -224,18 +234,18 @@ export default function InventoryManager({ type, title, description, examples }:
           </section>
 
           <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-            <h2 className="text-xl font-black">{editing ? "Editar vehículo" : "Crear vehículo"}</h2>
+            <h2 className="text-xl font-black">{editing ? "Editar vehÃ­culo" : "Crear vehÃ­culo"}</h2>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <Input label="Marca" value={form.marca} onChange={(v) => setForm({ ...form, marca: v })} />
-              <Input label="Nombre público" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
+              <Input label="Nombre pÃºblico" value={form.title} onChange={(v) => setForm({ ...form, title: v })} />
               <Input label="Modelo" value={form.modelo} onChange={(v) => setForm({ ...form, modelo: v })} />
-              <Input label="Versión" value={form.version} onChange={(v) => setForm({ ...form, version: v })} />
+              <Input label="VersiÃ³n" value={form.version} onChange={(v) => setForm({ ...form, version: v })} />
               <Input label="Precio" value={form.precio} onChange={(v) => setForm({ ...form, precio: v })} />
               <Input label="Cuota desde" value={form.cuotaDesde} onChange={(v) => setForm({ ...form, cuotaDesde: v })} />
 
               <label className="grid gap-2 md:col-span-2">
-                <span className="text-sm font-bold">Descripción</span>
+                <span className="text-sm font-bold">DescripciÃ³n</span>
                 <textarea
                   rows={4}
                   value={form.descripcion}
@@ -247,12 +257,12 @@ export default function InventoryManager({ type, title, description, examples }:
               <div className="rounded-2xl border border-white/10 bg-[#101827] p-4 md:col-span-2">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="font-black">Imágenes</p>
-                    <p className="text-sm text-slate-400">Máximo 15. Elegí cuál es hero.</p>
+                    <p className="font-black">ImÃ¡genes</p>
+                    <p className="text-sm text-slate-400">MÃ¡ximo 15. ElegÃ­ cuÃ¡l es hero.</p>
                   </div>
 
                   <label className="cursor-pointer rounded-2xl bg-blue-600 px-5 py-3 text-sm font-black">
-                    {uploading ? "Subiendo..." : "Subir imágenes"}
+                    {uploading ? "Subiendo..." : "Subir imÃ¡genes"}
                     <input
                       type="file"
                       multiple
@@ -290,7 +300,7 @@ export default function InventoryManager({ type, title, description, examples }:
 
             <div className="mt-5 flex flex-wrap gap-3">
               <button onClick={saveVehicle} className="rounded-2xl bg-emerald-600 px-6 py-3 font-black">
-                {editing ? "Guardar cambios" : "Crear vehículo"}
+                {editing ? "Guardar cambios" : "Crear vehÃ­culo"}
               </button>
 
               {editing ? (
@@ -319,7 +329,7 @@ export default function InventoryManager({ type, title, description, examples }:
                   className="flex w-full items-center justify-between bg-white/[0.03] px-5 py-4 text-left"
                 >
                   <h3 className="text-xl font-black">{section.title}</h3>
-                  <span>{open.includes(section.id) ? "▲" : "▼"}</span>
+                  <span>{open.includes(section.id) ? "â–²" : "â–¼"}</span>
                 </button>
 
                 {open.includes(section.id) ? (
@@ -366,3 +376,4 @@ function Input({ label, value, onChange }: { label: string; value: string; onCha
     </label>
   );
 }
+
