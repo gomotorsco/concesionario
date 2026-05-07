@@ -1,57 +1,58 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
-export default function VendedorLogin() {
-  const router = useRouter();
+export default function VendedorLoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
 
-  async function handleLogin(e: any) {
+  async function login(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
 
     const res = await fetch("/api/vendedor-login", {
       method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
 
-    const data = await res.json();
+    const json = await res.json();
 
-    if (!data.ok) {
-      setError(data.message);
+    if (!res.ok) {
+      alert(json.message || "No se pudo ingresar.");
       return;
     }
 
-    router.push("/vendedor");
+    window.location.href = "/vendedor";
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black text-white">
-      <form onSubmit={handleLogin} className="bg-zinc-900 p-6 rounded-xl w-80 space-y-4">
-        <h1 className="text-lg font-bold">Login Vendedor</h1>
+    <main className="flex min-h-screen items-center justify-center bg-[#05070d] p-4 text-white">
+      <form onSubmit={login} className="w-full max-w-md rounded-[32px] border border-white/10 bg-[#080d18] p-8">
+        <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">GoMotorsCo</p>
+        <h1 className="mt-3 text-3xl font-black">Ingreso vendedores</h1>
 
-        <input
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="w-full p-2 bg-black border border-white/10 rounded"
-        />
+        <div className="mt-8 grid gap-4">
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3"
+          />
 
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full p-2 bg-black border border-white/10 rounded"
-        />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3"
+          />
 
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-        <button className="w-full bg-blue-600 py-2 rounded">Entrar</button>
+          <button className="rounded-2xl bg-blue-600 px-6 py-3 font-black">
+            Ingresar
+          </button>
+        </div>
       </form>
-    </div>
+    </main>
   );
 }

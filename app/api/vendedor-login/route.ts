@@ -1,79 +1,43 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-const SELLER_COOKIE = "seller_session";
-
 export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const email = String(body.email || "").trim();
-    const password = String(body.password || "");
+  const body = await req.json();
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { ok: false, message: "Faltan credenciales." },
-        { status: 400 }
-      );
-    }
+  const email = String(body.email || "").trim().toLowerCase();
+  const password = String(body.password || "").trim();
 
-    const { data, error } = await supabaseAdmin
-      .from("vendedores")
-      .select("id, nombre, email, password, activo")
-      .eq("email", email)
-      .single();
-
-    if (error || !data) {
-      return NextResponse.json(
-        { ok: false, message: "Credenciales inválidas." },
-        { status: 401 }
-      );
-    }
-
-    if (!data.activo) {
-      return NextResponse.json(
-        { ok: false, message: "Vendedor inactivo." },
-        { status: 403 }
-      );
-    }
-
-    if (data.password !== password) {
-      return NextResponse.json(
-        { ok: false, message: "Credenciales inválidas." },
-        { status: 401 }
-      );
-    }
-
-    await supabaseAdmin
-      .from("vendedores")
-      .update({
-        last_login: new Date().toISOString(),
-        last_activity: new Date().toISOString(),
-      })
-      .eq("id", data.id);
-
-    const res = NextResponse.json({
-      ok: true,
-      vendedor: {
-        id: data.id,
-        nombre: data.nombre,
-        email: data.email,
-      },
-    });
-
-    res.cookies.set(SELLER_COOKIE, data.id, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 8,
-    });
-
-    return res;
-  } catch (err) {
-    console.error("POST /api/vendedor-login error", err);
-    return NextResponse.json(
-      { ok: false, message: "Error interno." },
-      { status: 500 }
-    );
+  if (!email || !password) {
+    return NextResponse.json({ message: "Email y contraseña requeridos." }, { status: 400 });
   }
+
+  const { data: vendedor, error } = await supabaseAdmin
+    .from("vendedores")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle();
+
+  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+
+  if (!vendedor || vendedor.activo === false) {
+    return NextResponse.json({ message: "Credenciales inválidas." }, { status: 401 });
+  }
+
+  const stored = String(vendedor.passwrd || vendedor.password || "").trim();
+
+  if (stored !== password) {
+    return NextResponse.json({ message: "Credenciales inválidas." }, { status: 401 });
+  }
+
+  const res = NextResponse.json({ ok: true, vendedor });
+
+  res.cookies.set("vendedor_id", String(vendedor.id), {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 7,
+  });
+
+  return res;
 }
