@@ -1,3 +1,4 @@
+import Hero from "@/components/landing/Hero";
 import BrandHeader from "@/components/landing/BrandHeader";
 import PremiumVehiclesCatalog from "@/components/landing/PremiumVehiclesCatalog";
 import FinanceBrandSlider from "@/components/landing/sections/FinanceBrandSlider";
@@ -8,43 +9,10 @@ import Footer from "@/components/landing/Footer";
 export default function DealershipHome() {
   return (
     <main className="gm-premium-shell min-h-screen">
-      <section className="relative overflow-hidden">
-        <img
-          src="/hero-0km.png"
-          alt="GoMotorsCo"
-          className="absolute inset-0 h-full w-full scale-105 object-cover"
-        />
+      <section className="relative overflow-hidden"><BrandHeader />
+        <Hero />
 
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.72)_0%,rgba(0,0,0,.50)_38%,rgba(0,0,0,.15)_68%,rgba(0,0,0,.05)_100%)]" />
-
-        <BrandHeader />
-
-        <div className="relative mx-auto flex min-h-[640px] max-w-7xl items-start px-6 pt-28 md:px-10 md:pt-32">
-          <div className="relative max-w-3xl min-h-[620px]">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/70">
-              GoMotorsCo · Grupo Automotor
-            </span>
-
-            <div></div>
-
-            <div className="mt-[420px] grid grid-cols-2 gap-3 sm:mt-[460px] sm:flex sm:flex-row">
-              <a
-                href="#stock"
-                className="rounded-2xl bg-white px-7 py-3.5 text-center text-sm font-bold text-black transition hover:bg-white/90"
-              >
-                Ver vehículos
-              </a>
-
-              <a
-                href="/preaprobacion"
-                className="rounded-2xl border border-white/35 bg-white/8 px-7 py-3.5 text-center text-sm font-bold text-white backdrop-blur transition hover:bg-white/15"
-              >
-                Evaluar financiación
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
       <FinanceBrandSlider />
       <CategoryBanners />
