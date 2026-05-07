@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   const bytes = Buffer.from(await file.arrayBuffer());
   const path = `profiles/${Date.now()}-${safeName(file.name)}`;
 
-  const { error } = await getSupabaseAdmin()!!.storage
+  const { error } = await getSupabaseAdmin()!.storage
     .from("seller-profiles")
     .upload(path, bytes, {
       contentType: file.type,
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
-  const { data } = getSupabaseAdmin()!!.storage.from("seller-profiles").getPublicUrl(path);
+  const { data } = getSupabaseAdmin()!.storage.from("seller-profiles").getPublicUrl(path);
 
   return NextResponse.json({ url: data.publicUrl });
 }

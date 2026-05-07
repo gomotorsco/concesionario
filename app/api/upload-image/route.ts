@@ -26,7 +26,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
     const filename = `config/${Date.now()}-${file.name}`;
 
-    const { data, error } = await getSupabaseAdmin()!!.storage
+    const { data, error } = await getSupabaseAdmin()!.storage
       .from("public-assets")
       .upload(filename, buffer, {
         contentType: file.type,
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const publicUrl =
-      getSupabaseAdmin()!!.storage.from("public-assets").getPublicUrl(data.path)
+      getSupabaseAdmin()!.storage.from("public-assets").getPublicUrl(data.path)
         .data.publicUrl;
 
     return NextResponse.json({ url: publicUrl });

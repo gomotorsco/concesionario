@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error } = await getSupabaseAdmin()!!.storage
+  const { error } = await getSupabaseAdmin()!.storage
     .from("vehicle-images")
     .upload(path, buffer, {
       contentType: file.type || "image/jpeg",
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 
-  const { data } = getSupabaseAdmin()!!.storage
+  const { data } = getSupabaseAdmin()!.storage
     .from("vehicle-images")
     .getPublicUrl(path);
 

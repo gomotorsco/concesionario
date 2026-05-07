@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing type" }, { status: 400 });
     }
 
-    const { error } = await getSupabaseAdmin()!!.from("events").insert({
+    const { error } = await getSupabaseAdmin()!.from("events").insert({
       type: body.type,
       origin: body.origin ?? null,
       vehicle_id: body.vehicle_id ?? null,

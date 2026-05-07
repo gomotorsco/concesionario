@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-const supabaseAdmin = getSupabaseAdmin()!;
+const supabaseAdmin = getSupabaseAdmin();
 
 function pct(num: number, den: number) {
   if (!den) return 0;

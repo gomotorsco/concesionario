@@ -60,7 +60,7 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
   if (body.estado === "seguimiento" && body.seguimiento_fecha && lead?.vendedor_id) {
-    await getSupabaseAdmin()!!.from("seller_alerts").insert({
+    await getSupabaseAdmin()!.from("seller_alerts").insert({
       vendedor_id: lead.vendedor_id,
       lead_id: lead.id,
       titulo: "Seguimiento programado",
