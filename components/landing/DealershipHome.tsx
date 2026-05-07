@@ -20,7 +20,7 @@ export default function DealershipHome() {
         <BrandHeader />
 
         <div className="relative mx-auto flex min-h-[640px] max-w-7xl items-start px-6 pt-28 md:px-10 md:pt-32">
-          <div className="max-w-3xl">
+          <div className="relative max-w-3xl min-h-[620px]">
             <span className="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/70">
               GoMotorsCo · Grupo Automotor
             </span>
