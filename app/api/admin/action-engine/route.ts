@@ -1,53 +1,64 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { createClient } from "@supabase/supabase-js";
 
-function hoursSince(date?: string | null) {
-  if (!date) return 9999;
-  return (Date.now() - new Date(date).getTime()) / 1000 / 60 / 60;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!url || !key) {
+    return null;
+  }
+
+  return createClient(url, key);
 }
 
 export async function GET() {
-  const { data, error } = await supabaseAdmin
-    .from("landing_leads")
-    .select("id, nombre, telefono, vendedor_id, estado, seguimiento, created_at, last_activity_at, vehicle_name")
-    .neq("estado", "eliminado")
-    .order("created_at", { ascending: false })
-    .limit(300);
+  const supabaseAdmin = getSupabaseAdmin();
 
-  if (error) {
-    return NextResponse.json({ ok: false, actions: [], message: error.message }, { status: 500 });
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
   }
 
-  const actions = (data ?? []).flatMap((l: any) => {
-    const items: any[] = [];
-    const h = hoursSince(l.last_activity_at ?? l.created_at);
+  const { data, error } = await supabaseAdmin
+    .from("seller_alerts")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(20);
 
-    if (!l.vendedor_id) {
-      items.push({
-        lead_id: l.id,
-        priority: "alta",
-        action: "Asignar vendedor",
-        reason: "Lead sin responsable comercial.",
-        nombre: l.nombre,
-        telefono: l.telefono,
-        vehicle_name: l.vehicle_name,
-      });
-    }
+  if (error) {
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
 
-    if ((l.estado ?? "nuevo") === "nuevo" && h >= 24) {
-      items.push({
-        lead_id: l.id,
-        priority: "alta",
-        action: "Contactar ahora",
-        reason: "Lead nuevo sin actividad por más de 24 horas.",
-        nombre: l.nombre,
-        telefono: l.telefono,
-        vehicle_name: l.vehicle_name,
-      });
-    }
+  return NextResponse.json({ data });
+}
 
-    return items;
-  });
+export async function POST(req: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
 
-  return NextResponse.json({ ok: true, actions });
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  const body = await req.json();
+
+  const { data, error } = await supabaseAdmin
+    .from("seller_alerts")
+    .insert(body)
+    .select()
+    .single();
+
+  if (error) {
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ data });
 }
