@@ -25,14 +25,7 @@ export default function DealershipHome() {
               GoMotorsCo · Grupo Automotor
             </span>
 
-            <h1 className="mt-5 max-w-3xl text-4xl font-extrabold leading-[1.02] tracking-[-0.035em] text-white md:text-6xl">
-              Encuentre su próximo vehículo en GoMotorsCo.
-            </h1>
-
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/82 md:text-lg">
-              Autos, motos y opciones de financiación con asesoría comercial personalizada.
-              Evaluamos su perfil y le acompañamos en el proceso.
-            </p>
+            <div></div>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <a
