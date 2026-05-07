@@ -12,8 +12,18 @@ function slugify(input: string) {
 
 function normalizeType(value: any) {
   const raw = String(value || "auto").toLowerCase();
+
+  if (
+    raw.includes("ciclo") ||
+    raw.includes("cuatri") ||
+    raw.includes("scooter") ||
+    raw.includes("movilidad")
+  ) {
+    return "ciclomotor";
+  }
+
   if (raw.includes("moto")) return "moto";
-  if (raw.includes("ciclo") || raw.includes("cuatri") || raw.includes("scooter")) return "ciclomotor";
+
   return "auto";
 }
 
