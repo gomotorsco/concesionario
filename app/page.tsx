@@ -1,5 +1,5 @@
 import DealershipHome from "@/components/landing/DealershipHome";
 
-export default function HomePage() {
+export default function Home() {
   return <DealershipHome />;
 }

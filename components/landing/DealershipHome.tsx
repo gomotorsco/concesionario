@@ -27,7 +27,7 @@ export default function DealershipHome() {
 
             <div></div>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-[420px] grid grid-cols-2 gap-3 sm:mt-[460px] sm:flex sm:flex-row">
               <a
                 href="#stock"
                 className="rounded-2xl bg-white px-7 py-3.5 text-center text-sm font-bold text-black transition hover:bg-white/90"
