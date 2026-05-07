@@ -1,19 +1,19 @@
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey =
-  process.env.SUPABASE_SERVICE_ROLE_KEY ||
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-// Usamos service_role si existe, si no, anon key.
-// Para este proyecto, con anon key alcanza para signInWithPassword.
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Supabase URL o key no configuradas en el entorno.");
+if (!supabaseUrl) {
+  throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL");
 }
 
-export const supabaseAdmin = createClient(supabaseUrl, supabaseKey, {
+if (!serviceRoleKey) {
+  throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY");
+}
+
+export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: {
-    autoRefreshToken: false,
     persistSession: false,
+    autoRefreshToken: false,
   },
 });
