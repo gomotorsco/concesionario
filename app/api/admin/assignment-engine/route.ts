@@ -14,16 +14,7 @@ export async function POST() {
     );
   }
 
-  const supabaseAdmin = getSupabaseAdmin();
-
-  if (!supabaseAdmin) {
-    return NextResponse.json(
-      { message: "Faltan variables de Supabase en el servidor." },
-      { status: 500 }
-    );
-  }
-
-  const { data: vendedores, error: vendedoresError } = await supabaseAdmin
+const { data: vendedores, error: vendedoresError } = await supabaseAdmin
     .from("vendedores")
     .select("*")
     .eq("activo", true);

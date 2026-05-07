@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-async function countTable(table: string) {
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
+
+async function countTable(
+  supabaseAdmin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  table: string
+) {
   const { count, error } = await supabaseAdmin
     .from(table)
     .select("*", { count: "exact", head: true });
 
-  const { data } = await supabaseAdmin
-    .from(table)
-    .select("*")
-    .limit(5);
-
   return {
     table,
-    count,
+    count: error ? null : count,
     error: error?.message ?? null,
-    sample: data ?? [],
   };
 }
 
@@ -29,14 +29,15 @@ export async function GET() {
     );
   }
 
-  const vehicles = await countTable("vehicles");
-  const scraped = await countTable("scraped_vehicles");
-  const sections = await countTable("vehicle_sections");
+  const results = await Promise.all([
+    countTable(supabaseAdmin, "vehicles"),
+    countTable(supabaseAdmin, "landing_leads"),
+    countTable(supabaseAdmin, "vendedores"),
+    countTable(supabaseAdmin, "config"),
+  ]);
 
   return NextResponse.json({
-    supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
-    vehicles,
-    scraped_vehicles: scraped,
-    vehicle_sections: sections,
+    ok: true,
+    results,
   });
 }

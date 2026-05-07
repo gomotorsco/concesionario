@@ -11,7 +11,10 @@ function pct(num: number, den: number) {
   return Math.round((num / den) * 1000) / 10;
 }
 
-async function touchSeller(vendedorId: string) {
+async function touchSeller(
+  supabaseAdmin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  vendedorId: string
+) {
   await supabaseAdmin
     .from("vendedores")
     .update({ last_activity: new Date().toISOString() })
@@ -34,7 +37,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false, message: "No autorizado" }, { status: 401 });
   }
 
-  await touchSeller(vendedorId);
+  await touchSeller(supabaseAdmin, vendedorId);
 
   const { data: vendedor, error: vendedorError } = await supabaseAdmin
     .from("vendedores")
@@ -125,7 +128,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, message: "No autorizado" }, { status: 401 });
   }
 
-  await touchSeller(vendedorId);
+  await touchSeller(supabaseAdmin, vendedorId);
 
   const body = await req.json();
   const { id, estado, seguimiento, visto } = body;
@@ -156,7 +159,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, message: "No se pudo actualizar" }, { status: 500 });
   }
 
-  await getSupabaseAdmin()!!.from("lead_events").insert([
+  await supabaseAdmin.from("lead_events").insert([
     {
       lead_id: Number(id),
       vendedor_id: vendedorId,

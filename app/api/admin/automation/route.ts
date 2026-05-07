@@ -43,8 +43,6 @@ export async function POST() {
     );
   }
 
-  const supabaseAdmin = getSupabaseAdmin()!!;
-
   if (!supabaseAdmin) {
     return NextResponse.json(
       { message: "Faltan variables de Supabase en el servidor." },

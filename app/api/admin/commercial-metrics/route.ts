@@ -23,8 +23,6 @@ export async function GET() {
       { status: 500 }
     );
   }
-
-  const supabaseAdmin = getSupabaseAdmin()!;
   const { startISO, totalDays, currentDay, remainingDays } = getMonthInfo();
 
   const { data: vendedores } = await supabaseAdmin
