@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 function daysAgoISO(days: number) {
   const d = new Date();
@@ -24,6 +24,15 @@ function inferDeviceTypeFromUA(ua?: string | null): "mobile" | "tablet" | "deskt
 }
 
 export async function GET(req: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
     const url = new URL(req.url);
     const rawRange = url.searchParams.get("range") || "7d";

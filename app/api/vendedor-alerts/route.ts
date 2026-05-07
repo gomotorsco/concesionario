@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const vendedorId = req.cookies.get("vendedor_id")?.value;
 
   if (!vendedorId) return NextResponse.json({ alerts: [] }, { status: 401 });
@@ -18,6 +27,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const vendedorId = req.cookies.get("vendedor_id")?.value;
   const body = await req.json();
 

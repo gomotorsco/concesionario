@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await req.json().catch(() => null);
 

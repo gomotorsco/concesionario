@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function POST(req: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -17,7 +26,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
     const filename = `config/${Date.now()}-${file.name}`;
 
-    const { data, error } = await supabaseAdmin.storage
+    const { data, error } = await getSupabaseAdmin()!!.storage
       .from("public-assets")
       .upload(filename, buffer, {
         contentType: file.type,
@@ -33,7 +42,7 @@ export async function POST(req: Request) {
     }
 
     const publicUrl =
-      supabaseAdmin.storage.from("public-assets").getPublicUrl(data.path)
+      getSupabaseAdmin()!!.storage.from("public-assets").getPublicUrl(data.path)
         .data.publicUrl;
 
     return NextResponse.json({ url: publicUrl });

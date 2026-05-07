@@ -1,103 +1,96 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-function hoursSince(date?: string | null) {
-  if (!date) return 9999;
-  return (Date.now() - new Date(date).getTime()) / 1000 / 60 / 60;
-}
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
-async function createAlert(vendedor_id: string, title: string, message: string, priority = "warning") {
+async function createAlert(
+  supabaseAdmin: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  vendedor_id: string,
+  title: string,
+  message: string,
+  priority = "warning"
+) {
   const { data: existing } = await supabaseAdmin
     .from("seller_alerts")
     .select("id")
     .eq("vendedor_id", vendedor_id)
-    .eq("title", title)
-    .eq("read", false)
-    .limit(1);
+    .eq("titulo", title)
+    .eq("estado", "pendiente")
+    .maybeSingle();
 
-  if (existing && existing.length > 0) return;
+  if (existing) return;
 
   await supabaseAdmin.from("seller_alerts").insert([
     {
       vendedor_id,
-      title,
-      message,
-      priority,
+      titulo: title,
+      mensaje: message,
+      tipo: priority,
+      estado: "pendiente",
+      status: "pendiente",
     },
   ]);
 }
 
 export async function POST() {
-  try {
-    const { data: leads, error: leadsError } = await supabaseAdmin
-      .from("landing_leads")
-      .select("id, nombre, vendedor_id, estado, created_at, last_activity_at")
-      .neq("estado", "eliminado");
+  const supabaseAdmin = getSupabaseAdmin();
 
-    if (leadsError) {
-      return NextResponse.json({ ok: false, message: leadsError.message }, { status: 500 });
-    }
-
-    const { data: vendedores, error: vendedoresError } = await supabaseAdmin
-      .from("vendedores")
-      .select("id, nombre, last_activity, activo")
-      .eq("activo", true);
-
-    if (vendedoresError) {
-      return NextResponse.json({ ok: false, message: vendedoresError.message }, { status: 500 });
-    }
-
-    let alertsCreated = 0;
-
-    for (const l of leads ?? []) {
-      if (!l.vendedor_id) continue;
-
-      const baseDate = l.last_activity_at ?? l.created_at;
-      const h = hoursSince(baseDate);
-
-      if ((l.estado ?? "nuevo") === "nuevo" && h >= 24) {
-        await createAlert(
-          l.vendedor_id,
-          "Lead nuevo sin contactar",
-          `El lead ${l.nombre} lleva más de 24 horas sin actividad. Contactalo o actualizá el estado.`,
-          "urgent"
-        );
-        alertsCreated++;
-      }
-
-      if ((l.estado ?? "") === "en_seguimiento" && h >= 48) {
-        await createAlert(
-          l.vendedor_id,
-          "Seguimiento vencido",
-          `El lead ${l.nombre} lleva más de 48 horas sin actualización. Hacé seguimiento.`,
-          "warning"
-        );
-        alertsCreated++;
-      }
-    }
-
-    for (const v of vendedores ?? []) {
-      const h = hoursSince(v.last_activity);
-
-      if (h >= 24) {
-        await createAlert(
-          v.id,
-          "Actividad comercial pendiente",
-          `No registrás actividad comercial reciente. Revisá tus leads y actualizá seguimientos.`,
-          "warning"
-        );
-        alertsCreated++;
-      }
-    }
-
-    return NextResponse.json({
-      ok: true,
-      checked_leads: leads?.length ?? 0,
-      checked_vendedores: vendedores?.length ?? 0,
-      alerts_created: alertsCreated,
-    });
-  } catch (err) {
-    console.error("POST /api/admin/automation error", err);
-    return NextResponse.json({ ok: false, message: "Error interno" }, { status: 500 });
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
   }
+
+  const supabaseAdmin = getSupabaseAdmin()!!;
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  const { data: vendedores, error } = await supabaseAdmin
+    .from("vendedores")
+    .select("*");
+
+  if (error) {
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+
+  let created = 0;
+
+  for (const vendedor of vendedores ?? []) {
+    if (!vendedor?.id) continue;
+
+    await createAlert(
+      supabaseAdmin,
+      String(vendedor.id),
+      "Revisión comercial pendiente",
+      "Revisá tus leads asignados y actualizá el estado comercial.",
+      "warning"
+    );
+
+    created++;
+  }
+
+  return NextResponse.json({ ok: true, created });
+}
+
+export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json({
+    ok: true,
+    message: "Automation engine activo.",
+  });
 }

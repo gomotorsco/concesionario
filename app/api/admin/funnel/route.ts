@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+const supabaseAdmin = getSupabaseAdmin()!;
 
 function pct(num: number, den: number) {
   if (!den) return 0;
@@ -26,6 +27,15 @@ function temperatura(score: number) {
 }
 
 export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
     const { data, error } = await supabaseAdmin
       .from("landing_leads")

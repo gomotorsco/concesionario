@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 type EventPayload = {
   type: string;
@@ -10,6 +10,15 @@ type EventPayload = {
 };
 
 export async function POST(req: Request) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = (await req.json()) as EventPayload;
 
@@ -17,7 +26,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Missing type" }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin.from("events").insert({
+    const { error } = await getSupabaseAdmin()!!.from("events").insert({
       type: body.type,
       origin: body.origin ?? null,
       vehicle_id: body.vehicle_id ?? null,

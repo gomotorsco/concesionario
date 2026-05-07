@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const vendedorId = req.nextUrl.searchParams.get("vendedor_id");
 
   if (!vendedorId) return NextResponse.json({ leads: [] });
@@ -18,6 +27,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const body = await req.json();
 
   if (!body.id) return NextResponse.json({ message: "ID requerido." }, { status: 400 });
@@ -42,7 +60,7 @@ export async function PATCH(req: NextRequest) {
   if (error) return NextResponse.json({ message: error.message }, { status: 500 });
 
   if (body.estado === "seguimiento" && body.seguimiento_fecha && lead?.vendedor_id) {
-    await supabaseAdmin.from("seller_alerts").insert({
+    await getSupabaseAdmin()!!.from("seller_alerts").insert({
       vendedor_id: lead.vendedor_id,
       lead_id: lead.id,
       titulo: "Seguimiento programado",

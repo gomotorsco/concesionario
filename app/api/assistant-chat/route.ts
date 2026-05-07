@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 function normalize(text: string) {
   return text
@@ -14,6 +14,7 @@ function scoreMatch(query: string, question: string, answer: string) {
   const words = q.split(/\s+/).filter((w) => w.length > 3);
 
   let score = 0;
+
   for (const w of words) {
     if (text.includes(w)) score += 1;
   }
@@ -22,13 +23,37 @@ function scoreMatch(query: string, question: string, answer: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   try {
+    const supabaseAdmin = getSupabaseAdmin();
+
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        {
+          ok: false,
+          reply: "Faltan variables de Supabase en el servidor.",
+        },
+        { status: 500 }
+      );
+    }
+
     const body = await req.json();
     const message = String(body.message || "").trim();
 
     if (!message) {
       return NextResponse.json(
-        { ok: false, reply: "Escribí tu consulta para poder ayudarte." },
+        {
+          ok: false,
+          reply: "Escribí tu consulta para poder ayudarte.",
+        },
         { status: 400 }
       );
     }
@@ -43,7 +68,9 @@ export async function POST(req: NextRequest) {
     if (settings && settings.enabled === false) {
       return NextResponse.json({
         ok: true,
-        reply: settings.fallback_message || "Te paso con un asesor comercial.",
+        reply:
+          settings.fallback_message ||
+          "Te paso con un asesor comercial.",
       });
     }
 
@@ -59,6 +86,7 @@ export async function POST(req: NextRequest) {
 
     for (const faq of items) {
       const s = scoreMatch(message, faq.question, faq.answer);
+
       if (s > bestScore) {
         best = faq;
         bestScore = s;
@@ -83,8 +111,13 @@ export async function POST(req: NextRequest) {
     });
   } catch (err) {
     console.error("POST /api/assistant-chat error", err);
+
     return NextResponse.json(
-      { ok: false, reply: "Ocurrió un error. Te recomendamos hablar con un asesor." },
+      {
+        ok: false,
+        reply:
+          "Ocurrió un error. Te recomendamos hablar con un asesor.",
+      },
       { status: 500 }
     );
   }

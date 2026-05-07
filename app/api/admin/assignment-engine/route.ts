@@ -1,105 +1,107 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-function minutesDiff(a?: string, b?: string) {
-  if (!a || !b) return null;
-  return Math.floor((new Date(a).getTime() - new Date(b).getTime()) / 60000);
-}
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST() {
-  const now = new Date().toISOString();
+  const supabaseAdmin = getSupabaseAdmin();
 
-  // 1. obtener vendedores activos
-  const { data: vendedores } = await supabaseAdmin
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  const { data: vendedores, error: vendedoresError } = await supabaseAdmin
     .from("vendedores")
     .select("*")
     .eq("activo", true);
 
-  if (!vendedores || vendedores.length === 0) {
-    return NextResponse.json({ ok: true, message: "Sin vendedores" });
+  if (vendedoresError) {
+    return NextResponse.json(
+      { message: vendedoresError.message },
+      { status: 500 }
+    );
   }
 
-  // 2. leads sin asignar
-  const { data: leads } = await supabaseAdmin
+  const { data: leads, error: leadsError } = await supabaseAdmin
     .from("landing_leads")
     .select("*")
     .is("vendedor_id", null)
-    .eq("estado", "nuevo")
     .order("created_at", { ascending: true })
-    .limit(100);
+    .limit(20);
+
+  if (leadsError) {
+    return NextResponse.json(
+      { message: leadsError.message },
+      { status: 500 }
+    );
+  }
+
+  if (!vendedores?.length || !leads?.length) {
+    return NextResponse.json({
+      ok: true,
+      assigned: 0,
+      message: "No hay vendedores activos o leads pendientes.",
+    });
+  }
 
   let assigned = 0;
 
-  const unassignedLeads = leads ?? [];
+  for (const [index, lead] of leads.entries()) {
+    const vendedor = vendedores[index % vendedores.length];
 
-  for (let i = 0; i < unassignedLeads.length; i++) {
-    const lead = unassignedLeads[i];
-    const vendedor = vendedores[i % vendedores.length];
-
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("landing_leads")
       .update({
         vendedor_id: vendedor.id,
-        assigned_at: now,
-        updated_at: now,
+        estado: lead.estado || "nuevo",
+        updated_at: new Date().toISOString(),
       })
       .eq("id", lead.id);
 
-    await supabaseAdmin.from("system_alerts").insert([
-      {
-        vendedor_id: vendedor.id,
-        type: "nuevo_lead",
-        message: `Nuevo lead asignado: ${lead.nombre}`,
-        priority: "alta",
-      },
-    ]);
+    if (!error) {
+      assigned++;
 
-    assigned++;
+      await supabaseAdmin.from("system_alerts").insert([
+        {
+          titulo: "Lead asignado automáticamente",
+          mensaje: `Lead #${lead.id} asignado a ${
+            vendedor.nombre || vendedor.email || "vendedor"
+          }.`,
+          tipo: "assignment",
+          estado: "pendiente",
+        },
+      ]);
+    }
   }
 
-  // 3. SLA check
-  const { data: activos } = await supabaseAdmin
-    .from("landing_leads")
-    .select("*")
-    .neq("estado", "vendido")
-    .neq("estado", "perdido");
+  return NextResponse.json({ ok: true, assigned });
+}
 
-  for (const lead of activos ?? []) {
-    const created = lead.created_at;
-    const last = lead.last_activity_at || lead.created_at;
+export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
 
-    const minutos = minutesDiff(now, last);
-
-    if (lead.estado === "nuevo" && minutos && minutos > 5) {
-      await supabaseAdmin
-        .from("landing_leads")
-        .update({ sla_violated: true })
-        .eq("id", lead.id);
-
-      await supabaseAdmin.from("system_alerts").insert([
-        {
-          vendedor_id: lead.vendedor_id,
-          type: "sla_alert",
-          message: "Lead sin contactar hace más de 5 minutos",
-          priority: "alta",
-        },
-      ]);
-    }
-
-    if (lead.estado === "en_seguimiento" && minutos && minutos > 1440) {
-      await supabaseAdmin.from("system_alerts").insert([
-        {
-          vendedor_id: lead.vendedor_id,
-          type: "seguimiento_alert",
-          message: "Lead en seguimiento sin actividad hace 24h",
-          priority: "media",
-        },
-      ]);
-    }
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
     ok: true,
-    assigned,
+    message: "Assignment engine activo.",
   });
 }

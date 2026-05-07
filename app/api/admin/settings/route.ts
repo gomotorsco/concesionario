@@ -1,7 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET() {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { whatsappNumber: "", message: "Supabase admin no está configurado." },
+      { status: 500 }
+    );
+  }
+
   const { data, error } = await supabaseAdmin
     .from("config")
     .select("*")
@@ -9,7 +27,10 @@ export async function GET() {
     .maybeSingle();
 
   if (error) {
-    return NextResponse.json({ whatsappNumber: "", message: error.message }, { status: 500 });
+    return NextResponse.json(
+      { whatsappNumber: "", message: error.message },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({
@@ -18,6 +39,24 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Supabase admin no está configurado." },
+      { status: 500 }
+    );
+  }
+
   const body = await req.json();
   const whatsappNumber = String(body.whatsappNumber || "").trim();
 
@@ -28,17 +67,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { error } = await supabaseAdmin
-    .from("config")
-    .upsert(
-      {
-        key: "whatsapp_number",
-        value: whatsappNumber,
-        description: "Número principal de WhatsApp del sitio.",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "key" }
-    );
+  const { error } = await supabaseAdmin.from("config").upsert(
+    {
+      key: "whatsapp_number",
+      value: whatsappNumber,
+      description: "Número principal de WhatsApp del sitio.",
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "key" }
+  );
 
   if (error) {
     return NextResponse.json({ message: error.message }, { status: 500 });

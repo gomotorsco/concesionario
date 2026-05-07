@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export const runtime = "nodejs";
 
@@ -13,6 +13,15 @@ function safeName(name: string) {
 }
 
 export async function POST(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const form = await req.formData();
   const file = form.get("file");
 
@@ -26,7 +35,7 @@ export async function POST(req: NextRequest) {
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error } = await supabaseAdmin.storage
+  const { error } = await getSupabaseAdmin()!!.storage
     .from("vehicle-images")
     .upload(path, buffer, {
       contentType: file.type || "image/jpeg",
@@ -37,7 +46,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: error.message }, { status: 500 });
   }
 
-  const { data } = supabaseAdmin.storage
+  const { data } = getSupabaseAdmin()!!.storage
     .from("vehicle-images")
     .getPublicUrl(path);
 

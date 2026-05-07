@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 function getMonthStartISO() {
   const d = new Date();
@@ -19,6 +19,15 @@ async function touchSeller(vendedorId: string) {
 }
 
 export async function GET(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const vendedorId = req.cookies.get("seller_session")?.value;
 
   if (!vendedorId) {
@@ -101,6 +110,15 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const supabaseAdmin = getSupabaseAdmin();
+
+  if (!supabaseAdmin) {
+    return NextResponse.json(
+      { message: "Faltan variables de Supabase en el servidor." },
+      { status: 500 }
+    );
+  }
+
   const vendedorId = req.cookies.get("seller_session")?.value;
 
   if (!vendedorId) {
@@ -138,7 +156,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, message: "No se pudo actualizar" }, { status: 500 });
   }
 
-  await supabaseAdmin.from("lead_events").insert([
+  await getSupabaseAdmin()!!.from("lead_events").insert([
     {
       lead_id: Number(id),
       vendedor_id: vendedorId,

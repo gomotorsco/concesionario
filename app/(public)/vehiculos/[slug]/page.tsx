@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 import { VehicleLeadForm } from "./VehicleLeadForm";
 
 function money(value?: number | null) {
@@ -15,6 +15,12 @@ function parseGallery(v: any) {
 
 export default async function VehicleDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  const supabaseAdmin = getSupabaseAdmin()!!;
+
+  if (!supabaseAdmin) {
+    notFound();
+  }
+
 
   const { data: vehicle, error } = await supabaseAdmin
     .from("vehicles")
