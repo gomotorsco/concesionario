@@ -19,8 +19,8 @@ const fallbackImages: Record<string, string> = {
 
 function normalizeType(value?: string | null) {
   const raw = String(value || "auto").toLowerCase();
-  if (raw.includes("moto")) return "moto";
   if (raw.includes("ciclo") || raw.includes("scooter") || raw.includes("cuatri")) return "ciclomotor";
+  if (raw.includes("moto")) return "moto";
   return "auto";
 }
 
