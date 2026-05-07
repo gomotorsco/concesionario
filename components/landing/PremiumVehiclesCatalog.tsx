@@ -31,7 +31,7 @@ function money(value?: number | null) {
 
 export default function PremiumVehiclesCatalog() {
   const [sections, setSections] = useState<Section[]>([]);
-  const [activeType, setActiveType] = useState<string | null>(null);
+  const [activeType, setActiveType] = useState<string | null>("auto");
   const [activeBrand, setActiveBrand] = useState<string | null>(null);
 
   async function load() {

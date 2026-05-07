@@ -2,12 +2,12 @@ import Link from "next/link";
 
 export function Hero() {
   return (
-    <section className="relative mx-auto w-full max-w-[1680px] px-3 pt-3 sm:px-5">
-      <div className="relative min-h-[82vh] overflow-hidden rounded-[34px] bg-[#efe8dc] shadow-[0_34px_120px_rgba(20,20,20,0.24)] sm:rounded-[48px] lg:min-h-[860px]">
+    <section className="relative mx-auto w-full max-w-none px-0 pt-0">
+      <div className="relative min-h-[82vh] overflow-hidden bg-[#efe8dc] lg:min-h-[760px]">
         <img
           src="/hero-0km.png"
           alt="Vehículo premium GoMotorsCo"
-          className="absolute inset-0 h-full w-full object-cover object-center brightness-[1.08]"
+          className="absolute inset-0 h-full w-full object-contain object-center bg-[#efe8dc] brightness-[1.08]"
         />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/18 via-transparent to-transparent" />
