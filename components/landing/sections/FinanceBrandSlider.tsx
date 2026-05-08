@@ -1,39 +1,23 @@
-"use client";
-
-const brands = [
-  { name: "Toyota", logo: "https://cdn.worldvectorlogo.com/logos/toyota.svg" },
-  { name: "Renault", logo: "https://cdn.worldvectorlogo.com/logos/renault-5.svg" },
-  { name: "Chevrolet", logo: "https://cdn.worldvectorlogo.com/logos/chevrolet.svg" },
-  { name: "Hyundai", logo: "https://cdn.worldvectorlogo.com/logos/hyundai-2.svg" },
-  { name: "BMW", logo: "https://cdn.worldvectorlogo.com/logos/bmw.svg" },
-  { name: "Honda", logo: "https://cdn.worldvectorlogo.com/logos/honda-automobiles.svg" },
-  { name: "Yamaha", logo: "https://cdn.worldvectorlogo.com/logos/yamaha-2.svg" },
-  { name: "Suzuki", logo: "https://cdn.worldvectorlogo.com/logos/suzuki.svg" },
-];
-
 export default function FinanceBrandSlider() {
-  const loop = [...brands, ...brands];
-
   return (
-    <section className="py-10 bg-[#f6f1e8]">
-      <div className="max-w-6xl mx-auto px-5">
+    <section className="relative overflow-hidden border-t border-black/5 bg-[#ebe7df] py-10">
+      <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-32 bg-gradient-to-r from-[#ebe7df] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-32 bg-gradient-to-l from-[#ebe7df] to-transparent" />
 
-        <div className="overflow-hidden border-t border-[#e6ded2] pt-6">
-          <div className="flex w-max gap-16 animate-[gmSlow_70s_linear_infinite] items-center">
+      <div className="flex min-w-max animate-[gmBrands_35s_linear_infinite]">
+        <img
+          src="/logos.png"
+          alt="Marcas GoMotorsCo"
+          draggable={false}
+          className="h-16 w-auto select-none object-contain opacity-90 md:h-20"
+        />
 
-            {loop.map((brand, i) => (
-              <div key={i} className="w-[120px] h-[50px] flex items-center justify-center">
-                <img
-                  src={brand.logo}
-                  alt={brand.name}
-                  className="max-h-[28px] object-contain grayscale opacity-70 hover:opacity-100 hover:grayscale-0 transition"
-                />
-              </div>
-            ))}
-
-          </div>
-        </div>
-
+        <img
+          src="/logos.png"
+          alt="Marcas GoMotorsCo"
+          draggable={false}
+          className="h-16 w-auto select-none object-contain opacity-90 md:h-20"
+        />
       </div>
     </section>
   );

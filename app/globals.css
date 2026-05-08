@@ -246,3 +246,14 @@ body {
 .gm-brand-slider {
   animation: gmSlow 65s linear infinite;
 }
+
+@keyframes gmBrands {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
