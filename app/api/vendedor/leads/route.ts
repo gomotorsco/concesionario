@@ -64,7 +64,7 @@ export async function PATCH(req: NextRequest) {
       vendedor_id: lead.vendedor_id,
       lead_id: lead.id,
       titulo: "Seguimiento programado",
-      mensaje: `Dar seguimiento a ${lead.nombre || "lead"} por ${lead.vehiculo || lead.vehiculo_interes || "vehículo"}`,
+      message: `Dar seguimiento a ${lead.nombre || "lead"} por ${lead.vehiculo || lead.vehiculo_interes || "vehículo"}`,
       tipo: "seguimiento",
       estado: "pendiente",
       status: "pendiente",

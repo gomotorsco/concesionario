@@ -15,8 +15,8 @@ async function createAlert(
     .from("seller_alerts")
     .select("id")
     .eq("vendedor_id", vendedor_id)
-    .eq("titulo", title)
-    .eq("estado", "pendiente")
+    .eq("title", title)
+    .eq("read", false)
     .maybeSingle();
 
   if (existing) return;
@@ -24,11 +24,9 @@ async function createAlert(
   await supabaseAdmin.from("seller_alerts").insert([
     {
       vendedor_id,
-      titulo: title,
-      mensaje: message,
-      tipo: priority,
-      estado: "pendiente",
-      status: "pendiente",
+      title: title,
+      message: message,
+      priority: priority,
     },
   ]);
 }

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     vehiculo_interes: vehiculo,
     cuota_mensual: cuotaMensual,
     cuota_inicial: cuotaInicial,
-    mensaje: body.message || body.mensaje || (vehiculo ? `Consulta por ${vehiculo}` : null),
+    message: body.message || body.mensaje || (vehiculo ? `Consulta por ${vehiculo}` : null),
     source: body.source || "web",
     origen: body.source || "web",
     estado: "nuevo",

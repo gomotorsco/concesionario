@@ -1,40 +1,55 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-function safeName(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9.]+/g, "-");
-}
-
 export async function POST(req: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin();
+  const vendedorId = req.cookies.get("vendedor_id")?.value;
 
-  if (!supabaseAdmin) {
-    return NextResponse.json(
-      { message: "Faltan variables de Supabase en el servidor." },
-      { status: 500 }
-    );
+  if (!vendedorId) {
+    return NextResponse.json({ message: "No autenticado." }, { status: 401 });
   }
 
-  const form = await req.formData();
-  const file = form.get("file");
+  const formData = await req.formData();
+  const file = formData.get("file") as File | null;
 
-  if (!(file instanceof File)) {
+  if (!file) {
     return NextResponse.json({ message: "Archivo requerido." }, { status: 400 });
   }
 
-  const bytes = Buffer.from(await file.arrayBuffer());
-  const path = `profiles/${Date.now()}-${safeName(file.name)}`;
+  const ext = file.name.split(".").pop() || "png";
+  const path = `seller-profiles/${vendedorId}-${Date.now()}.${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
 
-  const { error } = await getSupabaseAdmin()!.storage
-    .from("seller-profiles")
-    .upload(path, bytes, {
-      contentType: file.type,
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from("vehicle-images")
+    .upload(path, buffer, {
+      contentType: file.type || "image/png",
       upsert: true,
     });
 
-  if (error) return NextResponse.json({ message: error.message }, { status: 500 });
+  if (uploadError) {
+    return NextResponse.json({ message: uploadError.message }, { status: 500 });
+  }
 
-  const { data } = getSupabaseAdmin()!.storage.from("seller-profiles").getPublicUrl(path);
+  const { data: publicUrl } = supabaseAdmin.storage
+    .from("vehicle-images")
+    .getPublicUrl(path);
 
-  return NextResponse.json({ url: data.publicUrl });
+  const foto_url = publicUrl.publicUrl;
+
+  const { data, error } = await supabaseAdmin
+    .from("vendedores")
+    .update({
+      foto_url,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", vendedorId)
+    .select("id, nombre, email, whatsapp, foto_url, zona, activo")
+    .single();
+
+  if (error) {
+    return NextResponse.json({ message: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, url: foto_url, vendedor: data });
 }

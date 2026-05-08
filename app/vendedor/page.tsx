@@ -1,5 +1,6 @@
 "use client";
 
+import ProfilePanel from "@/components/vendedor/ProfilePanel";
 import { useEffect, useMemo, useState } from "react";
 
 type Lead = any;
@@ -27,6 +28,7 @@ export default function VendedorPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [quote, setQuote] = useState<any>(null);
 
   async function load() {
     const res = await fetch("/api/vendedor-leads", { cache: "no-store" });
@@ -42,6 +44,14 @@ export default function VendedorPage() {
     setVendedor(json.vendedor ?? null);
     setLeads(json.leads ?? []);
     setAlerts(json.alerts ?? []);
+
+    try {
+      const quoteRes = await fetch("/api/vendedor/quote", { cache: "no-store" });
+      const quoteJson = await quoteRes.json();
+      setQuote(quoteJson.quote ?? null);
+    } catch {
+      setQuote(null);
+    }
   }
 
   useEffect(() => {
@@ -144,6 +154,25 @@ export default function VendedorPage() {
       <section className="min-h-screen lg:pl-72">
         <div className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-5 lg:px-8">
           <TopHeader vendedor={vendedor} unread={unread} setTab={setTab} />
+
+          {quote ? (
+            <section className="mb-6 rounded-[32px] border border-white/10 bg-[#081120] p-6 shadow-[0_25px_80px_rgba(37,99,235,.18)]">
+              <p className="text-xs font-black uppercase tracking-[0.3em] text-cyan-300">
+                Mensaje comercial del día
+              </p>
+              <h3 className="mt-3 text-2xl font-black leading-tight text-white">
+                {quote.text}
+              </h3>
+              <div className="mt-4 flex items-center gap-3">
+                <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-slate-200">
+                  {quote.type || "motivacion"}
+                </span>
+                <span className="text-xs font-bold text-slate-400">
+                  — {quote.author || "GoMotorsCo Sales System"}
+                </span>
+              </div>
+            </section>
+          ) : null}
 
           {tab === "dashboard" ? <Dashboard stats={stats} vendedor={vendedor} leads={activeLeads} alerts={alerts} setTab={setTab} /> : null}
           {tab === "leads" ? <LeadsView leads={activeLeads} title="Leads activos" empty="No tenés leads activos." setEditingLead={setEditingLead} /> : null}
@@ -345,31 +374,7 @@ function AlertsView({ alerts, markAlert }: any) {
 }
 
 function ProfileView({ vendedor }: any) {
-  return (
-    <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-      <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">Identidad comercial</p>
-      <h2 className="mt-2 text-2xl font-black">Perfil</h2>
-
-      <div className="mt-6 grid gap-5 md:grid-cols-[auto_1fr] md:items-center">
-        <img
-          src={vendedor?.foto_url || "/logo-gomotorsco.png"}
-          className="h-28 w-28 rounded-full border border-white/10 bg-white object-cover"
-          alt="Perfil vendedor"
-        />
-
-        <div className="grid gap-2">
-          <p className="text-3xl font-black">{vendedor?.nombre || "Vendedor"}</p>
-          <p className="text-slate-400">{vendedor?.email || "Sin email"}</p>
-          <p className="text-slate-400">WhatsApp: {vendedor?.whatsapp || "—"}</p>
-          <p className="text-slate-400">Zona: {vendedor?.zona || "—"}</p>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
-        En la etapa 3 este perfil será editable: foto, WhatsApp, zona y datos comerciales.
-      </div>
-    </section>
-  );
+  return <ProfilePanel vendedor={vendedor} />;
 }
 
 function Placeholder({ title, text }: { title: string; text: string }) {

@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const vendedorId = req.cookies.get("seller_session")?.value;
+  const vendedorId = req.cookies.get("vendedor_id")?.value;
 
   if (!vendedorId) {
     return NextResponse.json({ ok: false, message: "No autorizado" }, { status: 401 });
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const vendedorId = req.cookies.get("seller_session")?.value;
+  const vendedorId = req.cookies.get("vendedor_id")?.value;
 
   if (!vendedorId) {
     return NextResponse.json({ ok: false, message: "No autorizado" }, { status: 401 });

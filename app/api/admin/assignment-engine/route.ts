@@ -68,7 +68,7 @@ const { data: vendedores, error: vendedoresError } = await supabaseAdmin
       await supabaseAdmin.from("system_alerts").insert([
         {
           titulo: "Lead asignado automáticamente",
-          mensaje: `Lead #${lead.id} asignado a ${
+          message: `Lead #${lead.id} asignado a ${
             vendedor.nombre || vendedor.email || "vendedor"
           }.`,
           tipo: "assignment",
