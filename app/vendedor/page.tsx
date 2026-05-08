@@ -8,12 +8,24 @@ type Vendedor = any;
 
 const estados = ["nuevo", "contactado", "seguimiento", "aprobado", "vendido", "pausado", "perdido"];
 
+type Tab = "dashboard" | "leads" | "eliminados" | "seguimientos" | "fichas" | "capacitacion" | "alertas" | "perfil";
+
+const menu: { key: Tab; label: string; icon: string }[] = [
+  { key: "dashboard", label: "Dashboard", icon: "📊" },
+  { key: "leads", label: "Leads", icon: "👥" },
+  { key: "eliminados", label: "Eliminados", icon: "🗑️" },
+  { key: "seguimientos", label: "Seguimientos", icon: "📅" },
+  { key: "fichas", label: "Fichas técnicas", icon: "📄" },
+  { key: "capacitacion", label: "Capacitación", icon: "🎓" },
+  { key: "alertas", label: "Alertas", icon: "🔔" },
+  { key: "perfil", label: "Perfil", icon: "👤" },
+];
+
 export default function VendedorPage() {
   const [vendedor, setVendedor] = useState<Vendedor | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [tab, setTab] = useState<"leads" | "perfil">("leads");
-  const [showAlerts, setShowAlerts] = useState(false);
+  const [tab, setTab] = useState<Tab>("dashboard");
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
 
   async function load() {
@@ -36,14 +48,19 @@ export default function VendedorPage() {
     load();
   }, []);
 
+  const activeLeads = leads.filter((l) => (l.estado || l.status) !== "eliminado");
+  const deletedLeads = leads.filter((l) => (l.estado || l.status) === "eliminado" || (l.estado || l.status) === "perdido");
+  const followups = activeLeads.filter((l) => l.seguimiento_fecha || l.seguimiento || (l.estado || l.status) === "seguimiento" || (l.estado || l.status) === "en_seguimiento");
+
   const unread = alerts.filter((a) => !a.read && a.estado !== "leida" && a.status !== "leida").length;
 
   const stats = useMemo(() => ({
-    nuevos: leads.filter((l) => (l.estado || l.status) === "nuevo").length,
-    seguimiento: leads.filter((l) => (l.estado || l.status) === "seguimiento" || (l.estado || l.status) === "en_seguimiento").length,
-    vendidos: leads.filter((l) => (l.estado || l.status) === "vendido").length,
-    total: leads.length,
-  }), [leads]);
+    total: activeLeads.length,
+    nuevos: activeLeads.filter((l) => (l.estado || l.status) === "nuevo").length,
+    seguimiento: followups.length,
+    vendidos: activeLeads.filter((l) => (l.estado || l.status) === "vendido").length,
+    alertas: unread,
+  }), [activeLeads, followups, unread]);
 
   async function saveLead() {
     if (!editingLead) return;
@@ -71,132 +88,77 @@ export default function VendedorPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#05070d] p-4 text-white md:p-8">
-      <section className="mx-auto max-w-7xl space-y-6">
-        <header className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">GoMotorsCo Comercial</p>
-              <h1 className="mt-2 text-4xl font-black tracking-[-0.04em]">Panel vendedor</h1>
-              <p className="mt-2 text-slate-400">{vendedor?.nombre || "Vendedor"} · Leads, alertas y seguimiento.</p>
-            </div>
+    <main className="min-h-screen bg-[#05070d] text-white">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 overflow-y-auto border-r border-white/10 bg-[#030509] p-5 lg:block">
+        <div className="mb-8">
+          <p className="text-xs uppercase tracking-[0.28em] text-blue-300">GoMotorsCo</p>
+          <h1 className="mt-2 text-2xl font-black">Panel vendedor</h1>
+          <p className="mt-2 text-xs text-slate-500">{vendedor?.nombre || "Comercial"}</p>
+        </div>
 
+        <nav className="space-y-1 pb-24">
+          {menu.map((item) => (
             <button
-              onClick={() => setShowAlerts(true)}
-              className="relative rounded-full border border-white/10 bg-white/10 px-5 py-4 text-2xl"
-              title="Alertas"
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-semibold transition ${
+                tab === item.key
+                  ? "bg-blue-600 text-white shadow-[0_18px_50px_rgba(37,99,235,.28)]"
+                  : "text-slate-300 hover:bg-white/10 hover:text-white"
+              }`}
             >
-              🔔
-              {unread > 0 ? (
-                <span className="absolute -right-1 -top-1 rounded-full bg-red-600 px-2 py-0.5 text-xs font-black">
-                  {unread}
-                </span>
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+              {item.key === "alertas" && unread > 0 ? (
+                <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-black text-white">{unread}</span>
               ) : null}
             </button>
-          </div>
-        </header>
+          ))}
+        </nav>
+      </aside>
 
-        <div className="grid gap-5 md:grid-cols-4">
-          <Card title="Leads asignados" value={stats.total} />
-          <Card title="Nuevos" value={stats.nuevos} />
-          <Card title="Seguimiento" value={stats.seguimiento} />
-          <Card title="Vendidos" value={stats.vendidos} />
+      <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030509]/95 px-3 py-3 backdrop-blur lg:hidden">
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-blue-300">GoMotorsCo</p>
+            <h1 className="text-lg font-black">Panel vendedor</h1>
+          </div>
+          <span className="rounded-full bg-white/10 px-3 py-2 text-xs font-black">{vendedor?.nombre || "Vendedor"}</span>
         </div>
 
-        <nav className="flex gap-3 overflow-x-auto rounded-[24px] border border-white/10 bg-[#080d18] p-3">
-          <button onClick={() => setTab("leads")} className={`rounded-2xl px-5 py-3 font-black ${tab === "leads" ? "bg-blue-600" : "bg-white/10"}`}>
-            Leads
-          </button>
-          <button onClick={() => setTab("perfil")} className={`rounded-2xl px-5 py-3 font-black ${tab === "perfil" ? "bg-blue-600" : "bg-white/10"}`}>
-            Perfil
-          </button>
+        <nav className="flex gap-2 overflow-x-auto pb-1">
+          {menu.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              className={`shrink-0 rounded-full px-4 py-2 text-xs font-black ${
+                tab === item.key ? "bg-blue-600 text-white" : "bg-white/10 text-white"
+              }`}
+            >
+              {item.icon} {item.label}
+            </button>
+          ))}
         </nav>
+      </header>
 
-        {tab === "perfil" ? (
-          <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-            <h2 className="text-2xl font-black">Perfil</h2>
-            <div className="mt-5 grid gap-4 md:grid-cols-[auto_1fr] md:items-center">
-              <img
-                src={vendedor?.foto_url || "/logo-gomotorsco.png"}
-                className="h-28 w-28 rounded-full border border-white/10 bg-white object-cover"
-              />
-              <div className="grid gap-2">
-                <p className="text-3xl font-black">{vendedor?.nombre || "Vendedor"}</p>
-                <p className="text-slate-400">{vendedor?.email || "Sin email"}</p>
-                <p className="text-slate-400">WhatsApp: {vendedor?.whatsapp || "—"}</p>
-                <p className="text-slate-400">Zona: {vendedor?.zona || "—"}</p>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-            <h2 className="text-2xl font-black">Mis leads</h2>
+      <section className="min-h-screen lg:pl-72">
+        <div className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-5 lg:px-8">
+          <TopHeader vendedor={vendedor} unread={unread} setTab={setTab} />
 
-            <div className="mt-5 grid gap-4">
-              {leads.length === 0 ? (
-                <p className="text-slate-400">No tenés leads asignados.</p>
-              ) : (
-                leads.map((lead) => (
-                  <article key={lead.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
-                    <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
-                      <div>
-                        <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-300">
-                          {lead.estado || lead.status || "nuevo"}
-                        </p>
-                        <h3 className="mt-2 text-xl font-black">{lead.nombre}</h3>
-                        <p className="mt-1 text-sm text-slate-400">WhatsApp: {lead.whatsapp || lead.telefono || "—"} · Ciudad: {lead.ciudad || "—"}</p>
-                        <p className="mt-1 text-sm text-slate-400">Vehículo: {lead.vehiculo || lead.vehiculo_interes || lead.vehicle_name || "—"}</p>
-                        <p className="mt-1 text-sm text-slate-400">Cuota: {lead.cuota_mensual || "—"} · Inicial: {lead.cuota_inicial || "—"}</p>
-                        {lead.notas ? <p className="mt-3 rounded-xl bg-black/30 p-3 text-sm text-slate-300">{lead.notas}</p> : null}
-                      </div>
-
-                      <div className="flex flex-wrap gap-2 lg:flex-col">
-                        <button onClick={() => setEditingLead(lead)} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black">
-                          Gestionar
-                        </button>
-                        <a href={`https://wa.me/${lead.whatsapp || lead.telefono || ""}`} target="_blank" className="rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-black">
-                          WhatsApp
-                        </a>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-        )}
+          {tab === "dashboard" ? <Dashboard stats={stats} vendedor={vendedor} leads={activeLeads} alerts={alerts} setTab={setTab} /> : null}
+          {tab === "leads" ? <LeadsView leads={activeLeads} title="Leads activos" empty="No tenés leads activos." setEditingLead={setEditingLead} /> : null}
+          {tab === "eliminados" ? <LeadsView leads={deletedLeads} title="Leads eliminados / perdidos" empty="No hay leads eliminados." setEditingLead={setEditingLead} /> : null}
+          {tab === "seguimientos" ? <LeadsView leads={followups} title="Seguimientos" empty="No tenés seguimientos pendientes." setEditingLead={setEditingLead} /> : null}
+          {tab === "alertas" ? <AlertsView alerts={alerts} markAlert={markAlert} /> : null}
+          {tab === "perfil" ? <ProfileView vendedor={vendedor} /> : null}
+          {tab === "fichas" ? <Placeholder title="Fichas técnicas" text="Próxima etapa: el admin podrá subir PDFs por marca/modelo y el vendedor podrá buscarlos y descargarlos." /> : null}
+          {tab === "capacitacion" ? <Placeholder title="Capacitación vendedor" text="Próxima etapa: videos de YouTube, mensajes del supervisor, scripts comerciales y material interno." /> : null}
+        </div>
       </section>
 
-      {showAlerts ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#080d18] p-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-black">Alertas</h2>
-              <button onClick={() => setShowAlerts(false)} className="rounded-xl bg-white/10 px-4 py-2 font-black">Cerrar</button>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {alerts.length === 0 ? (
-                <p className="text-slate-400">No tenés alertas.</p>
-              ) : (
-                alerts.map((a) => (
-                  <div key={a.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-                    <p className="font-black">{a.titulo || a.title || "Alerta"}</p>
-                    <p className="mt-1 text-sm text-slate-400">{a.mensaje || a.message}</p>
-                    <button onClick={() => markAlert(a.id)} className="mt-3 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black">
-                      Marcar leída
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
       {editingLead ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#080d18] p-6">
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#080d18] p-6 shadow-[0_30px_120px_rgba(0,0,0,.45)]">
             <h2 className="text-2xl font-black">Gestionar lead</h2>
 
             <div className="mt-5 grid gap-4">
@@ -243,11 +205,197 @@ export default function VendedorPage() {
   );
 }
 
+function TopHeader({ vendedor, unread, setTab }: any) {
+  return (
+    <section className="mb-6 rounded-[30px] border border-white/10 bg-[#080d18]/95 p-5 shadow-[0_24px_90px_rgba(0,0,0,.24)]">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">CRM comercial</p>
+          <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] md:text-4xl">
+            Bienvenido, {vendedor?.nombre || "vendedor"}
+          </h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Gestioná leads, seguimientos, alertas y tu actividad comercial.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setTab("alertas")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black">
+            🔔 Alertas {unread > 0 ? `(${unread})` : ""}
+          </button>
+          <button onClick={() => setTab("perfil")} className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black">
+            Ver perfil
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Dashboard({ stats, vendedor, leads, alerts, setTab }: any) {
+  return (
+    <div className="space-y-6">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <Card title="Leads activos" value={stats.total} />
+        <Card title="Nuevos" value={stats.nuevos} />
+        <Card title="Seguimiento" value={stats.seguimiento} />
+        <Card title="Vendidos" value={stats.vendidos} />
+        <Card title="Alertas" value={stats.alertas} />
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr]">
+        <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-5">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-black">Prioridad comercial</h3>
+            <button onClick={() => setTab("leads")} className="rounded-xl bg-white/10 px-4 py-2 text-xs font-black">Ver leads</button>
+          </div>
+
+          <div className="mt-4 space-y-3">
+            {leads.slice(0, 5).map((lead: any) => (
+              <div key={lead.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-300">{lead.estado || "nuevo"}</p>
+                <p className="mt-1 font-black">{lead.nombre || "Lead sin nombre"}</p>
+                <p className="text-sm text-slate-400">{lead.vehiculo || lead.vehiculo_interes || "Vehículo sin definir"}</p>
+              </div>
+            ))}
+            {leads.length === 0 ? <p className="text-sm text-slate-400">No hay leads asignados.</p> : null}
+          </div>
+        </section>
+
+        <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-5">
+          <h3 className="text-xl font-black">Actividad</h3>
+          <div className="mt-4 space-y-3">
+            <InfoLine label="Vendedor" value={vendedor?.nombre || "—"} />
+            <InfoLine label="Email" value={vendedor?.email || "—"} />
+            <InfoLine label="Último login" value={vendedor?.last_login ? new Date(vendedor.last_login).toLocaleString("es-CO") : "—"} />
+            <InfoLine label="Alertas recientes" value={String(alerts.length || 0)} />
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+function LeadsView({ leads, title, empty, setEditingLead }: any) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-5">
+      <div className="mb-5">
+        <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">Gestión comercial</p>
+        <h2 className="mt-2 text-2xl font-black">{title}</h2>
+      </div>
+
+      <div className="grid gap-4">
+        {leads.length === 0 ? (
+          <p className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-slate-400">{empty}</p>
+        ) : (
+          leads.map((lead: any) => (
+            <article key={lead.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 transition hover:border-blue-500/40 hover:bg-white/[0.06]">
+              <div className="grid gap-4 lg:grid-cols-[1fr_auto]">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-blue-300">
+                    {lead.estado || lead.status || "nuevo"}
+                  </p>
+                  <h3 className="mt-2 text-xl font-black">{lead.nombre || "Lead sin nombre"}</h3>
+                  <p className="mt-1 text-sm text-slate-400">WhatsApp: {lead.whatsapp || lead.telefono || "—"} · Ciudad: {lead.ciudad || "—"}</p>
+                  <p className="mt-1 text-sm text-slate-400">Vehículo: {lead.vehiculo || lead.vehiculo_interes || lead.vehicle_name || "—"}</p>
+                  <p className="mt-1 text-sm text-slate-400">Cuota: {lead.cuota_mensual || "—"} · Inicial: {lead.cuota_inicial || "—"}</p>
+                  {lead.notas ? <p className="mt-3 rounded-xl bg-black/30 p-3 text-sm text-slate-300">{lead.notas}</p> : null}
+                </div>
+
+                <div className="flex flex-wrap gap-2 lg:flex-col">
+                  <button onClick={() => setEditingLead(lead)} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-black">
+                    Gestionar
+                  </button>
+                  <a href={`https://wa.me/${lead.whatsapp || lead.telefono || ""}`} target="_blank" className="rounded-xl bg-emerald-600 px-4 py-2 text-center text-sm font-black">
+                    WhatsApp
+                  </a>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function AlertsView({ alerts, markAlert }: any) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-5">
+      <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">Centro comercial</p>
+      <h2 className="mt-2 text-2xl font-black">Alertas</h2>
+
+      <div className="mt-5 space-y-3">
+        {alerts.length === 0 ? (
+          <p className="rounded-2xl border border-white/10 bg-white/[0.04] p-5 text-slate-400">No tenés alertas.</p>
+        ) : (
+          alerts.map((a: any) => (
+            <div key={a.id} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="font-black">{a.titulo || a.title || "Alerta"}</p>
+              <p className="mt-1 text-sm text-slate-400">{a.message || a.mensaje || "Sin mensaje"}</p>
+              <button onClick={() => markAlert(a.id)} className="mt-3 rounded-xl bg-blue-600 px-4 py-2 text-sm font-black">
+                Marcar leída
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </section>
+  );
+}
+
+function ProfileView({ vendedor }: any) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
+      <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">Identidad comercial</p>
+      <h2 className="mt-2 text-2xl font-black">Perfil</h2>
+
+      <div className="mt-6 grid gap-5 md:grid-cols-[auto_1fr] md:items-center">
+        <img
+          src={vendedor?.foto_url || "/logo-gomotorsco.png"}
+          className="h-28 w-28 rounded-full border border-white/10 bg-white object-cover"
+          alt="Perfil vendedor"
+        />
+
+        <div className="grid gap-2">
+          <p className="text-3xl font-black">{vendedor?.nombre || "Vendedor"}</p>
+          <p className="text-slate-400">{vendedor?.email || "Sin email"}</p>
+          <p className="text-slate-400">WhatsApp: {vendedor?.whatsapp || "—"}</p>
+          <p className="text-slate-400">Zona: {vendedor?.zona || "—"}</p>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+        En la etapa 3 este perfil será editable: foto, WhatsApp, zona y datos comerciales.
+      </div>
+    </section>
+  );
+}
+
+function Placeholder({ title, text }: { title: string; text: string }) {
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[#080d18] p-6">
+      <p className="text-xs font-black uppercase tracking-[0.28em] text-blue-300">Próxima etapa</p>
+      <h2 className="mt-2 text-2xl font-black">{title}</h2>
+      <p className="mt-3 max-w-2xl text-slate-400">{text}</p>
+    </section>
+  );
+}
+
 function Card({ title, value }: { title: string; value: number }) {
   return (
-    <div className="rounded-[24px] border border-white/10 bg-[#080d18] p-5">
+    <div className="rounded-[24px] border border-white/10 bg-[#080d18] p-5 shadow-[0_18px_60px_rgba(0,0,0,.18)]">
       <p className="text-sm text-slate-400">{title}</p>
       <p className="mt-2 text-4xl font-black">{value}</p>
+    </div>
+  );
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-bold text-slate-200">{value}</p>
     </div>
   );
 }
