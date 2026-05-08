@@ -3,14 +3,23 @@ import Link from "next/link";
 export function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-[#f4efe5]">
-      <div className="relative h-[78vh] min-h-[560px] w-full overflow-hidden md:h-[92vh] md:min-h-[760px]">
+      <div className="relative h-[72vh] min-h-[420px] w-full overflow-hidden md:h-[92vh] md:min-h-[760px]">
+
+        {/* MOBILE */}
         <img
-          src="/hero-0km.png"
-          alt="Vehículo premium GoMotorsCo"
-          className="absolute inset-0 h-full w-full object-cover object-center"
+          src="/hero-mobile.png"
+          alt="GoMotorsCo Mobile Hero"
+          className="absolute inset-0 h-full w-full object-cover object-center md:hidden"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-black/0 to-black/10" />
+        {/* DESKTOP */}
+        <img
+          src="/hero-0km.png"
+          alt="GoMotorsCo Hero"
+          className="absolute inset-0 hidden h-full w-full object-cover object-center md:block"
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10" />
 
         <div className="absolute bottom-8 left-5 right-5 grid grid-cols-2 gap-3 sm:left-10 sm:right-auto sm:flex">
           <Link
