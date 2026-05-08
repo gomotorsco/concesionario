@@ -41,9 +41,8 @@ export function BrandHeader() {
           <a href="#stock-auto" className="rounded-full bg-[#f4eee4] px-3 py-2 text-xs font-black text-[#151515]">
             Autos
           </a>
-          <a href="#stock-moto" className="rounded-full bg-[#f4eee4] px-3 py-2 text-xs font-black text-[#151515]">
-            Motos
-          </a>
+          <a href="#stock-moto" className="rounded-full bg-[#f4eee4] px-3 py-2 text-xs font-black text-[#151515]">Motos</a>
+          <a href="#stock-ciclomotor" className="rounded-full bg-[#f4eee4] px-3 py-2 text-xs font-black text-[#151515]">Cuatris</a>
         </div>
 
         <Link
