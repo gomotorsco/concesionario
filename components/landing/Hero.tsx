@@ -16,7 +16,7 @@ export function Hero() {
         <img
           src="/hero-0km.png"
           alt="GoMotorsCo Hero"
-          className="absolute inset-0 hidden h-full w-full object-cover object-center md:block"
+          className="absolute inset-0 hidden h-full w-full object-contain object-center bg-[#f4efe5] md:block"
         />
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/38 via-black/8 to-black/12" />
