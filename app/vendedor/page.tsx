@@ -148,7 +148,7 @@ export default function VendedorPage() {
         <button
           onClick={async () => {
             await fetch("/api/vendedor-logout", { method: "POST" });
-            window.location.href = "/vendedor-login";
+            window.location.href = "/vendedor/login";
           }}
           className="mt-6 flex w-full items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white"
         >
@@ -168,7 +168,7 @@ export default function VendedorPage() {
             <button
               onClick={async () => {
                 await fetch("/api/vendedor-logout", { method: "POST" });
-                window.location.href = "/vendedor-login";
+                window.location.href = "/vendedor/login";
               }}
               className="rounded-full bg-red-500/15 px-3 py-2 text-[11px] font-black text-red-300"
             >
