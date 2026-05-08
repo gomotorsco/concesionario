@@ -1,6 +1,7 @@
 "use client";
 
 import ProfilePanel from "@/components/vendedor/ProfilePanel";
+import TechnicalSheetsPanel from "@/components/vendedor/TechnicalSheetsPanel";
 import { useEffect, useMemo, useState } from "react";
 
 type Lead = any;
@@ -180,7 +181,7 @@ export default function VendedorPage() {
           {tab === "seguimientos" ? <LeadsView leads={followups} title="Seguimientos" empty="No tenés seguimientos pendientes." setEditingLead={setEditingLead} /> : null}
           {tab === "alertas" ? <AlertsView alerts={alerts} markAlert={markAlert} /> : null}
           {tab === "perfil" ? <ProfileView vendedor={vendedor} /> : null}
-          {tab === "fichas" ? <Placeholder title="Fichas técnicas" text="Próxima etapa: el admin podrá subir PDFs por marca/modelo y el vendedor podrá buscarlos y descargarlos." /> : null}
+          {tab === "fichas" ? <TechnicalSheetsPanel /> : null}
           {tab === "capacitacion" ? <Placeholder title="Capacitación vendedor" text="Próxima etapa: videos de YouTube, mensajes del supervisor, scripts comerciales y material interno." /> : null}
         </div>
       </section>

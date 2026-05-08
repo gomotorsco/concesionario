@@ -9,6 +9,7 @@ const items = [
   { label: "Crear vendedores", href: "/admin/equipo" },
   { label: "Panel vendedores", href: "/admin/vendedores" },
   { label: "Alertas", href: "/admin/alertas" },
+  { label: "Fichas técnicas", href: "/admin/fichas-tecnicas" },
   { label: "Branding", href: "/admin/branding" },
   { label: "Configuración", href: "/admin/configuracion" },
 ];

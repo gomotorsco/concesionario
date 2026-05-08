@@ -147,9 +147,6 @@ export async function POST(req: NextRequest) {
   if (seguimiento_fecha !== undefined) update.seguimiento_fecha = seguimiento_fecha;
   if (seguimiento_fecha !== undefined) update.next_follow_up_at = seguimiento_fecha;
   if (notas !== undefined) update.notas = notas;
-  if (seguimiento_fecha !== undefined) update.seguimiento_fecha = seguimiento_fecha;
-  if (seguimiento_fecha !== undefined) update.next_follow_up_at = seguimiento_fecha;
-  if (notas !== undefined) update.notas = notas;
   if (visto !== undefined) update.visto = visto;
 
   const { data, error } = await supabaseAdmin
