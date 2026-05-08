@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 
 const items = [
@@ -35,6 +37,16 @@ export function Sidebar() {
             </Link>
           ))}
         </nav>
+
+        <button
+          onClick={async () => {
+            await fetch("/api/admin-logout", { method: "POST" });
+            window.location.href = "/admin/login";
+          }}
+          className="mt-6 flex w-full items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-black text-red-300 transition hover:bg-red-500 hover:text-white"
+        >
+          Cerrar sesión
+        </button>
       </aside>
 
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#030509]/95 px-3 py-3 text-white backdrop-blur lg:hidden">
