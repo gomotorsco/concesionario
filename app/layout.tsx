@@ -1,5 +1,6 @@
 import "./globals.css";
 import type { Metadata } from "next";
+import FloatingActions from "@/components/landing/FloatingActions";
 
 export const metadata: Metadata = {
   title: {
@@ -35,7 +36,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        {children}
+        <FloatingActions whatsappUrl="https://wa.me/115151515" />
+      </body>
     </html>
   );
 }
