@@ -29,6 +29,7 @@ export default function VendedorPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [tab, setTab] = useState<Tab>("dashboard");
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [newLead, setNewLead] = useState<any | null>(null);
   const [quote, setQuote] = useState<any>(null);
 
   async function load() {
@@ -98,6 +99,22 @@ export default function VendedorPage() {
     load();
   }
 
+  async function createLead() {
+    if (!newLead) return;
+
+    const res = await fetch("/api/vendedor-leads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "create_lead", ...newLead }),
+    });
+
+    const json = await res.json();
+    if (!res.ok) return alert(json.message || "No se pudo crear el lead.");
+
+    setNewLead(null);
+    load();
+  }
+
   return (
     <main className="min-h-screen bg-[#05070d] text-white">
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-72 overflow-y-auto border-r border-white/10 bg-[#030509] p-5 lg:block">
@@ -154,7 +171,7 @@ export default function VendedorPage() {
 
       <section className="min-h-screen lg:pl-72">
         <div className="mx-auto w-full max-w-[1600px] px-3 py-4 sm:px-5 lg:px-8">
-          <TopHeader vendedor={vendedor} unread={unread} setTab={setTab} />
+          <TopHeader vendedor={vendedor} unread={unread} setTab={setTab} setNewLead={setNewLead} />
 
           {quote ? (
             <section className="mb-6 rounded-[32px] border border-white/10 bg-[#081120] p-6 shadow-[0_25px_80px_rgba(37,99,235,.18)]">
@@ -185,6 +202,28 @@ export default function VendedorPage() {
           {tab === "capacitacion" ? <Placeholder title="Capacitación vendedor" text="Próxima etapa: videos de YouTube, mensajes del supervisor, scripts comerciales y material interno." /> : null}
         </div>
       </section>
+
+      {newLead ? (
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#080d18] p-6 shadow-[0_30px_120px_rgba(0,0,0,.45)]">
+            <h2 className="text-2xl font-black">Nuevo lead propio</h2>
+            <p className="mt-1 text-sm text-slate-400">Cargá clientes conseguidos por el vendedor.</p>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              <InputModal label="Nombre" value={newLead.nombre} onChange={(v: string) => setNewLead({ ...newLead, nombre: v })} />
+              <InputModal label="WhatsApp" value={newLead.whatsapp} onChange={(v: string) => setNewLead({ ...newLead, whatsapp: v })} />
+              <InputModal label="Ciudad" value={newLead.ciudad} onChange={(v: string) => setNewLead({ ...newLead, ciudad: v })} />
+              <InputModal label="Vehículo interés" value={newLead.vehiculo_interes} onChange={(v: string) => setNewLead({ ...newLead, vehiculo_interes: v })} />
+              <InputModal label="Cuota mensual deseada" value={newLead.cuota_mensual} onChange={(v: string) => setNewLead({ ...newLead, cuota_mensual: v })} />
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button onClick={createLead} className="rounded-2xl bg-emerald-600 px-6 py-3 font-black">Crear lead</button>
+              <button onClick={() => setNewLead(null)} className="rounded-2xl bg-white/10 px-6 py-3 font-black">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {editingLead ? (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
@@ -235,7 +274,7 @@ export default function VendedorPage() {
   );
 }
 
-function TopHeader({ vendedor, unread, setTab }: any) {
+function TopHeader({ vendedor, unread, setTab, setNewLead }: any) {
   return (
     <section className="mb-6 rounded-[30px] border border-white/10 bg-[#080d18]/95 p-5 shadow-[0_24px_90px_rgba(0,0,0,.24)]">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -252,6 +291,9 @@ function TopHeader({ vendedor, unread, setTab }: any) {
         <div className="flex flex-wrap gap-2">
           <button onClick={() => setTab("alertas")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black">
             🔔 Alertas {unread > 0 ? `(${unread})` : ""}
+          </button>
+          <button onClick={() => setNewLead({ nombre: "", whatsapp: "", ciudad: "", vehiculo_interes: "", cuota_mensual: "" })} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black">
+            + Nuevo lead
           </button>
           <button onClick={() => setTab("perfil")} className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black">
             Ver perfil
@@ -403,5 +445,26 @@ function InfoLine({ label, value }: { label: string; value: string }) {
       <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{label}</p>
       <p className="mt-1 text-sm font-bold text-slate-200">{value}</p>
     </div>
+  );
+}
+
+function InputModal({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 text-sm font-bold">
+      {label}
+      <input
+        value={value || ""}
+        onChange={(e) => onChange(e.target.value)}
+        className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3 text-white"
+      />
+    </label>
   );
 }

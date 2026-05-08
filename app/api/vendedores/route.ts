@@ -125,6 +125,10 @@ export async function POST(req: NextRequest) {
       if (body.meta_conversion !== undefined) update.meta_conversion = Number(body.meta_conversion);
       if (body.meta_leads_trabajados !== undefined) update.meta_leads_trabajados = Number(body.meta_leads_trabajados);
       if (body.activo !== undefined) update.activo = Boolean(body.activo);
+      if (body.fecha_baja !== undefined) update.fecha_baja = body.fecha_baja;
+      if (body.motivo_baja !== undefined) update.motivo_baja = body.motivo_baja || null;
+      if (body.fecha_baja !== undefined) update.fecha_baja = body.fecha_baja;
+      if (body.motivo_baja !== undefined) update.motivo_baja = body.motivo_baja || null;
 
       const { data, error } = await supabaseAdmin
         .from("vendedores")

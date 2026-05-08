@@ -2,29 +2,63 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+type Vehicle = any;
+
 export default function AdminTechnicalSheetsPage() {
   const [sheets, setSheets] = useState<any[]>([]);
-  const [form, setForm] = useState<any>({
-    title: "",
-    brand: "",
-    model: "",
-    vehicle_type: "auto",
-    year: "",
-    tags: "",
-  });
+  const [sections, setSections] = useState<any[]>([]);
+  const [vehicleId, setVehicleId] = useState("");
+  const [vehicleType, setVehicleType] = useState("auto");
+  const [brand, setBrand] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
 
   async function load() {
-    const res = await fetch("/api/admin/technical-sheets", { cache: "no-store" });
-    const json = await res.json();
-    setSheets(json.sheets ?? []);
+    const [sheetsRes, vehiclesRes] = await Promise.all([
+      fetch("/api/admin/technical-sheets", { cache: "no-store" }),
+      fetch("/api/vehicles?admin=1", { cache: "no-store" }),
+    ]);
+
+    const sheetsJson = await sheetsRes.json();
+    const vehiclesJson = await vehiclesRes.json();
+
+    setSheets(sheetsJson.sheets ?? []);
+    setSections(vehiclesJson.sections ?? []);
   }
 
   useEffect(() => {
     load();
   }, []);
+
+  const vehicles: Vehicle[] = useMemo(() => {
+    return sections.flatMap((s: any) =>
+      (s.vehicles ?? []).map((v: any) => ({
+        ...v,
+        tipo: v.tipo || s.type || "auto",
+        marca: v.marca || s.title || s.name || "",
+      }))
+    );
+  }, [sections]);
+
+  const brands = useMemo(() => {
+    return Array.from(
+      new Set(
+        vehicles
+          .filter((v) => String(v.tipo || "auto") === vehicleType)
+          .map((v) => String(v.marca || "Sin marca"))
+      )
+    ).sort();
+  }, [vehicles, vehicleType]);
+
+  const vehicleOptions = useMemo(() => {
+    return vehicles
+      .filter((v) => String(v.tipo || "auto") === vehicleType)
+      .filter((v) => !brand || String(v.marca || "") === brand)
+      .sort((a, b) => String(a.title || "").localeCompare(String(b.title || "")));
+  }, [vehicles, vehicleType, brand]);
+
+  const selectedVehicle = vehicleOptions.find((v) => String(v.id) === String(vehicleId));
 
   const filtered = useMemo(() => {
     const query = q.toLowerCase();
@@ -38,12 +72,19 @@ export default function AdminTechnicalSheetsPage() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (!selectedVehicle) return alert("Seleccioná un vehículo.");
     if (!file) return alert("Seleccioná un PDF.");
 
     setSaving(true);
 
     const fd = new FormData();
-    Object.entries(form).forEach(([k, v]) => fd.append(k, String(v ?? "")));
+    fd.append("title", selectedVehicle.title || selectedVehicle.modelo || "Ficha técnica");
+    fd.append("brand", selectedVehicle.marca || brand || "");
+    fd.append("model", selectedVehicle.modelo || selectedVehicle.title || "");
+    fd.append("vehicle_type", vehicleType);
+    fd.append("year", selectedVehicle.anio ? String(selectedVehicle.anio) : "");
+    fd.append("tags", [selectedVehicle.marca, selectedVehicle.title, vehicleType].filter(Boolean).join(", "));
     fd.append("file", file);
 
     const res = await fetch("/api/admin/technical-sheets", {
@@ -56,7 +97,7 @@ export default function AdminTechnicalSheetsPage() {
 
     if (!res.ok) return alert(json.message || "No se pudo subir la ficha.");
 
-    setForm({ title: "", brand: "", model: "", vehicle_type: "auto", year: "", tags: "" });
+    setVehicleId("");
     setFile(null);
     await load();
   }
@@ -76,34 +117,64 @@ export default function AdminTechnicalSheetsPage() {
         <p className="text-xs uppercase tracking-[0.28em] text-blue-300">Biblioteca comercial</p>
         <h1 className="mt-2 text-3xl font-black text-white">Fichas técnicas</h1>
         <p className="mt-2 text-sm text-slate-400">
-          Subí PDFs por marca, modelo y tipo para que los vendedores los consulten rápido.
+          Elegí tipo, marca y vehículo ya cargado. Luego subí el PDF correspondiente.
         </p>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
         <form onSubmit={submit} className="rounded-2xl border border-white/10 bg-slate-950/70 p-5">
-          <h2 className="text-lg font-black text-white">Nueva ficha PDF</h2>
+          <h2 className="text-lg font-black text-white">Asignar PDF a vehículo</h2>
 
           <div className="mt-5 grid gap-3">
-            <Input label="Título" value={form.title} onChange={(v: string) => setForm({ ...form, title: v })} />
-            <Input label="Marca" value={form.brand} onChange={(v: string) => setForm({ ...form, brand: v })} />
-            <Input label="Modelo" value={form.model} onChange={(v: string) => setForm({ ...form, model: v })} />
-
             <label className="grid gap-1 text-xs font-bold text-slate-400">
               Tipo
               <select
-                value={form.vehicle_type}
-                onChange={(e) => setForm({ ...form, vehicle_type: e.target.value })}
+                value={vehicleType}
+                onChange={(e) => {
+                  setVehicleType(e.target.value);
+                  setBrand("");
+                  setVehicleId("");
+                }}
                 className="rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white"
               >
-                <option value="auto">Auto</option>
-                <option value="moto">Moto</option>
-                <option value="ciclomotor">Ciclomotor / Cuatriciclo</option>
+                <option value="auto">Autos</option>
+                <option value="moto">Motos</option>
+                <option value="ciclomotor">Ciclomotores / Cuatriciclos</option>
               </select>
             </label>
 
-            <Input label="Año" value={form.year} onChange={(v: string) => setForm({ ...form, year: v })} type="number" />
-            <Input label="Tags" value={form.tags} onChange={(v: string) => setForm({ ...form, tags: v })} placeholder="financiación, pickup, híbrido..." />
+            <label className="grid gap-1 text-xs font-bold text-slate-400">
+              Marca
+              <select
+                value={brand}
+                onChange={(e) => {
+                  setBrand(e.target.value);
+                  setVehicleId("");
+                }}
+                className="rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white"
+              >
+                <option value="">Todas las marcas</option>
+                {brands.map((b) => (
+                  <option key={b} value={b}>{b}</option>
+                ))}
+              </select>
+            </label>
+
+            <label className="grid gap-1 text-xs font-bold text-slate-400">
+              Vehículo
+              <select
+                value={vehicleId}
+                onChange={(e) => setVehicleId(e.target.value)}
+                className="rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white"
+              >
+                <option value="">Seleccionar vehículo</option>
+                {vehicleOptions.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.marca ? `${v.marca} · ` : ""}{v.title || v.modelo || "Sin nombre"}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             <label className="grid gap-1 text-xs font-bold text-slate-400">
               PDF
@@ -114,6 +185,12 @@ export default function AdminTechnicalSheetsPage() {
                 className="rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white"
               />
             </label>
+
+            {selectedVehicle ? (
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/10 p-3 text-xs text-blue-100">
+                Seleccionado: <b>{selectedVehicle.marca}</b> · {selectedVehicle.title}
+              </div>
+            ) : null}
           </div>
 
           <button disabled={saving} className="mt-5 rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white disabled:opacity-60">
@@ -158,20 +235,5 @@ export default function AdminTechnicalSheetsPage() {
         </section>
       </section>
     </div>
-  );
-}
-
-function Input({ label, value, onChange, type = "text", placeholder = "" }: any) {
-  return (
-    <label className="grid gap-1 text-xs font-bold text-slate-400">
-      {label}
-      <input
-        type={type}
-        value={value}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="rounded-xl border border-slate-700 bg-black px-3 py-2 text-sm text-white"
-      />
-    </label>
   );
 }

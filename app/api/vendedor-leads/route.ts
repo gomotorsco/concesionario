@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   const { data: vendedor, error: vendedorError } = await supabaseAdmin
     .from("vendedores")
-    .select("id, nombre, email, meta_mensual, activo, last_login, last_activity")
+    .select("id, nombre, email, whatsapp, foto_url, zona, meta_mensual, activo, last_login, last_activity")
     .eq("id", vendedorId)
     .single();
 
@@ -130,7 +130,34 @@ export async function POST(req: NextRequest) {
   await touchSeller(supabaseAdmin, vendedorId);
 
   const body = await req.json();
-  const { id, estado, seguimiento, seguimiento_fecha, notas, visto } = body;
+  const { id, estado, seguimiento, seguimiento_fecha, notas, visto, action, nombre, telefono, whatsapp, ciudad, vehiculo_interes, cuota_mensual } = body;
+
+  if (action === "create_lead") {
+    const phone = String(whatsapp || telefono || "").trim();
+    if (!nombre || !phone) return NextResponse.json({ ok: false, message: "Nombre y WhatsApp son obligatorios" }, { status: 400 });
+
+    const { data, error } = await supabaseAdmin.from("landing_leads").insert({
+      nombre: String(nombre).trim(),
+      telefono: phone,
+      whatsapp: phone,
+      ciudad: ciudad ? String(ciudad).trim() : null,
+      vehiculo_interes: vehiculo_interes ? String(vehiculo_interes).trim() : null,
+      vehiculo: vehiculo_interes ? String(vehiculo_interes).trim() : null,
+      cuota_mensual: cuota_mensual ? String(cuota_mensual).trim() : null,
+      vendedor_id: vendedorId,
+      origen: "vendedor",
+      source: "vendedor_panel",
+      canal: "vendedor",
+      estado: "nuevo",
+      status: "nuevo",
+      visto: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }).select("*").single();
+
+    if (error) return NextResponse.json({ ok: false, message: error.message }, { status: 500 });
+    return NextResponse.json({ ok: true, lead: data });
+  }
 
   if (!id) {
     return NextResponse.json({ ok: false, message: "id requerido" }, { status: 400 });
