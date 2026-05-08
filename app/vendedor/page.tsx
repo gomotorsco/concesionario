@@ -2,6 +2,7 @@
 
 import ProfilePanel from "@/components/vendedor/ProfilePanel";
 import TechnicalSheetsPanel from "@/components/vendedor/TechnicalSheetsPanel";
+import TrainingPanel from "@/components/vendedor/TrainingPanel";
 import { useEffect, useMemo, useState } from "react";
 
 type Lead = any;
@@ -199,7 +200,7 @@ export default function VendedorPage() {
           {tab === "alertas" ? <AlertsView alerts={alerts} markAlert={markAlert} /> : null}
           {tab === "perfil" ? <ProfileView vendedor={vendedor} /> : null}
           {tab === "fichas" ? <TechnicalSheetsPanel /> : null}
-          {tab === "capacitacion" ? <Placeholder title="Capacitación vendedor" text="Próxima etapa: videos de YouTube, mensajes del supervisor, scripts comerciales y material interno." /> : null}
+          {tab === "capacitacion" ? <TrainingPanel /> : null}
         </div>
       </section>
 
