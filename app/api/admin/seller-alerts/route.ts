@@ -52,11 +52,9 @@ export async function POST(req: NextRequest) {
     .from("seller_alerts")
     .insert({
       vendedor_id,
-      titulo,
-      mensaje,
-      tipo,
-      estado: "pendiente",
-      status: "pendiente",
+      title: titulo,
+      message: mensaje,
+      priority: tipo,
       created_at: new Date().toISOString(),
     })
     .select("*")

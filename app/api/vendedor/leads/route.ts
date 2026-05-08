@@ -62,13 +62,9 @@ export async function PATCH(req: NextRequest) {
   if (body.estado === "seguimiento" && body.seguimiento_fecha && lead?.vendedor_id) {
     await getSupabaseAdmin()!.from("seller_alerts").insert({
       vendedor_id: lead.vendedor_id,
-      lead_id: lead.id,
-      titulo: "Seguimiento programado",
+      title: "Seguimiento programado",
       message: `Dar seguimiento a ${lead.nombre || "lead"} por ${lead.vehiculo || lead.vehiculo_interes || "vehículo"}`,
-      tipo: "seguimiento",
-      estado: "pendiente",
-      status: "pendiente",
-      scheduled_at: body.seguimiento_fecha,
+      priority: "seguimiento",
     });
   }
 

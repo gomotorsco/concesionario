@@ -53,6 +53,7 @@ export async function GET(req: NextRequest) {
     .from("landing_leads")
     .select("*")
     .eq("vendedor_id", vendedorId)
+    .neq("estado", "eliminado")
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
   await touchSeller(supabaseAdmin, vendedorId);
 
   const body = await req.json();
-  const { id, estado, seguimiento, seguimiento_fecha, notas, visto } = body;
+  const { id, estado, seguimiento, visto } = body;
 
   if (!id) {
     return NextResponse.json({ ok: false, message: "id requerido" }, { status: 400 });
@@ -144,9 +145,6 @@ export async function POST(req: NextRequest) {
   if (estado !== undefined) update.estado = estado;
   if (estado !== undefined) update.funnel_stage = estado;
   if (seguimiento !== undefined) update.seguimiento = seguimiento;
-  if (seguimiento_fecha !== undefined) update.seguimiento_fecha = seguimiento_fecha;
-  if (seguimiento_fecha !== undefined) update.next_follow_up_at = seguimiento_fecha;
-  if (notas !== undefined) update.notas = notas;
   if (visto !== undefined) update.visto = visto;
 
   const { data, error } = await supabaseAdmin
@@ -165,9 +163,9 @@ export async function POST(req: NextRequest) {
     {
       lead_id: Number(id),
       vendedor_id: vendedorId,
-      type: estado ? "estado_actualizado" : seguimiento_fecha ? "seguimiento_programado" : "seguimiento_actualizado",
-      message: estado ? `Estado actualizado a ` : seguimiento_fecha ? "Seguimiento programado" : "Seguimiento actualizado",
-      meta: { estado, seguimiento, seguimiento_fecha, notas },
+      type: estado ? "estado_actualizado" : "seguimiento_actualizado",
+      message: estado ? `Estado actualizado a ${estado}` : "Seguimiento actualizado",
+      meta: { estado, seguimiento },
     },
   ]);
 
