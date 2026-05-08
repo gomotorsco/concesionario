@@ -15,9 +15,9 @@ function CycleIcon() {
 export function BrandHeader() {
   return (
     <header className="fixed left-0 right-0 top-4 z-50 px-4 sm:top-6 sm:px-8">
-      <div className="mx-auto flex max-w-[1500px] items-center justify-between rounded-full border border-white/75 bg-white/90 px-5 py-3 shadow-[0_24px_90px_rgba(20,20,20,0.24)] backdrop-blur-2xl sm:px-7">
+      <div className="mx-auto flex max-w-[1500px] items-center justify-between rounded-full border border-white/75 bg-white/90 px-4 py-2.5 shadow-[0_24px_90px_rgba(20,20,20,0.24)] backdrop-blur-2xl sm:px-7">
         <Link href="/" className="flex items-center gap-3">
-          <img src="/logo-gomotorsco.png" alt="GoMotorsCo" className="h-9 w-auto object-contain sm:h-12" />
+          <img src="/logo-gomotorsco.png" alt="GoMotorsCo" className="h-8 w-auto object-contain sm:h-11" />
 
           <div>
             <p className="hidden text-[11px] font-black uppercase tracking-[0.35em] text-[#7b746b] sm:block">

@@ -19,19 +19,19 @@ export function Hero() {
           className="absolute inset-0 hidden h-full w-full object-cover object-center md:block"
         />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-black/10" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/38 via-black/8 to-black/12" />
 
         <div className="absolute bottom-8 left-5 right-5 grid grid-cols-2 gap-3 sm:left-10 sm:right-auto sm:flex">
           <Link
             href="#stock-auto"
-            className="rounded-full bg-white px-5 py-4 text-center text-sm font-black text-[#151515] shadow-[0_20px_70px_rgba(0,0,0,0.30)] transition hover:scale-[1.02] sm:px-10 sm:py-5 sm:text-base"
+            className="rounded-full bg-white px-5 py-3.5 text-center text-[13px] font-black tracking-[0.02em] text-[#151515] shadow-[0_20px_70px_rgba(0,0,0,0.30)] transition hover:scale-[1.02] sm:px-10 sm:py-5 sm:text-base"
           >
             Ver vehículos
           </Link>
 
           <Link
             href="/preaprobacion"
-            className="rounded-full border border-white/55 bg-black/35 px-5 py-4 text-center text-sm font-black text-white shadow-[0_20px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition hover:scale-[1.02] sm:px-10 sm:py-5 sm:text-base"
+            className="rounded-full border border-white/55 bg-black/35 px-5 py-3.5 text-center text-[13px] font-black tracking-[0.02em] text-white shadow-[0_20px_70px_rgba(0,0,0,0.25)] backdrop-blur-xl transition hover:scale-[1.02] sm:px-10 sm:py-5 sm:text-base"
           >
             Evaluar
           </Link>

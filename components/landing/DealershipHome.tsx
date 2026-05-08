@@ -18,7 +18,7 @@ export default function DealershipHome() {
       <CategoryBanners />
 
       <section id="stock" className="border-t border-[var(--gm-border)] bg-[rgba(255,253,248,.58)]">
-        <div className="gm-premium-container py-16">
+        <div className="gm-premium-container py-24">
           <PremiumVehiclesCatalog />
         </div>
       </section>

@@ -116,10 +116,10 @@ export default function PremiumVehiclesCatalog() {
             const img = vehicle.imagen_hero || vehicle.imagen_url || fallbackImages[activeType];
 
             return (
-              <article key={vehicle.id} className="overflow-hidden rounded-[32px] border border-black/10 bg-[#fffdf8] shadow-[0_22px_70px_rgba(21,21,21,.10)] transition hover:-translate-y-1">
+              <article key={vehicle.id} className="overflow-hidden rounded-[26px] border border-black/10 bg-[#fffdf8] shadow-[0_18px_45px_rgba(21,21,21,.08)] transition hover:-translate-y-1">
                 <a href={`/vehiculos/${vehicle.slug}`} className="block">
                   <div className="h-72 overflow-hidden bg-[#eee6da]">
-                    <img src={img} alt={vehicle.title} className="h-full w-full object-cover transition duration-700 hover:scale-105" />
+                    <img src={img} alt={vehicle.title} className="h-full w-full object-cover transition duration-700 hover:scale-[1.03]" />
                   </div>
 
                   <div className="p-6">
