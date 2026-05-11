@@ -79,7 +79,7 @@ export default function VendedorPage() {
 
   async function load() {
 
-    const res = await fetch("/api/vendedor-leads", { cache: "no-store" });
+    const res = await fetch("/api/vendedor/leads", { cache: "no-store" });
 
     const json = await res.json();
 
@@ -141,9 +141,9 @@ export default function VendedorPage() {
 
     if (!editingLead) return;
 
-    const res = await fetch("/api/vendedor-leads", {
+    const res = await fetch("/api/vendedor/leads", {
 
-      method: "POST",
+      method: "PATCH",
 
       headers: { "Content-Type": "application/json" },
 
@@ -181,9 +181,9 @@ export default function VendedorPage() {
 
     if (!newLead) return;
 
-    const res = await fetch("/api/vendedor-leads", {
+    const res = await fetch("/api/vendedor/leads", {
 
-      method: "POST",
+      method: "PATCH",
 
       headers: { "Content-Type": "application/json" },
 
@@ -223,7 +223,7 @@ export default function VendedorPage() {
 
             onClick={async () => {
 
-              await fetch("/api/vendedor-logout", { method: "POST" });
+              await fetch("/api/vendedor-logout", { method: "PATCH" });
 
               window.location.href = "/vendedor/login";
 
@@ -417,7 +417,7 @@ function SellerSidebar({ vendedor, tab, setTab, unread, stats }: any) {
 
         onClick={async () => {
 
-          await fetch("/api/vendedor-logout", { method: "POST" });
+          await fetch("/api/vendedor-logout", { method: "PATCH" });
 
           window.location.href = "/vendedor/login";
 
