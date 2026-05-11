@@ -15,6 +15,7 @@ const items = [
   { label: "Fichas técnicas", href: "/admin/fichas-tecnicas" },
   { label: "Capacitación", href: "/admin/capacitacion" },
   { label: "Branding", href: "/admin/branding" },
+  { label: "IA Claude", href: "/admin/claude" },
   { label: "Configuración", href: "/admin/configuracion" },
 ];
 
