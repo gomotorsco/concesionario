@@ -70,3 +70,7 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json({ ok: true, lead });
 }
+
+export async function POST(req: NextRequest) {
+  return PATCH(req);
+}

@@ -19,56 +19,108 @@ export async function GET() {
 
   if (!supabaseAdmin) {
     return NextResponse.json(
-      { message: "Faltan variables de Supabase en el servidor." },
+      { ok: false, message: "Faltan variables de Supabase." },
       { status: 500 }
     );
   }
+
   const { startISO, totalDays, currentDay, remainingDays } = getMonthInfo();
 
-  const { data: vendedores } = await supabaseAdmin
+  const { data: vendedores, error: vendedoresError } = await supabaseAdmin
     .from("vendedores")
     .select("*");
 
-  const { data: leads } = await supabaseAdmin
+  if (vendedoresError) {
+    return NextResponse.json(
+      { ok: false, message: vendedoresError.message },
+      { status: 500 }
+    );
+  }
+
+  const { data: leads, error: leadsError } = await supabaseAdmin
     .from("landing_leads")
     .select("*")
     .gte("created_at", startISO);
 
-  const sellers = vendedores ?? [];
-  const monthLeads = leads ?? [];
+  if (leadsError) {
+    return NextResponse.json(
+      { ok: false, message: leadsError.message },
+      { status: 500 }
+    );
+  }
 
-  const rows = sellers.map((v: any) => {
-    const sellerLeads = monthLeads.filter(
+  const rows = (vendedores ?? []).map((v: any) => {
+    const sellerLeads = (leads ?? []).filter(
       (l: any) => String(l.vendedor_id || "") === String(v.id)
     );
 
-    const ventas = sellerLeads.filter(
+    const vendidos = sellerLeads.filter(
       (l: any) => (l.estado || l.status) === "vendido"
     ).length;
 
+    const nuevos = sellerLeads.filter(
+      (l: any) => (l.estado || l.status) === "nuevo"
+    ).length;
+
+    const perdidos = sellerLeads.filter(
+      (l: any) => (l.estado || l.status) === "perdido"
+    ).length;
+
     const metaMensual = Number(v.meta_mensual || v.meta_ventas || 10);
-    const ritmoNecesario = metaMensual / totalDays;
-    const ritmoActual = ventas / Math.max(currentDay, 1);
-    const proyeccion = Math.round(ritmoActual * totalDays);
+
+    const ritmoActual =
+      vendidos / Math.max(currentDay, 1);
+
+    const ritmoNecesario =
+      metaMensual / totalDays;
+
+    const proyeccionFinal =
+      Math.round(ritmoActual * totalDays);
+
+    let probabilidad: "alta" | "media" | "baja" = "baja";
+
+    if (proyeccionFinal >= metaMensual) {
+      probabilidad = "alta";
+    } else if (proyeccionFinal >= metaMensual * 0.7) {
+      probabilidad = "media";
+    }
+
+    let semaforo: "verde" | "amarillo" | "rojo" | "gris" = "gris";
+
+    if (probabilidad === "alta") {
+      semaforo = "verde";
+    } else if (probabilidad === "media") {
+      semaforo = "amarillo";
+    } else {
+      semaforo = "rojo";
+    }
 
     return {
-      vendedor_id: v.id,
-      nombre: v.nombre,
-      email: v.email,
-      leads_mes: sellerLeads.length,
-      ventas,
+      id: v.id,
+      nombre: v.nombre || "Sin nombre",
+      email: v.email || null,
+      activo: v.activo ?? true,
+
+      total_leads: sellerLeads.length,
+      nuevos,
+      vendidos,
+      perdidos,
+
       meta_mensual: metaMensual,
-      proyeccion,
-      ritmo_necesario: ritmoNecesario,
-      ritmo_actual: ritmoActual,
-      dias_restantes: remainingDays,
-      cumplimiento: metaMensual ? Math.round((ventas / metaMensual) * 100) : 0,
+
+      ritmo_actual: Number(ritmoActual.toFixed(2)),
+      ritmo_necesario: Number(ritmoNecesario.toFixed(2)),
+
+      proyeccion_final: proyeccionFinal,
+
+      probabilidad,
+      semaforo,
     };
   });
 
   return NextResponse.json({
+    ok: true,
     month: {
-      startISO,
       totalDays,
       currentDay,
       remainingDays,

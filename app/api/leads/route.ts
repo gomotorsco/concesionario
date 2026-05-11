@@ -24,7 +24,25 @@ export async function POST(req: NextRequest) {
   const cuotaMensual = body.cuotaMensual || body.cuota_mensual || body.monthlyBudget || body.cuota || null;
   const cuotaInicial = body.cuotaInicial || body.cuota_inicial || body.downPayment || body.inicial || null;
 
-  const payload = {
+  const consentimiento =
+  body.consentimiento_datos === true ||
+  body.consentimiento === true;
+
+if (!consentimiento) {
+  return NextResponse.json(
+    { message: "Debes aceptar el tratamiento de datos." },
+    { status: 400 }
+  );
+}
+
+if (!body.cedula_frontal_url) {
+  return NextResponse.json(
+    { message: "La cédula frontal es obligatoria." },
+    { status: 400 }
+  );
+}
+
+const payload = {
     nombre,
     telefono,
     whatsapp: telefono,
@@ -40,6 +58,9 @@ export async function POST(req: NextRequest) {
     origen: body.source || "web",
     estado: "nuevo",
     status: "nuevo",
+    consentimiento_datos: true,
+    consentimiento_at: new Date().toISOString(),
+    cedula_frontal_url: body.cedula_frontal_url,
   };
 
   const { data, error } = await supabaseAdmin

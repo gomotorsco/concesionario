@@ -24,6 +24,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const consentimiento =
+      body.consentimiento_datos === true ||
+      body.consentimiento === true;
+
+    if (!consentimiento) {
+      return NextResponse.json(
+        { ok: false, message: "Debes aceptar el tratamiento de datos." },
+        { status: 400 }
+      );
+    }
+
+    if (!body.cedula_frontal_url) {
+      return NextResponse.json(
+        { ok: false, message: "La cédula frontal es obligatoria." },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabaseAdmin
       .from("landing_leads")
       .insert([
@@ -43,6 +61,9 @@ export async function POST(req: NextRequest) {
           vehiculo_interes: body.vehicle_name || null,
           lead_score: 70,
           temperatura: "caliente",
+          consentimiento_datos: true,
+          consentimiento_at: new Date().toISOString(),
+          cedula_frontal_url: body.cedula_frontal_url,
         },
       ])
       .select("*")
@@ -51,7 +72,7 @@ export async function POST(req: NextRequest) {
     if (error) {
       console.error("POST /api/vehicle-lead error", error);
       return NextResponse.json(
-        { ok: false, message: "No se pudo guardar el lead." },
+        { ok: false, message: error.message || "No se pudo guardar el lead." },
         { status: 500 }
       );
     }
