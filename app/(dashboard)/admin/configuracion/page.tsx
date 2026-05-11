@@ -11,7 +11,7 @@ export default function ConfiguracionPage() {
     setLoading(true);
     const res = await fetch("/api/admin/settings", { cache: "no-store" });
     const json = await res.json();
-    setWhatsappNumber(json.whatsappNumber ?? "");
+    setWhatsappNumber(json.settings?.find((item: any) => item.key === "whatsapp_number")?.value ?? "");
     setLoading(false);
   }
 
@@ -21,7 +21,7 @@ export default function ConfiguracionPage() {
     const res = await fetch("/api/admin/settings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ whatsappNumber }),
+      body: JSON.stringify({ key: "whatsapp_number", value: whatsappNumber, description: "Número principal de WhatsApp" }),
     });
 
     const json = await res.json();

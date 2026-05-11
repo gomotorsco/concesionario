@@ -37,6 +37,14 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
 
+  if (!body.key || typeof body.key !== "string") {
+    return NextResponse.json(
+      { message: "Config key requerida." },
+      { status: 400 }
+    );
+  }
+
+
   const { error } = await supabaseAdmin.from("config").upsert(
     {
       key: body.key,
