@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   const { data: vendedor, error: vendedorError } = await supabaseAdmin
     .from("vendedores")
-    .select("id, nombre, email, meta_mensual, activo, last_login, last_activity")
+    .select("id, nombre, email, whatsapp, zona, foto_url, meta_mensual, activo, last_login, last_activity")
     .eq("id", vendedorId)
     .single();
 
@@ -150,6 +150,10 @@ export async function POST(req: NextRequest) {
     update.seguimiento_fecha = body.seguimiento_fecha || null;
     update.next_follow_up_at = body.seguimiento_fecha || null;
   }
+  if (body.visita_fecha !== undefined) {
+    update.visita_fecha = body.visita_fecha || null;
+  }
+
   if (body.llamada_fecha !== undefined) {
     update.llamada_fecha = body.llamada_fecha || null;
     if (!update.next_follow_up_at) update.next_follow_up_at = body.llamada_fecha || null;
