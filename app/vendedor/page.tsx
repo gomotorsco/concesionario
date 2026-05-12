@@ -6,6 +6,7 @@ import TechnicalSheetsPanel from "@/components/vendedor/TechnicalSheetsPanel";
 import TrainingPanel from "@/components/vendedor/TrainingPanel";
 
 import { useEffect, useMemo, useState } from "react";
+import ProfilePanel from "@/components/vendedor/ProfilePanel";
 
 type Lead = any;
 
@@ -838,35 +839,7 @@ function AlertsView({ alerts, markAlert }: any) {
 }
 
 function ProfileView({ vendedor }: any) {
-
-  return (
-
-    <section className="rounded-[30px] border border-white/10 bg-[#080d18]/90 p-6">
-
-      <h2 className="text-2xl font-black">Perfil comercial</h2>
-
-      <div className="mt-6 flex flex-col gap-5 md:flex-row md:items-center">
-
-        <img src={vendedor?.foto_url || "/logo-gomotorsco.png"} className="h-32 w-32 rounded-3xl border border-white/10 bg-white object-cover" />
-
-        <div>
-
-          <h3 className="text-3xl font-black">{vendedor?.nombre || "Vendedor"}</h3>
-
-          <p className="mt-2 text-slate-400">{vendedor?.email || "—"}</p>
-
-          <p className="mt-1 text-slate-400">WhatsApp: {vendedor?.whatsapp || "—"}</p>
-
-          <p className="mt-1 text-slate-400">Zona: {vendedor?.zona || "—"}</p>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  );
-
+  return <ProfilePanel vendedor={vendedor} />;
 }
 
 function LeadModal({ editingLead, setEditingLead, saveLead }: any) {
