@@ -20,7 +20,7 @@ const initialForm = {
   entrega_km: "",
   entrega_estado: "",
   entrega_deuda: "",
-  autorizacion_datos: false,
+  consentimiento_datos: false,
 };
 
 export default function PreaprobacionPage() {
@@ -44,7 +44,7 @@ export default function PreaprobacionPage() {
       return;
     }
 
-    if (!form.autorizacion_datos) {
+    if (!form.consentimiento_datos) {
       setError("Debés aceptar la autorización de tratamiento de datos.");
       return;
     }
@@ -237,9 +237,9 @@ export default function PreaprobacionPage() {
             <label className="flex items-start gap-3 text-sm text-[#6f675e]">
               <input
                 type="checkbox"
-                checked={form.autorizacion_datos}
+                checked={form.consentimiento_datos}
                 onChange={(e) =>
-                  setField("autorizacion_datos", e.target.checked)
+                  setField("consentimiento_datos", e.target.checked)
                 }
                 className="mt-1"
               />
