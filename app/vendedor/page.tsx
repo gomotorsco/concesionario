@@ -14,7 +14,7 @@ type Alert = any;
 
 type Vendedor = any;
 
-const estados = ["nuevo", "contactado", "seguimiento", "seguimiento_atrasado", "aprobado", "vendido", "pausado", "perdido", "eliminado"];
+const estados = ["nuevo", "contactado", "en_seguimiento", "documentos_enviados", "documentos_aprobados", "visita_agendada", "vendido", "perdido", "eliminado"];
 
 const prioridades = ["baja", "normal", "alta", "caliente"];
 
@@ -842,68 +842,258 @@ function ProfileView({ vendedor }: any) {
   return <ProfilePanel vendedor={vendedor} />;
 }
 
-function LeadModal({ editingLead, setEditingLead, saveLead }: any) {
+const commercialSteps = [
+  { key: "contacto", label: "Contacto" },
+  { key: "seguimiento", label: "Seguimiento" },
+  { key: "documentos", label: "Documentos" },
+  { key: "aprobacion", label: "Aprobación" },
+  { key: "visita", label: "Visita" },
+  { key: "venta", label: "Venta" },
+];
+
+const estadoLabels: Record<string, string> = {
+  nuevo: "Nuevo",
+  contactado: "Contactado",
+  en_seguimiento: "En seguimiento",
+  documentos_enviados: "Documentos enviados",
+  documentos_aprobados: "Documentos aprobados",
+  visita_agendada: "Visita agendada",
+  vendido: "Vendido",
+  perdido: "Perdido",
+  eliminado: "Eliminado",
+};
+
+function getStepState(lead: any, step: string) {
+  const estado = lead.estado || lead.status || "nuevo";
+  const followDate = lead.next_follow_up_at || lead.seguimiento_fecha || lead.llamada_fecha;
+  const hasFollow = Boolean(followDate);
+  const hasCedula = Boolean(lead.cedula || lead.cedula_frontal_url);
+  const hasVisit = Boolean(lead.visita_fecha);
+
+  if (estado === "perdido" || estado === "eliminado") return "disabled";
+
+  if (step === "contacto") {
+    if (["contactado", "en_seguimiento", "documentos_enviados", "documentos_aprobados", "visita_agendada", "vendido"].includes(estado)) return "done";
+    return "pending";
+  }
+
+  if (step === "seguimiento") {
+    if (["documentos_enviados", "documentos_aprobados", "visita_agendada", "vendido"].includes(estado)) return "done";
+    if (hasFollow && isPast(followDate)) return "danger";
+    if (hasFollow || ["contactado", "en_seguimiento"].includes(estado)) return "pending";
+    return "idle";
+  }
+
+  if (step === "documentos") {
+    if (["documentos_enviados", "documentos_aprobados", "visita_agendada", "vendido"].includes(estado)) return "done";
+    if (hasCedula || ["contactado", "en_seguimiento"].includes(estado)) return "pending";
+    return "idle";
+  }
+
+  if (step === "aprobacion") {
+    if (["documentos_aprobados", "visita_agendada", "vendido"].includes(estado)) return "done";
+    if (estado === "documentos_enviados") return "pending";
+    return "idle";
+  }
+
+  if (step === "visita") {
+    if (["visita_agendada", "vendido"].includes(estado) || hasVisit) return "done";
+    if (estado === "documentos_aprobados") return "pending";
+    return "idle";
+  }
+
+  if (step === "venta") {
+    if (estado === "vendido") return "done";
+    if (["visita_agendada", "documentos_aprobados"].includes(estado)) return "pending";
+    return "idle";
+  }
+
+  return "idle";
+}
+
+function StepSemaphore({ lead }: any) {
+  const styles: Record<string, string> = {
+    done: "border-emerald-400/30 bg-emerald-500/10 text-emerald-200",
+    pending: "border-yellow-400/30 bg-yellow-500/10 text-yellow-200",
+    danger: "border-red-400/30 bg-red-500/10 text-red-200",
+    idle: "border-white/10 bg-white/[0.03] text-slate-400",
+    disabled: "border-slate-600/20 bg-slate-700/10 text-slate-500",
+  };
+
+  const icons: Record<string, string> = {
+    done: "🟢",
+    pending: "🟡",
+    danger: "🔴",
+    idle: "⚪",
+    disabled: "⚫",
+  };
 
   return (
+    <div className="grid gap-2 md:grid-cols-6">
+      {commercialSteps.map((step) => {
+        const state = getStepState(lead, step.key);
+        return (
+          <div key={step.key} className={"rounded-2xl border p-3 text-center " + styles[state]}>
+            <p className="text-lg">{icons[state]}</p>
+            <p className="mt-1 text-[11px] font-black uppercase tracking-[0.12em]">{step.label}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
+function LeadModal({ editingLead, setEditingLead, saveLead }: any) {
+  const estado = editingLead.estado || "nuevo";
+  const showFollowDate = estado === "en_seguimiento";
+  const showVisitDate = estado === "visita_agendada";
+  const showDocumentsInfo = estado === "documentos_enviados" || estado === "documentos_aprobados";
+  const showApprovalInfo = estado === "documentos_aprobados";
+  const showSaleInfo = estado === "vendido";
+  const showLostInfo = estado === "perdido";
+
+  function updateEstado(v: string) {
+    const patch: any = { ...editingLead, estado: v, funnel_stage: v };
+
+    if (v === "contactado" && !patch.llamada_estado) patch.llamada_estado = "contesto";
+    if (v === "en_seguimiento") patch.llamada_estado = patch.llamada_estado || "interesado";
+    if (v === "documentos_enviados") patch.seguimiento = patch.seguimiento || "Documentos enviados por la vendedora.";
+    if (v === "documentos_aprobados") patch.seguimiento = patch.seguimiento || "Documentos aprobados. Cliente listo para visita o cierre.";
+    if (v === "visita_agendada") patch.llamada_estado = "visita_agendada";
+
+    setEditingLead(patch);
+  }
+
+  function guardedSave() {
+    if (estado === "en_seguimiento" && !(editingLead.next_follow_up_at || editingLead.seguimiento_fecha || editingLead.llamada_fecha)) {
+      alert("Para dejar el lead en seguimiento, elegí la fecha del próximo contacto.");
+      return;
+    }
+
+    if (estado === "visita_agendada" && !editingLead.visita_fecha) {
+      alert("Para dejar visita agendada, elegí la fecha y hora de visita.");
+      return;
+    }
+
+    saveLead();
+  }
+
+  return (
     <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 p-4">
+      <div className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-[30px] border border-white/10 bg-[#080d18] p-6 shadow-[0_30px_120px_rgba(0,0,0,.45)]">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.25em] text-blue-300">Gestión comercial</p>
+            <h2 className="mt-1 text-2xl font-black">{editingLead.nombre || "Lead sin nombre"}</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              {editingLead.vehiculo || editingLead.vehiculo_interes || "Vehículo sin definir"} · {editingLead.ciudad || "Sin ciudad"}
+            </p>
+          </div>
 
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[30px] border border-white/10 bg-[#080d18] p-6 shadow-[0_30px_120px_rgba(0,0,0,.45)]">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm">
+            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Estado actual</p>
+            <p className="mt-1 font-black text-white">{estadoLabels[estado] || estado}</p>
+          </div>
+        </div>
 
-        <h2 className="text-2xl font-black">Centro comercial del lead</h2>
+        <div className="mt-5">
+          <StepSemaphore lead={editingLead} />
+        </div>
 
-        <p className="mt-1 text-sm text-slate-400">{editingLead.nombre} · {editingLead.vehiculo || editingLead.vehiculo_interes || "Vehículo sin definir"}</p>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          <SelectInput
+            label="¿Qué pasó con el cliente?"
+            value={estado}
+            options={estados.filter((e) => e !== "eliminado")}
+            onChange={updateEstado}
+          />
 
-        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <InputModal
+            label="Cédula cliente"
+            value={editingLead.cedula || ""}
+            onChange={(v: string) => setEditingLead({ ...editingLead, cedula: v })}
+          />
 
-          <SelectInput label="Estado" value={editingLead.estado || "nuevo"} options={estados} onChange={(v: string) => setEditingLead({ ...editingLead, estado: v })} />
+          {showFollowDate ? (
+            <InputModal
+              label="Próximo contacto"
+              type="datetime-local"
+              value={(editingLead.next_follow_up_at || editingLead.seguimiento_fecha || editingLead.llamada_fecha) ? String(editingLead.next_follow_up_at || editingLead.seguimiento_fecha || editingLead.llamada_fecha).slice(0, 16) : ""}
+              onChange={(v: string) =>
+                setEditingLead({
+                  ...editingLead,
+                  estado: "en_seguimiento",
+                  seguimiento_fecha: v,
+                  next_follow_up_at: v,
+                })
+              }
+            />
+          ) : null}
 
-          <SelectInput label="Prioridad" value={editingLead.prioridad || "normal"} options={prioridades} onChange={(v: string) => setEditingLead({ ...editingLead, prioridad: v })} />
+          {showVisitDate ? (
+            <InputModal
+              label="Fecha y hora de visita"
+              type="datetime-local"
+              value={editingLead.visita_fecha ? String(editingLead.visita_fecha).slice(0, 16) : ""}
+              onChange={(v: string) => setEditingLead({ ...editingLead, estado: "visita_agendada", visita_fecha: v })}
+            />
+          ) : null}
 
-          <InputModal label="Cédula cliente" value={editingLead.cedula || ""} onChange={(v: string) => setEditingLead({ ...editingLead, cedula: v })} />
+          {showDocumentsInfo ? (
+            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/10 p-4 md:col-span-2">
+              <p className="font-black text-cyan-100">Documentos del cliente</p>
+              <p className="mt-1 text-sm text-cyan-100/80">
+                Moto: cédula frontal. Auto: cédula frontal + PDF soporte. La carga real de archivos queda para la etapa de documentos.
+              </p>
+            </div>
+          ) : null}
 
-          <InputModal label="Fecha agendar llamada" type="datetime-local" value={editingLead.llamada_fecha ? String(editingLead.llamada_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, llamada_fecha: v, estado: "contactado" })} />
+          {showApprovalInfo ? (
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 md:col-span-2">
+              <p className="font-black text-emerald-100">Documentos aprobados</p>
+              <p className="mt-1 text-sm text-emerald-100/80">
+                Este lead ya cuenta como oportunidad fuerte para visita, cierre y control de comisión.
+              </p>
+            </div>
+          ) : null}
 
-          <InputModal label="Fecha seguimiento" type="datetime-local" value={editingLead.seguimiento_fecha ? String(editingLead.seguimiento_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, seguimiento_fecha: v, estado: "contactado" })} />
+          {showSaleInfo ? (
+            <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4 md:col-span-2">
+              <p className="font-black text-emerald-100">Venta registrada</p>
+              <p className="mt-1 text-sm text-emerald-100/80">
+                Esta venta queda visible para vendedor, supervisor y admin en métricas comerciales.
+              </p>
+            </div>
+          ) : null}
 
-          <InputModal label="Agendar visita concesionario" type="datetime-local" value={editingLead.visita_fecha ? String(editingLead.visita_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, visita_fecha: v })} />
-
-          <SelectInput label="Resultado llamada" value={editingLead.llamada_estado || ""} options={["", "contesto", "no_contesto", "ocupado", "interesado", "pidio_financiacion", "visita_agendada"]} onChange={(v: string) => setEditingLead({ ...editingLead, llamada_estado: v })} />
+          {showLostInfo ? (
+            <div className="rounded-2xl border border-red-400/20 bg-red-500/10 p-4 md:col-span-2">
+              <p className="font-black text-red-100">Lead perdido</p>
+              <p className="mt-1 text-sm text-red-100/80">
+                Dejá en notas el motivo para revisar objeciones y oportunidades de recuperación.
+              </p>
+            </div>
+          ) : null}
 
           <label className="grid gap-2 text-sm font-bold md:col-span-2">
-
-            Resumen llamada / notas comerciales
-
+            Notas comerciales
             <textarea
-
               rows={5}
-
               value={editingLead.resumen_llamada || editingLead.notas || ""}
-
               onChange={(e) => setEditingLead({ ...editingLead, resumen_llamada: e.target.value, notas: e.target.value })}
-
               className="rounded-2xl border border-white/10 bg-[#101827] px-4 py-3"
-
+              placeholder="Ej: cliente interesado, pidió financiación, documentos pendientes, objeciones, próxima acción..."
             />
-
           </label>
-
         </div>
 
         <div className="mt-5 flex flex-wrap gap-3">
-
-          <button onClick={saveLead} className="rounded-2xl bg-emerald-600 px-6 py-3 font-black">Guardar actividad</button>
-
+          <button onClick={guardedSave} className="rounded-2xl bg-emerald-600 px-6 py-3 font-black">Guardar actividad</button>
           <button onClick={() => setEditingLead(null)} className="rounded-2xl bg-white/10 px-6 py-3 font-black">Cerrar</button>
-
         </div>
-
       </div>
-
     </div>
-
   );
-
 }
 
 function NewLeadModal({ newLead, setNewLead, createLead }: any) {

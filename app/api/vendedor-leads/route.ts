@@ -146,6 +146,10 @@ export async function POST(req: NextRequest) {
   if (estado !== undefined) update.funnel_stage = estado;
   if (seguimiento !== undefined) update.seguimiento = seguimiento;
   if (body.notas !== undefined) update.notas = body.notas;
+  if (body.resumen_llamada !== undefined) update.resumen_llamada = body.resumen_llamada;
+  if (body.llamada_estado !== undefined) update.llamada_estado = body.llamada_estado;
+  if (body.cedula !== undefined) update.cedula = body.cedula;
+  if (body.funnel_stage !== undefined) update.funnel_stage = body.funnel_stage;
   if (body.seguimiento_fecha !== undefined) {
     update.seguimiento_fecha = body.seguimiento_fecha || null;
     update.next_follow_up_at = body.seguimiento_fecha || null;
