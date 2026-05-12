@@ -949,15 +949,26 @@ function DocumentPreview({ doc }: any) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
       {isPdf ? (
-        <a href={doc.file_url} target="_blank" className="flex h-[120px] items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm font-black text-red-200">
+        <a
+          href={doc.file_url}
+          target="_blank"
+          className="flex h-[120px] items-center justify-center rounded-xl border border-white/10 bg-white/5 text-sm font-black text-red-200"
+        >
           📄 Ver PDF
         </a>
       ) : (
         <a href={doc.file_url} target="_blank">
-          <img src={doc.file_url} alt={doc.file_name} className="h-[120px] w-full rounded-xl object-cover" />
+          <img
+            src={doc.file_url}
+            alt={doc.file_name}
+            className="h-[120px] w-full rounded-xl object-cover"
+          />
         </a>
       )}
-      <p className="mt-2 truncate text-xs font-bold text-slate-300">{doc.file_name}</p>
+
+      <p className="mt-2 truncate text-xs font-bold text-slate-300">
+        {doc.file_name}
+      </p>
     </div>
   );
 }
@@ -965,26 +976,35 @@ function DocumentPreview({ doc }: any) {
 function LeadDocumentsSection({ editingLead, setEditingLead }: any) {
   const [documents, setDocuments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const vehicleType = editingLead.vehicle_type || "";
-  const isMoto = vehicleType === "moto";
-  const isAuto = vehicleType === "auto";
 
   async function loadDocuments() {
-    const res = await fetch(`/api/vendedor/lead-documents?lead_id=${editingLead.id}`, { cache: "no-store" });
-    const json = await res.json();
-    if (res.ok) setDocuments(json.documents || []);
+    try {
+      const res = await fetch(`/api/vendedor/lead-documents?lead_id=${editingLead.id}`, {
+        cache: "no-store",
+      });
+
+      const json = await res.json();
+
+      if (res.ok) {
+        setDocuments(json.documents || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   useEffect(() => {
-    if (editingLead?.id) loadDocuments();
+    if (editingLead?.id) {
+      loadDocuments();
+    }
   }, [editingLead?.id]);
 
   async function upload(category: string, file: File | null) {
     if (!file) return;
 
-    setLoading(true);
-
     try {
+      setLoading(true);
+
       const formData = new FormData();
       formData.append("lead_id", String(editingLead.id));
       formData.append("category", category);
@@ -1009,6 +1029,9 @@ function LeadDocumentsSection({ editingLead, setEditingLead }: any) {
         estado: "documentos_enviados",
         funnel_stage: "documentos_enviados",
       });
+
+    } catch (e: any) {
+      alert(e.message || "Error subiendo documento.");
     } finally {
       setLoading(false);
     }
@@ -1016,57 +1039,79 @@ function LeadDocumentsSection({ editingLead, setEditingLead }: any) {
 
   return (
     <div className="rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-5 md:col-span-2">
-      <div className="grid gap-4 md:grid-cols-[1fr_260px] md:items-end">
+      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-lg font-black text-cyan-100">Documentos del cliente</p>
+          <p className="text-lg font-black text-cyan-100">
+            Documentos del cliente
+          </p>
+
           <p className="mt-1 text-sm text-cyan-100/80">
-            Moto: solo cédula frontal. Auto: cédula frontal + PDF soporte.
+            Moto: cédula frontal. Auto: cédula frontal + PDF soporte.
           </p>
         </div>
 
-        <SelectInput
-          label="Tipo de financiación"
-          value={vehicleType}
-          options={["", "moto", "auto"]}
-          onChange={(v: string) => setEditingLead({ ...editingLead, vehicle_type: v })}
-        />
+        {loading ? (
+          <div className="rounded-full bg-white/10 px-4 py-2 text-xs font-black">
+            Subiendo...
+          </div>
+        ) : null}
       </div>
-
-      {!vehicleType ? (
-        <div className="mt-4 rounded-2xl border border-yellow-400/20 bg-yellow-500/10 p-4 text-sm font-bold text-yellow-100">
-          Elegí si el trámite es moto o auto para mostrar los documentos correctos.
-        </div>
-      ) : null}
 
       <div className="mt-5 grid gap-3 md:grid-cols-3">
         <label className="cursor-pointer rounded-2xl border border-white/10 bg-black/20 p-4 text-center transition hover:bg-white/10">
           <p className="text-3xl">📷</p>
-          <p className="mt-2 text-sm font-black">Subir cédula frontal</p>
-          <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => upload("cedula_frontal", e.target.files?.[0] || null)} />
+          <p className="mt-2 text-sm font-black">
+            Subir cédula
+          </p>
+
+          <input
+            type="file"
+            accept="image/*"
+            capture="environment"
+            className="hidden"
+            onChange={(e) => upload("cedula_frontal", e.target.files?.[0] || null)}
+          />
         </label>
 
-        {isAuto ? (
-          <label className="cursor-pointer rounded-2xl border border-white/10 bg-black/20 p-4 text-center transition hover:bg-white/10">
-            <p className="text-3xl">📄</p>
-            <p className="mt-2 text-sm font-black">Subir PDF soporte</p>
-            <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={(e) => upload("pdf_soporte", e.target.files?.[0] || null)} />
-          </label>
-        ) : null}
+        <label className="cursor-pointer rounded-2xl border border-white/10 bg-black/20 p-4 text-center transition hover:bg-white/10">
+          <p className="text-3xl">📄</p>
+          <p className="mt-2 text-sm font-black">
+            Subir PDF soporte
+          </p>
+
+          <input
+            type="file"
+            accept=".pdf,application/pdf"
+            className="hidden"
+            onChange={(e) => upload("pdf_soporte", e.target.files?.[0] || null)}
+          />
+        </label>
 
         <label className="cursor-pointer rounded-2xl border border-white/10 bg-black/20 p-4 text-center transition hover:bg-white/10">
           <p className="text-3xl">📎</p>
-          <p className="mt-2 text-sm font-black">Otros documentos</p>
-          <input type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => upload("otro", e.target.files?.[0] || null)} />
+          <p className="mt-2 text-sm font-black">
+            Otros documentos
+          </p>
+
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={(e) => upload("otro", e.target.files?.[0] || null)}
+          />
         </label>
       </div>
 
-      {loading ? <p className="mt-4 text-sm font-bold text-cyan-100">Subiendo documento...</p> : null}
-
       {documents.length > 0 ? (
         <div className="mt-6">
-          <p className="mb-3 text-sm font-black uppercase tracking-[0.15em] text-cyan-100/70">Documentos cargados</p>
+          <p className="mb-3 text-sm font-black uppercase tracking-[0.15em] text-cyan-100/70">
+            Documentos cargados
+          </p>
+
           <div className="grid gap-3 md:grid-cols-3">
-            {documents.map((doc) => <DocumentPreview key={doc.id} doc={doc} />)}
+            {documents.map((doc) => (
+              <DocumentPreview key={doc.id} doc={doc} />
+            ))}
           </div>
         </div>
       ) : (
@@ -1077,7 +1122,6 @@ function LeadDocumentsSection({ editingLead, setEditingLead }: any) {
     </div>
   );
 }
-
 function LeadModal({ editingLead, setEditingLead, saveLead }: any) {
   const estado = editingLead.estado || "nuevo";
   const showFollowDate = estado === "en_seguimiento";

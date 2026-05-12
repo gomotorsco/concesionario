@@ -149,7 +149,6 @@ export async function POST(req: NextRequest) {
   if (body.resumen_llamada !== undefined) update.resumen_llamada = body.resumen_llamada;
   if (body.llamada_estado !== undefined) update.llamada_estado = body.llamada_estado;
   if (body.cedula !== undefined) update.cedula = body.cedula;
-  if (body.vehicle_type !== undefined) update.vehicle_type = body.vehicle_type;
   if (body.funnel_stage !== undefined) update.funnel_stage = body.funnel_stage;
   if (body.seguimiento_fecha !== undefined) {
     update.seguimiento_fecha = body.seguimiento_fecha || null;
