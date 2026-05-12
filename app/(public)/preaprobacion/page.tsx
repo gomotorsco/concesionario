@@ -21,6 +21,7 @@ const initialForm = {
   entrega_estado: "",
   entrega_deuda: "",
   consentimiento_datos: false,
+  cedula_frontal_url: "",
 };
 
 export default function PreaprobacionPage() {
@@ -28,9 +29,42 @@ export default function PreaprobacionPage() {
   const [loading, setLoading] = useState(false);
   const [ok, setOk] = useState(false);
   const [error, setError] = useState("");
+  const [uploadingCedula, setUploadingCedula] = useState(false);
 
   function setField(key: string, value: any) {
     setForm((prev: any) => ({ ...prev, [key]: value }));
+  }
+
+  async function uploadCedula(file: File) {
+    try {
+      setError("");
+      setUploadingCedula(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        throw new Error(json.error || json.message || "No se pudo subir la imagen.");
+      }
+
+      if (!json.url) {
+        throw new Error("La imagen se subió pero no devolvió URL.");
+      }
+
+      setField("cedula_frontal_url", json.url);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Error subiendo cédula.";
+      setError(message);
+    } finally {
+      setUploadingCedula(false);
+    }
   }
 
   async function submit(e: FormEvent) {
@@ -46,6 +80,11 @@ export default function PreaprobacionPage() {
 
     if (!form.consentimiento_datos) {
       setError("Debés aceptar la autorización de tratamiento de datos.");
+      return;
+    }
+
+    if (!form.cedula_frontal_url) {
+      setError("Debés subir una foto de la cédula.");
       return;
     }
 
@@ -229,6 +268,51 @@ export default function PreaprobacionPage() {
                   value={form.entrega_km}
                   onChange={(v) => setField("entrega_km", v)}
                 />
+              </div>
+            ) : null}
+          </section>
+
+          <section className="rounded-[28px] border border-black/5 bg-[#f7f3ee] p-6">
+            <h2 className="mb-2 text-xl font-black">
+              Foto de la cédula
+            </h2>
+
+            <p className="mb-5 text-sm text-[#6f675e]">
+              Subí una foto clara de la cédula. También podés tomarla directamente desde tu celular.
+            </p>
+
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={uploadingCedula}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+
+                if (!file) return;
+
+                await uploadCedula(file);
+              }}
+              className="block w-full rounded-2xl border border-black/10 bg-white p-4 text-sm"
+            />
+
+            {uploadingCedula ? (
+              <p className="mt-3 text-sm font-medium text-[#9b7b47]">
+                Subiendo imagen...
+              </p>
+            ) : null}
+
+            {form.cedula_frontal_url ? (
+              <div className="mt-4">
+                <img
+                  src={form.cedula_frontal_url}
+                  alt="Cédula"
+                  className="h-40 rounded-2xl border border-black/10 object-cover"
+                />
+
+                <p className="mt-2 text-xs font-bold text-emerald-700">
+                  Cédula cargada correctamente.
+                </p>
               </div>
             ) : null}
           </section>
