@@ -13,6 +13,8 @@ type Lead = {
   estado?: string | null;
   vendedor_id?: string | null;
   vehicle_name?: string | null;
+  vehicle_type?: string | null;
+  documentos?: any[];
   [key: string]: any;
 };
 
@@ -557,6 +559,42 @@ export default function AdminLeadsPage() {
           )}
         </div>
       </section>
+    </div>
+  );
+}
+
+function AdminDocumentPreview({ doc }: any) {
+  const isPdf = String(doc.file_type || "").includes("pdf");
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2">
+      {isPdf ? (
+        <a
+          href={doc.file_url}
+          target="_blank"
+          className="flex h-[110px] items-center justify-center rounded-lg border border-slate-700 bg-red-500/10 text-xs font-black text-red-200"
+        >
+          📄 Ver PDF
+        </a>
+      ) : (
+        <a href={doc.file_url} target="_blank">
+          <img
+            src={doc.file_url}
+            alt={doc.file_name}
+            className="h-[110px] w-full rounded-lg object-cover"
+          />
+        </a>
+      )}
+
+      <div className="mt-2">
+        <p className="truncate text-[10px] font-bold text-slate-200">{doc.file_name}</p>
+        <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-slate-500">
+          {doc.category || "documento"}
+        </p>
+        <p className="mt-1 text-[9px] text-slate-500">
+          {doc.created_at ? new Date(doc.created_at).toLocaleString("es-CO") : ""}
+        </p>
+      </div>
     </div>
   );
 }
