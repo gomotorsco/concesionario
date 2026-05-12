@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const filename = `config/${Date.now()}-${file.name}`;
 
     const { data, error } = await getSupabaseAdmin()!.storage
-      .from("public-assets")
+      .from("vehicle-images")
       .upload(filename, buffer, {
         contentType: file.type,
         upsert: false,
@@ -36,20 +36,20 @@ export async function POST(req: Request) {
     if (error) {
       console.error("Error subiendo imagen:", error);
       return NextResponse.json(
-        { error: "Error al subir la imagen" },
+        { error: error.message || "Error al subir la imagen" },
         { status: 500 }
       );
     }
 
     const publicUrl =
-      getSupabaseAdmin()!.storage.from("public-assets").getPublicUrl(data.path)
+      getSupabaseAdmin()!.storage.from("vehicle-images").getPublicUrl(data.path)
         .data.publicUrl;
 
     return NextResponse.json({ url: publicUrl });
   } catch (e: any) {
     console.error("Excepción en /api/upload-image:", e);
     return NextResponse.json(
-      { error: "Error inesperado al subir la imagen" },
+      { error: e instanceof Error ? e.message : "Error inesperado al subir la imagen" },
       { status: 500 }
     );
   }
