@@ -77,6 +77,8 @@ export default function VendedorPage() {
 
   const [inteligencia, setInteligencia] = useState<string[]>([]);
 
+  const [leadFilter, setLeadFilter] = useState<string>("all");
+
   async function load() {
 
     const res = await fetch("/api/vendedor-leads", { cache: "no-store" });
@@ -111,6 +113,24 @@ export default function VendedorPage() {
 
   }, []);
 
+  useEffect(() => {
+
+    const handler = (e: any) => {
+
+      setLeadFilter(e.detail || "all");
+
+    };
+
+    window.addEventListener("vendor-lead-filter", handler);
+
+    return () => {
+
+      window.removeEventListener("vendor-lead-filter", handler);
+
+    };
+
+  }, []);
+
   const activeLeads = leads.filter((l) => !["eliminado", "perdido"].includes(l.estado || l.status));
 
   const deletedLeads = leads.filter((l) => ["eliminado", "perdido"].includes(l.estado || l.status));
@@ -120,6 +140,41 @@ export default function VendedorPage() {
   const unread = alerts.filter((a) => a.estado !== "leida" && a.status !== "leida").length;
 
   const atrasados = activeLeads.filter((l) => (l.estado || l.status) === "seguimiento_atrasado" || isPast(l.seguimiento_fecha || l.next_follow_up_at || l.llamada_fecha)).length;
+
+  const filteredLeads = useMemo(() => {
+
+    switch (leadFilter) {
+
+      case "nuevo":
+        return activeLeads.filter(
+          (l) => (l.estado || l.status) === "nuevo"
+        );
+
+      case "vendido":
+        return activeLeads.filter(
+          (l) => (l.estado || l.status) === "vendido"
+        );
+
+      case "atrasados":
+        return activeLeads.filter(
+          (l) =>
+            (l.estado || l.status) === "seguimiento_atrasado" ||
+            isPast(
+              l.seguimiento_fecha ||
+              l.next_follow_up_at ||
+              l.llamada_fecha
+            )
+        );
+
+      case "seguimiento":
+        return followups;
+
+      default:
+        return activeLeads;
+
+    }
+
+  }, [leadFilter, activeLeads, followups]);
 
   const stats = useMemo(() => ({
 
@@ -235,7 +290,7 @@ export default function VendedorPage() {
 
             Salir
 
-          </button>
+              </button>
 
         </div>
 
@@ -259,7 +314,7 @@ export default function VendedorPage() {
 
               {item.icon} {item.label}
 
-            </button>
+                  </button>
 
           ))}
 
@@ -299,7 +354,7 @@ export default function VendedorPage() {
 
           {tab === "dashboard" ? <Dashboard stats={stats} leads={activeLeads} alerts={alerts} setTab={setTab} setEditingLead={setEditingLead} /> : null}
 
-          {tab === "leads" ? <LeadsView leads={activeLeads} title="Leads activos" empty="No tenés leads activos." setEditingLead={setEditingLead} /> : null}
+          {tab === "leads" ? <LeadsView leads={filteredLeads} title="Leads activos" empty="No tenés leads activos." setEditingLead={setEditingLead} /> : null}
 
           {tab === "eliminados" ? <LeadsView leads={deletedLeads} title="Leads eliminados / perdidos" empty="No hay leads eliminados." setEditingLead={setEditingLead} /> : null}
 
@@ -407,7 +462,7 @@ function SellerSidebar({ vendedor, tab, setTab, unread, stats }: any) {
 
             ) : null}
 
-          </button>
+            </button>
 
         ))}
 
@@ -429,7 +484,7 @@ function SellerSidebar({ vendedor, tab, setTab, unread, stats }: any) {
 
         Cerrar sesión
 
-      </button>
+        </button>
 
     </aside>
 
@@ -463,7 +518,11 @@ function TopHeader({ vendedor, unread, setTab, setNewLead }: any) {
 
         <div>
 
-          <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">CRM comercial</p>
+          <p className="text-xs font-black uppercase tracking-[0.3em] text-blue-300">
+
+            CRM comercial
+
+          </p>
 
           <h2 className="mt-2 text-3xl font-black tracking-[-0.04em] md:text-4xl">
 
@@ -481,19 +540,53 @@ function TopHeader({ vendedor, unread, setTab, setNewLead }: any) {
 
         <div className="flex flex-wrap gap-2">
 
-          <button onClick={() => setTab("alertas")} className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black">
+          <button
+
+            onClick={() => setTab("alertas")}
+
+            className="rounded-2xl border border-white/10 bg-white/10 px-4 py-3 text-sm font-black"
+
+          >
 
             🔔 Alertas {unread > 0 ? `(${unread})` : ""}
 
           </button>
 
-          <button onClick={() => setNewLead({ nombre: "", whatsapp: "", ciudad: "", vehiculo_interes: "", cuota_mensual: "" })} className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black">
+          <button
+
+            onClick={() =>
+
+              setNewLead({
+
+                nombre: "",
+
+                whatsapp: "",
+
+                ciudad: "",
+
+                vehiculo_interes: "",
+
+                cuota_mensual: "",
+
+              })
+
+            }
+
+            className="rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black"
+
+          >
 
             + Nuevo lead
 
           </button>
 
-          <button onClick={() => setTab("seguimientos")} className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black">
+          <button
+
+            onClick={() => setTab("seguimientos")}
+
+            className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-black"
+
+          >
 
             Seguimientos
 
@@ -508,8 +601,19 @@ function TopHeader({ vendedor, unread, setTab, setNewLead }: any) {
   );
 
 }
-
 function Dashboard({ stats, leads, alerts, setTab, setEditingLead }: any) {
+
+  const openLeads = (filter?: string) => {
+    window.dispatchEvent(new CustomEvent("vendor-lead-filter", { detail: filter || "all" }));
+    setTab("leads");
+  };
+
+  const openFollowups = () => {
+    window.dispatchEvent(new CustomEvent("vendor-lead-filter", { detail: "seguimiento" }));
+    setTab("seguimientos");
+  };
+
+  const openAlerts = () => setTab("alertas");
 
   const priority = [...leads].sort((a: any, b: any) => {
 
@@ -527,17 +631,17 @@ function Dashboard({ stats, leads, alerts, setTab, setEditingLead }: any) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
 
-        <Card title="Leads activos" value={stats.total} />
+        <Card title="Leads activos" value={stats.total} onClick={() => openLeads("all")} />
 
-        <Card title="Nuevos" value={stats.nuevos} />
+        <Card title="Nuevos" value={stats.nuevos} onClick={() => openLeads("nuevo")} />
 
-        <Card title="Seguimiento" value={stats.seguimiento} />
+        <Card title="Seguimiento" value={stats.seguimiento} onClick={openFollowups} />
 
-        <Card title="Atrasados" value={stats.atrasados} danger />
+        <Card title="Atrasados" value={stats.atrasados} danger onClick={() => openLeads("atrasados")} />
 
-        <Card title="Vendidos" value={stats.vendidos} />
+        <Card title="Vendidos" value={stats.vendidos} onClick={() => openLeads("vendido")} />
 
-        <Card title="Alertas" value={stats.alertas} />
+        <Card title="Alertas" value={stats.alertas} onClick={openAlerts} />
 
       </div>
 
@@ -869,22 +973,29 @@ function NewLeadModal({ newLead, setNewLead, createLead }: any) {
 
 }
 
-function Card({ title, value, danger }: any) {
+function Card({ title, value, danger, onClick }: any) {
 
   return (
 
-    <div className={`rounded-[26px] border p-5 ${danger ? "border-red-400/20 bg-red-500/10" : "border-white/10 bg-[#080d18]/90"}`}>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`w-full text-left rounded-[26px] border p-5 transition hover:-translate-y-0.5 hover:border-blue-400/40 hover:bg-blue-500/10 ${
+        danger
+          ? "border-red-400/20 bg-red-500/10"
+          : "border-white/10 bg-[#080d18]/90"
+      }`}
+    >
 
       <p className="text-sm text-slate-400">{title}</p>
 
       <p className="mt-2 text-4xl font-black">{value}</p>
 
-    </div>
+    </button>
 
   );
 
 }
-
 function InputModal({ label, value, onChange, type = "text" }: any) {
 
   return (
