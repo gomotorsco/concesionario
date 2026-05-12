@@ -146,8 +146,14 @@ export async function POST(req: NextRequest) {
   if (estado !== undefined) update.funnel_stage = estado;
   if (seguimiento !== undefined) update.seguimiento = seguimiento;
   if (body.notas !== undefined) update.notas = body.notas;
-  if (body.seguimiento_fecha !== undefined) update.seguimiento_fecha = body.seguimiento_fecha;
-  if (body.llamada_fecha !== undefined) update.llamada_fecha = body.llamada_fecha;
+  if (body.seguimiento_fecha !== undefined) {
+    update.seguimiento_fecha = body.seguimiento_fecha || null;
+    update.next_follow_up_at = body.seguimiento_fecha || null;
+  }
+  if (body.llamada_fecha !== undefined) {
+    update.llamada_fecha = body.llamada_fecha || null;
+    if (!update.next_follow_up_at) update.next_follow_up_at = body.llamada_fecha || null;
+  }
   if (visto !== undefined) update.visto = visto;
 
   const { data, error } = await supabaseAdmin
@@ -159,7 +165,7 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) {
-    return NextResponse.json({ ok: false, message: "No se pudo actualizar" }, { status: 500 });
+    return NextResponse.json({ ok: false, message: error.message, code: error.code, details: error.details }, { status: 500 });
   }
 
   await supabaseAdmin.from("lead_events").insert([

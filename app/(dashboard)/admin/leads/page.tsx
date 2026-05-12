@@ -188,7 +188,7 @@ export default function AdminLeadsPage() {
     try {
       await updateLead(selectedLead.id, {
         seguimiento: seguimientoDraft,
-        estado: "en_seguimiento",
+        estado: "contactado",
         visto: true,
       });
 

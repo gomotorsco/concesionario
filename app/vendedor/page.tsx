@@ -139,7 +139,7 @@ export default function VendedorPage() {
 
   const unread = alerts.filter((a) => a.estado !== "leida" && a.status !== "leida").length;
 
-  const atrasados = activeLeads.filter((l) => (l.estado || l.status) === "seguimiento_atrasado" || isPast(l.seguimiento_fecha || l.next_follow_up_at || l.llamada_fecha)).length;
+  const atrasados = activeLeads.filter((l) => false || isPast(l.seguimiento_fecha || l.next_follow_up_at || l.llamada_fecha)).length;
 
   const filteredLeads = useMemo(() => {
 
@@ -158,7 +158,7 @@ export default function VendedorPage() {
       case "atrasados":
         return activeLeads.filter(
           (l) =>
-            (l.estado || l.status) === "seguimiento_atrasado" ||
+            false ||
             isPast(
               l.seguimiento_fecha ||
               l.next_follow_up_at ||
@@ -617,9 +617,9 @@ function Dashboard({ stats, leads, alerts, setTab, setEditingLead }: any) {
 
   const priority = [...leads].sort((a: any, b: any) => {
 
-    const av = a.estado === "seguimiento_atrasado" ? 0 : a.prioridad === "caliente" ? 1 : 2;
+    const av = a.estadofalse ? 0 : a.prioridad === "caliente" ? 1 : 2;
 
-    const bv = b.estado === "seguimiento_atrasado" ? 0 : b.prioridad === "caliente" ? 1 : 2;
+    const bv = b.estadofalse ? 0 : b.prioridad === "caliente" ? 1 : 2;
 
     return av - bv;
 
@@ -889,9 +889,9 @@ function LeadModal({ editingLead, setEditingLead, saveLead }: any) {
 
           <InputModal label="Cédula cliente" value={editingLead.cedula || ""} onChange={(v: string) => setEditingLead({ ...editingLead, cedula: v })} />
 
-          <InputModal label="Fecha agendar llamada" type="datetime-local" value={editingLead.llamada_fecha ? String(editingLead.llamada_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, llamada_fecha: v, estado: "seguimiento" })} />
+          <InputModal label="Fecha agendar llamada" type="datetime-local" value={editingLead.llamada_fecha ? String(editingLead.llamada_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, llamada_fecha: v, estado: "contactado" })} />
 
-          <InputModal label="Fecha seguimiento" type="datetime-local" value={editingLead.seguimiento_fecha ? String(editingLead.seguimiento_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, seguimiento_fecha: v, estado: "seguimiento" })} />
+          <InputModal label="Fecha seguimiento" type="datetime-local" value={editingLead.seguimiento_fecha ? String(editingLead.seguimiento_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, seguimiento_fecha: v, estado: "contactado" })} />
 
           <InputModal label="Agendar visita concesionario" type="datetime-local" value={editingLead.visita_fecha ? String(editingLead.visita_fecha).slice(0, 16) : ""} onChange={(v: string) => setEditingLead({ ...editingLead, visita_fecha: v })} />
 
