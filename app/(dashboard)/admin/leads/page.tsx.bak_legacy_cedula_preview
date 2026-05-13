@@ -383,9 +383,6 @@ export default function AdminLeadsPage() {
                             "telefono_numero",
                             "estado",
                             "vendedor_id",
-                            "cedula_frontal_url",
-                            "consentimiento_datos",
-                            "consentimiento_at",
                           ].includes(key)
                         )
                           return false;
