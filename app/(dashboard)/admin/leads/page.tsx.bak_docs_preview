@@ -13,8 +13,6 @@ type Lead = {
   estado?: string | null;
   vendedor_id?: string | null;
   vehicle_name?: string | null;
-  vehicle_type?: string | null;
-  documentos?: any[];
   [key: string]: any;
 };
 
@@ -367,31 +365,6 @@ export default function AdminLeadsPage() {
                   <p className="text-[10px] text-slate-400 mt-1">
                     Vendedor: <span className="text-slate-100">{vendedorNombre(selectedLead.vendedor_id)}</span>
                   </p>
-
-                  <div className="mt-4 rounded-xl border border-cyan-500/20 bg-cyan-500/10 p-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-xs font-black text-cyan-100">Documentos comerciales</p>
-                        <p className="text-[10px] text-cyan-100/70">Documentos enviados por vendedor</p>
-                      </div>
-
-                      <div className="rounded-full bg-black/30 px-3 py-1 text-[10px] font-black text-cyan-100">
-                        {(selectedLead.documentos || []).length} documentos
-                      </div>
-                    </div>
-
-                    {(selectedLead.documentos || []).length > 0 ? (
-                      <div className="mt-4 grid gap-3 md:grid-cols-3">
-                        {(selectedLead.documentos || []).map((doc: any) => (
-                          <AdminDocumentPreview key={doc.id} doc={doc} />
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="mt-3 rounded-lg border border-dashed border-cyan-500/20 p-4 text-center text-[11px] text-cyan-100/70">
-                        Todavía no hay documentos cargados.
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="rounded-md border border-slate-800 bg-slate-950/60 px-2 py-2">
@@ -584,42 +557,6 @@ export default function AdminLeadsPage() {
           )}
         </div>
       </section>
-    </div>
-  );
-}
-
-function AdminDocumentPreview({ doc }: any) {
-  const isPdf = String(doc.file_type || "").includes("pdf");
-
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-2">
-      {isPdf ? (
-        <a
-          href={doc.file_url}
-          target="_blank"
-          className="flex h-[110px] items-center justify-center rounded-lg border border-slate-700 bg-red-500/10 text-xs font-black text-red-200"
-        >
-          📄 Ver PDF
-        </a>
-      ) : (
-        <a href={doc.file_url} target="_blank">
-          <img
-            src={doc.file_url}
-            alt={doc.file_name}
-            className="h-[110px] w-full rounded-lg object-cover"
-          />
-        </a>
-      )}
-
-      <div className="mt-2">
-        <p className="truncate text-[10px] font-bold text-slate-200">{doc.file_name}</p>
-        <p className="mt-1 text-[9px] uppercase tracking-[0.12em] text-slate-500">
-          {doc.category || "documento"}
-        </p>
-        <p className="mt-1 text-[9px] text-slate-500">
-          {doc.created_at ? new Date(doc.created_at).toLocaleString("es-CO") : ""}
-        </p>
-      </div>
     </div>
   );
 }
